@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Configuración - {{ club.nombre }}</title>
+</head>
+
+<body>
+
+    <h1>Configuración del club</h1>
+
+    <h2>{{ club.nombre }}</h2>
+
+    {% if club.logo %}
+        <img
+            src="{{ club.logo.url }}"
+            alt="{{ club.nombre }}"
+            style="max-width: 150px;"
+        >
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        {{ form.as_p }}
+
+        <button type="submit">
+            Guardar cambios
+        </button>
+    </form>
+
+</body>
+</html>
