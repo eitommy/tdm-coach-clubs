@@ -164,7 +164,17 @@
                                         </strong>
 
                                         <div class="small text-muted">
-                                            Turno {{ item.ultima_asistencia.entrenamiento.turno }}
+                                            {% if item.ultima_asistencia.entrenamiento.turno_config %}
+                                                {{ item.ultima_asistencia.entrenamiento.turno_config.nombre }}
+                                                {% if item.ultima_asistencia.entrenamiento.turno_config.hora_inicio %}
+                                                    · {{ item.ultima_asistencia.entrenamiento.turno_config.hora_inicio|time:"H:i" }}
+                                                {% endif %}
+                                                {% if item.ultima_asistencia.entrenamiento.turno_config.hora_fin %}
+                                                    - {{ item.ultima_asistencia.entrenamiento.turno_config.hora_fin|time:"H:i" }}
+                                                {% endif %}
+                                            {% else %}
+                                                Turno {{ item.ultima_asistencia.entrenamiento.turno }}
+                                            {% endif %}
                                             ·
                                             {% if item.ultima_asistencia.estado == "asistio" %}
                                                 Asistió

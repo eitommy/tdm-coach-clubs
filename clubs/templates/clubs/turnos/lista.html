@@ -1,0 +1,188 @@
+{% extends "asistencia/base.html" %}
+
+{% block title %}
+Turnos - {{ club.nombre }}
+{% endblock %}
+
+{% block content %}
+
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">
+                Turnos
+            </h1>
+
+            <p class="text-muted mb-0">
+                Configurá los turnos de entrenamiento de {{ club.nombre }}.
+            </p>
+        </div>
+
+        <a
+            href="{% url 'crear_turno' %}"
+            class="btn btn-primary"
+        >
+            Nuevo turno
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div
+                class="alert
+                {% if message.tags == 'success' %}
+                    alert-success
+                {% elif message.tags == 'error' %}
+                    alert-danger
+                {% else %}
+                    alert-info
+                {% endif %}
+                alert-dismissible fade show"
+                role="alert"
+            >
+                {{ message }}
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Cerrar"
+                ></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+
+            {% if turnos %}
+
+                <div class="table-responsive">
+
+                    <table class="table align-middle mb-0">
+
+                        <thead>
+                            <tr>
+                                <th>Día</th>
+                                <th>Nombre</th>
+                                <th>Horario</th>
+                                <th>Orden</th>
+                                <th>Estado</th>
+                                <th class="text-end">
+                                    Acciones
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {% for turno in turnos %}
+
+                                <tr>
+
+                                    <td>
+                                        {{ turno.get_dia_semana_display }}
+                                    </td>
+
+                                    <td>
+                                        <strong>
+                                            {{ turno.nombre }}
+                                        </strong>
+                                    </td>
+
+                                    <td>
+                                        {% if turno.hora_inicio and turno.hora_fin %}
+                                            {{ turno.hora_inicio|time:"H:i" }}
+                                            -
+                                            {{ turno.hora_fin|time:"H:i" }}
+
+                                        {% elif turno.hora_inicio %}
+                                            Desde
+                                            {{ turno.hora_inicio|time:"H:i" }}
+
+                                        {% elif turno.hora_fin %}
+                                            Hasta
+                                            {{ turno.hora_fin|time:"H:i" }}
+
+                                        {% else %}
+                                            <span class="text-muted">
+                                                Sin horario
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {{ turno.orden }}
+                                    </td>
+
+                                    <td>
+                                        {% if turno.activo %}
+                                            <span class="badge bg-success">
+                                                Activo
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                Inactivo
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td class="text-end">
+
+                                        <a
+                                            href="{% url 'editar_turno' turno.id %}"
+                                            class="btn btn-sm btn-outline-primary"
+                                        >
+                                            Editar
+                                        </a>
+
+                                        <a
+                                            href="{% url 'eliminar_turno' turno.id %}"
+                                            class="btn btn-sm btn-outline-danger"
+                                        >
+                                            Eliminar
+                                        </a>
+
+                                    </td>
+
+                                </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            {% else %}
+
+                <div class="text-center py-5">
+
+                    <h2 class="h5 mb-2">
+                        Todavía no hay turnos configurados
+                    </h2>
+
+                    <p class="text-muted mb-4">
+                        Creá el primer turno para empezar a organizar
+                        los entrenamientos del club.
+                    </p>
+
+                    <a
+                        href="{% url 'crear_turno' %}"
+                        class="btn btn-primary"
+                    >
+                        Crear primer turno
+                    </a>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

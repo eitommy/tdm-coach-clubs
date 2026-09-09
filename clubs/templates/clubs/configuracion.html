@@ -1,35 +1,309 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "asistencia/base.html" %}
 
-    <title>Configuración - {{ club.nombre }}</title>
-</head>
+{% block title %}
+Configuración - {{ club.nombre }}
+{% endblock %}
 
-<body>
+{% block content %}
 
-    <h1>Configuración del club</h1>
+<div class="container py-4">
 
-    <h2>{{ club.nombre }}</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Configuración del club</h1>
+            <p class="text-muted mb-0">
+                Editá los datos generales y la identidad visual del club.
+            </p>
+        </div>
+    </div>
 
-    {% if club.logo %}
-        <img
-            src="{{ club.logo.url }}"
-            alt="{{ club.nombre }}"
-            style="max-width: 150px;"
-        >
+    {% if messages %}
+        {% for message in messages %}
+            <div
+                class="alert
+                {% if message.tags == 'success' %}
+                    alert-success
+                {% elif message.tags == 'error' %}
+                    alert-danger
+                {% else %}
+                    alert-info
+                {% endif %}
+                alert-dismissible fade show"
+                role="alert"
+            >
+                {{ message }}
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Cerrar"
+                ></button>
+            </div>
+        {% endfor %}
     {% endif %}
 
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
+    <div class="row g-4">
 
-        {{ form.as_p }}
+        <div class="col-lg-8">
 
-        <button type="submit">
-            Guardar cambios
-        </button>
-    </form>
+            <div class="card shadow-sm">
+                <div class="card-body">
 
-</body>
-</html>
+                    <form
+                        method="post"
+                        enctype="multipart/form-data"
+                    >
+
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label
+                                for="{{ form.nombre.id_for_label }}"
+                                class="form-label"
+                            >
+                                Nombre del club
+                            </label>
+
+                            {{ form.nombre }}
+
+                            {% for error in form.nombre.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label
+                                for="{{ form.logo.id_for_label }}"
+                                class="form-label"
+                            >
+                                Logo
+                            </label>
+
+                            {{ form.logo }}
+
+                            {% for error in form.logo.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+
+                                <label
+                                    for="{{ form.color_primario.id_for_label }}"
+                                    class="form-label"
+                                >
+                                    Color primario
+                                </label>
+
+                                <div class="d-flex align-items-center gap-3">
+                                    {{ form.color_primario }}
+
+                                    <span class="text-muted small">
+                                        {{ club.color_primario }}
+                                    </span>
+                                </div>
+
+                                {% for error in form.color_primario.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ error }}
+                                    </div>
+                                {% endfor %}
+
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+
+                                <label
+                                    for="{{ form.color_secundario.id_for_label }}"
+                                    class="form-label"
+                                >
+                                    Color secundario
+                                </label>
+
+                                <div class="d-flex align-items-center gap-3">
+                                    {{ form.color_secundario }}
+
+                                    <span class="text-muted small">
+                                        {{ club.color_secundario }}
+                                    </span>
+                                </div>
+
+                                {% for error in form.color_secundario.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ error }}
+                                    </div>
+                                {% endfor %}
+
+                            </div>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label
+                                for="{{ form.email.id_for_label }}"
+                                class="form-label"
+                            >
+                                Email
+                            </label>
+
+                            {{ form.email }}
+
+                            {% for error in form.email.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label
+                                for="{{ form.telefono.id_for_label }}"
+                                class="form-label"
+                            >
+                                Teléfono
+                            </label>
+
+                            {{ form.telefono }}
+
+                            {% for error in form.telefono.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+                        <div class="mb-4">
+
+                            <label
+                                for="{{ form.direccion.id_for_label }}"
+                                class="form-label"
+                            >
+                                Dirección
+                            </label>
+
+                            {{ form.direccion }}
+
+                            {% for error in form.direccion.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                        >
+                            Guardar cambios
+                        </button>
+
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-lg-4">
+
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+
+                    <h2 class="h5 mb-3">
+                        Vista previa
+                    </h2>
+
+                    {% if club.logo %}
+                        <img
+                            src="{{ club.logo.url }}"
+                            alt="{{ club.nombre }}"
+                            class="img-fluid mb-3"
+                            style="
+                                max-height: 140px;
+                                object-fit: contain;
+                            "
+                        >
+                    {% else %}
+                        <div
+                            class="border rounded d-flex align-items-center justify-content-center mb-3"
+                            style="
+                                height: 140px;
+                                background: #f8f9fa;
+                            "
+                        >
+                            <span class="text-muted">
+                                Sin logo
+                            </span>
+                        </div>
+                    {% endif %}
+
+                    <h3 class="h4 mb-3">
+                        {{ club.nombre }}
+                    </h3>
+
+                    <div class="mb-2">
+
+                        <span
+                            class="d-inline-block rounded me-2"
+                            style="
+                                width: 30px;
+                                height: 30px;
+                                background: {{ club.color_primario }};
+                                border: 1px solid #ddd;
+                                vertical-align: middle;
+                            "
+                        ></span>
+
+                        <span class="small">
+                            Color primario
+                        </span>
+
+                    </div>
+
+                    <div>
+
+                        <span
+                            class="d-inline-block rounded me-2"
+                            style="
+                                width: 30px;
+                                height: 30px;
+                                background: {{ club.color_secundario }};
+                                border: 1px solid #ddd;
+                                vertical-align: middle;
+                            "
+                        ></span>
+
+                        <span class="small">
+                            Color secundario
+                        </span>
+
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

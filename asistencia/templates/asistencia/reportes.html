@@ -194,7 +194,17 @@
 
                                 <td>
                                     <span class="badge bg-danger">
-                                        Turno {{ entrenamiento.turno }}
+                                        {% if entrenamiento.turno_config %}
+                                            {{ entrenamiento.turno_config.nombre }}
+                                            {% if entrenamiento.turno_config.hora_inicio %}
+                                                · {{ entrenamiento.turno_config.hora_inicio|time:"H:i" }}
+                                            {% endif %}
+                                            {% if entrenamiento.turno_config.hora_fin %}
+                                                - {{ entrenamiento.turno_config.hora_fin|time:"H:i" }}
+                                            {% endif %}
+                                        {% else %}
+                                            Turno {{ entrenamiento.turno }}
+                                        {% endif %}
                                     </span>
                                 </td>
 

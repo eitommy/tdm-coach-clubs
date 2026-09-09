@@ -1,53 +1,97 @@
 {% extends "asistencia/base.html" %}
 
+{% block title %}
+Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
+{% endblock %}
+
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
     <div>
         <h1 class="mb-1">Carga diaria</h1>
-        <p class="text-muted mb-2">{{ fecha|date:"l j F Y" }}</p>
+
+        <p class="text-muted mb-2">
+            {{ fecha|date:"l j F Y" }}
+        </p>
+
         <p class="mb-0 text-secondary">
             Elegí el día y entrá al turno que querés cargar.
         </p>
     </div>
 
     <div class="d-flex gap-2 flex-wrap">
-        <a href="{% url 'reportes' %}" class="btn btn-outline-dark">
+        <a
+            href="{% url 'reportes' %}"
+            class="btn btn-outline-dark"
+        >
             Ver reportes
         </a>
 
-        <a href="{% url 'lista_jugadores' %}" class="btn btn-outline-primary">
+        <a
+            href="{% url 'lista_jugadores' %}"
+            class="btn btn-outline-primary"
+        >
             Jugadores
         </a>
     </div>
 </div>
 
+
 <div class="card mb-4 shadow-sm border-0 card-fecha-panel">
     <div class="card-body">
+
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+
             <div>
-                <h5 class="mb-1">Fecha de trabajo</h5>
-                <p class="text-muted mb-0">Seleccioná el día de entrenamiento.</p>
+                <h5 class="mb-1">
+                    Fecha de trabajo
+                </h5>
+
+                <p class="text-muted mb-0">
+                    Seleccioná el día de entrenamiento.
+                </p>
             </div>
 
+
             <div class="d-flex gap-2 flex-wrap">
-                <a href="{% url 'inicio' %}?fecha={{ ayer|date:'Y-m-d' }}" class="btn btn-outline-secondary">
+
+                <a
+                    href="{% url 'inicio' %}?fecha={{ ayer|date:'Y-m-d' }}"
+                    class="btn btn-outline-secondary"
+                >
                     ← Ayer
                 </a>
 
-                <a href="{% url 'inicio' %}?fecha={{ hoy|date:'Y-m-d' }}" class="btn btn-dark">
+                <a
+                    href="{% url 'inicio' %}?fecha={{ hoy|date:'Y-m-d' }}"
+                    class="btn btn-dark"
+                >
                     Hoy
                 </a>
 
-                <a href="{% url 'inicio' %}?fecha={{ maniana|date:'Y-m-d' }}" class="btn btn-outline-secondary">
+                <a
+                    href="{% url 'inicio' %}?fecha={{ maniana|date:'Y-m-d' }}"
+                    class="btn btn-outline-secondary"
+                >
                     Mañana →
                 </a>
+
             </div>
+
         </div>
 
-        <form method="get" class="row g-2 align-items-end">
+
+        <form
+            method="get"
+            class="row g-2 align-items-end"
+        >
+
             <div class="col-md-9">
-                <label class="form-label">Seleccionar fecha</label>
+
+                <label class="form-label">
+                    Seleccionar fecha
+                </label>
+
                 <input
                     type="date"
                     name="fecha"
@@ -55,164 +99,429 @@
                     value="{{ fecha|date:'Y-m-d' }}"
                     required
                 >
+
             </div>
 
+
             <div class="col-md-3">
-                <button type="submit" class="btn btn-outline-primary w-100">
+
+                <button
+                    type="submit"
+                    class="btn btn-outline-primary w-100"
+                >
                     Ir a esa fecha
                 </button>
+
             </div>
+
         </form>
+
     </div>
 </div>
+
 
 <div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm border-0 h-100">
-            <div class="card-body">
-                <div class="text-muted small">Jugadores cargados</div>
-                <div class="fs-3 fw-bold">{{ total_cargados_dia }}</div>
-            </div>
-        </div>
-    </div>
 
     <div class="col-md-3">
+
         <div class="card text-center shadow-sm border-0 h-100">
+
             <div class="card-body">
-                <div class="text-muted small">Asistencias marcadas</div>
-                <div class="fs-3 fw-bold">{{ total_marcados_dia }}</div>
+
+                <div class="text-muted small">
+                    Jugadores cargados
+                </div>
+
+                <div class="fs-3 fw-bold">
+                    {{ total_cargados_dia }}
+                </div>
+
             </div>
+
         </div>
+
     </div>
 
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm border-0 h-100">
-            <div class="card-body">
-                <div class="text-muted small">Turnos finalizados</div>
-                <div class="fs-3 fw-bold text-success">{{ total_finalizados_dia }}</div>
-            </div>
-        </div>
-    </div>
 
     <div class="col-md-3">
+
         <div class="card text-center shadow-sm border-0 h-100">
+
             <div class="card-body">
-                <div class="text-muted small">Sin entrenamiento</div>
-                <div class="fs-3 fw-bold text-danger">{{ total_no_entrenados_dia }}</div>
+
+                <div class="text-muted small">
+                    Asistencias marcadas
+                </div>
+
+                <div class="fs-3 fw-bold">
+                    {{ total_marcados_dia }}
+                </div>
+
             </div>
+
         </div>
+
     </div>
+
+
+    <div class="col-md-3">
+
+        <div class="card text-center shadow-sm border-0 h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small">
+                    Turnos finalizados
+                </div>
+
+                <div class="fs-3 fw-bold text-success">
+                    {{ total_finalizados_dia }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-3">
+
+        <div class="card text-center shadow-sm border-0 h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small">
+                    Sin entrenamiento
+                </div>
+
+                <div class="fs-3 fw-bold text-danger">
+                    {{ total_no_entrenados_dia }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
 </div>
+
 
 <div class="card mb-4 shadow-sm border-0">
+
     <div class="card-body">
+
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+
             <div>
-                <h4 class="mb-1">Turnos del día</h4>
+
+                <h4 class="mb-1">
+                    Turnos del día
+                </h4>
+
                 <p class="text-muted mb-0">
-                    Entrá al turno para cargar asistencia, trabajos, partidos y cierre.
+                    Entrá al turno para cargar asistencia, trabajos,
+                    partidos y cierre.
                 </p>
+
             </div>
+
+
+            {% if es_admin_club %}
+
+                <a
+                    href="{% url 'lista_turnos' %}"
+                    class="btn btn-sm btn-outline-primary"
+                >
+                    Configurar turnos
+                </a>
+
+            {% endif %}
+
         </div>
 
-        <div class="row g-3">
-            {% for item in turnos_info %}
-                <div class="col-md-4">
-                    <div class="card h-100 border-0 shadow-sm card-turno-home {% if item.no_se_entreno %}border border-danger{% endif %}">
-                        <div class="card-body d-flex flex-column">
-                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                                <h5 class="mb-0">Turno {{ item.turno }}</h5>
 
-                                <span class="badge bg-{{ item.estado_clase }}">
-                                    {{ item.estado_texto }}
-                                </span>
+        {% if turnos_info %}
+
+            <div class="row g-3">
+
+                {% for item in turnos_info %}
+
+                    <div class="col-md-4">
+
+                        <div
+                            class="
+                                card
+                                h-100
+                                border-0
+                                shadow-sm
+                                card-turno-home
+
+                                {% if item.no_se_entreno %}
+                                    border
+                                    border-danger
+                                {% endif %}
+                            "
+                        >
+
+                            <div class="card-body d-flex flex-column">
+
+
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+
+                                    <div>
+
+                                        <h5 class="mb-1">
+                                            {{ item.nombre }}
+                                        </h5>
+
+
+                                        {% if item.hora_inicio or item.hora_fin %}
+
+                                            <div class="small text-muted">
+
+                                                {% if item.hora_inicio %}
+                                                    {{ item.hora_inicio|time:"H:i" }}
+                                                {% endif %}
+
+                                                {% if item.hora_inicio and item.hora_fin %}
+                                                    -
+                                                {% endif %}
+
+                                                {% if item.hora_fin %}
+                                                    {{ item.hora_fin|time:"H:i" }}
+                                                {% endif %}
+
+                                            </div>
+
+                                        {% endif %}
+
+                                    </div>
+
+
+                                    <span class="badge bg-{{ item.estado_clase }}">
+                                        {{ item.estado_texto }}
+                                    </span>
+
+                                </div>
+
+
+                                <p class="mb-2">
+
+                                    <strong>
+                                        Responsable:
+                                    </strong>
+
+                                    {{ item.entrenador }}
+
+                                </p>
+
+
+                                {% if item.no_se_entreno %}
+
+                                    <div class="alert alert-danger py-2 mb-3">
+
+                                        <div class="fw-bold">
+                                            No se entrenó
+                                        </div>
+
+
+                                        {% if item.motivo_no_entrenamiento %}
+
+                                            <div class="small mt-1">
+
+                                                <strong>
+                                                    Motivo:
+                                                </strong>
+
+                                                {{ item.motivo_no_entrenamiento }}
+
+                                            </div>
+
+                                        {% endif %}
+
+
+                                        {% if item.detalle_no_entrenamiento %}
+
+                                            <div class="small mt-1">
+
+                                                <strong>
+                                                    Detalle:
+                                                </strong>
+
+                                                {{ item.detalle_no_entrenamiento }}
+
+                                            </div>
+
+                                        {% endif %}
+
+                                    </div>
+
+                                {% else %}
+
+
+                                    <div class="small text-muted mb-1">
+
+                                        {{ item.cantidad_jugadores }}
+
+                                        jugador{{ item.cantidad_jugadores|pluralize:"es" }}
+
+                                        cargado{{ item.cantidad_jugadores|pluralize:"s" }}
+
+                                    </div>
+
+
+                                    <div class="small text-muted mb-2">
+
+                                        {{ item.cantidad_marcados }}
+
+                                        asistencia{{ item.cantidad_marcados|pluralize:"s" }}
+
+                                        marcada{{ item.cantidad_marcados|pluralize:"s" }}
+
+                                    </div>
+
+
+                                    <div class="small mb-3 text-muted">
+                                        {{ item.estado_detalle }}
+                                    </div>
+
+                                {% endif %}
+
+
+                                <a
+                                    href="{% url 'dia_turno' fecha|date:'Y-m-d' item.turno_id %}"
+                                    class="btn btn-primary w-100 py-2 mt-auto"
+                                >
+                                    Abrir turno
+                                </a>
+
                             </div>
 
-                            <p class="mb-2">
-                                <strong>Responsable:</strong> {{ item.entrenador }}
-                            </p>
-
-                            {% if item.no_se_entreno %}
-                                <div class="alert alert-danger py-2 mb-3">
-                                    <div class="fw-bold">No se entrenó</div>
-
-                                    {% if item.motivo_no_entrenamiento %}
-                                        <div class="small mt-1">
-                                            <strong>Motivo:</strong>
-                                            {{ item.motivo_no_entrenamiento }}
-                                        </div>
-                                    {% endif %}
-
-                                    {% if item.detalle_no_entrenamiento %}
-                                        <div class="small mt-1">
-                                            <strong>Detalle:</strong>
-                                            {{ item.detalle_no_entrenamiento }}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            {% else %}
-                                <div class="small text-muted mb-1">
-                                    {{ item.cantidad_jugadores }} jugador{{ item.cantidad_jugadores|pluralize:"es" }} cargado{{ item.cantidad_jugadores|pluralize:"s" }}
-                                </div>
-
-                                <div class="small text-muted mb-2">
-                                    {{ item.cantidad_marcados }} asistencia{{ item.cantidad_marcados|pluralize:"s" }} marcada{{ item.cantidad_marcados|pluralize:"s" }}
-                                </div>
-
-                                <div class="small mb-3 text-muted">
-                                    {{ item.estado_detalle }}
-                                </div>
-                            {% endif %}
-
-                            <a href="{% url 'dia_turno' fecha|date:'Y-m-d' item.turno %}"
-                               class="btn {% if item.turno == 1 %}btn-primary{% elif item.turno == 2 %}btn-warning{% else %}btn-success{% endif %} w-100 py-2 mt-auto">
-                                Abrir turno
-                            </a>
                         </div>
+
                     </div>
+
+                {% endfor %}
+
+            </div>
+
+
+        {% else %}
+
+            <div class="text-center py-5">
+
+                <div class="fs-1 mb-3">
+                    🏓
                 </div>
-            {% endfor %}
-        </div>
+
+                <h5 class="mb-2">
+                    No hay turnos configurados para este día
+                </h5>
+
+                <p class="text-muted mb-3">
+                    {{ club_actual.nombre }}
+                    no tiene turnos activos para
+                    {{ fecha|date:"l" }}.
+                </p>
+
+
+                {% if es_admin_club %}
+
+                    <a
+                        href="{% url 'crear_turno' %}"
+                        class="btn btn-primary"
+                    >
+                        Crear turno
+                    </a>
+
+                {% endif %}
+
+            </div>
+
+        {% endif %}
+
     </div>
+
 </div>
 
+
 <div class="card shadow-sm border-0">
+
     <div class="card-body">
+
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+
             <div>
-                <h5 class="mb-1">Accesos secundarios</h5>
+
+                <h5 class="mb-1">
+                    Accesos secundarios
+                </h5>
+
                 <p class="text-muted mb-0">
-                    Herramientas que no se usan en cada carga, pero quedan disponibles.
+                    Herramientas que no se usan en cada carga,
+                    pero quedan disponibles.
                 </p>
+
             </div>
+
         </div>
+
 
         <div class="row g-3">
+
             <div class="col-md-3">
-                <a href="{% url 'reportes' %}" class="btn btn-outline-dark w-100 py-3">
+
+                <a
+                    href="{% url 'reportes' %}"
+                    class="btn btn-outline-dark w-100 py-3"
+                >
                     Reportes
                 </a>
+
             </div>
 
+
             <div class="col-md-3">
-                <a href="{% url 'dashboard_mensual' %}" class="btn btn-outline-dark w-100 py-3">
+
+                <a
+                    href="{% url 'dashboard_mensual' %}"
+                    class="btn btn-outline-dark w-100 py-3"
+                >
                     Resumen mensual
                 </a>
+
             </div>
 
+
             <div class="col-md-3">
-                <a href="{% url 'seguimiento_semanal' %}" class="btn btn-outline-dark w-100 py-3">
+
+                <a
+                    href="{% url 'seguimiento_semanal' %}"
+                    class="btn btn-outline-dark w-100 py-3"
+                >
                     Seguimiento semanal
                 </a>
+
             </div>
 
+
             <div class="col-md-3">
-                <a href="{% url 'lista_ejercicios' %}" class="btn btn-outline-dark w-100 py-3">
+
+                <a
+                    href="{% url 'lista_ejercicios' %}"
+                    class="btn btn-outline-dark w-100 py-3"
+                >
                     Base de ejercicios
                 </a>
+
             </div>
+
         </div>
+
     </div>
+
 </div>
 
 {% endblock %}

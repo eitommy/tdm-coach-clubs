@@ -1,0 +1,357 @@
+{% extends "asistencia/base.html" %}
+
+{% block title %}
+Nuevo usuario - {{ club.nombre }}
+{% endblock %}
+
+{% block content %}
+
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+
+        <div>
+            <h1 class="h3 mb-1">
+                Nuevo usuario
+            </h1>
+
+            <p class="text-muted mb-0">
+                Creá un acceso para {{ club.nombre }} y definí qué permisos tendrá.
+            </p>
+        </div>
+
+        <a
+            href="{% url 'lista_usuarios' %}"
+            class="btn btn-outline-secondary"
+        >
+            Volver a usuarios
+        </a>
+
+    </div>
+
+
+    <div class="row g-4">
+
+        <div class="col-lg-7">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body">
+
+                    <form method="post">
+
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+
+                        <div class="mb-3">
+
+                            <label
+                                for="{{ form.username.id_for_label }}"
+                                class="form-label"
+                            >
+                                Usuario
+                            </label>
+
+                            {{ form.username }}
+
+                            <div class="form-text">
+                                Será el nombre que utilizará para iniciar sesión.
+                            </div>
+
+                            {% for error in form.username.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+
+                                <label
+                                    for="{{ form.nombre.id_for_label }}"
+                                    class="form-label"
+                                >
+                                    Nombre
+                                </label>
+
+                                {{ form.nombre }}
+
+                                {% for error in form.nombre.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ error }}
+                                    </div>
+                                {% endfor %}
+
+                            </div>
+
+
+                            <div class="col-md-6 mb-3">
+
+                                <label
+                                    for="{{ form.apellido.id_for_label }}"
+                                    class="form-label"
+                                >
+                                    Apellido
+                                </label>
+
+                                {{ form.apellido }}
+
+                                {% for error in form.apellido.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ error }}
+                                    </div>
+                                {% endfor %}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="mb-4">
+
+                            <label
+                                for="{{ form.email.id_for_label }}"
+                                class="form-label"
+                            >
+                                Email
+                            </label>
+
+                            {{ form.email }}
+
+                            <div class="form-text">
+                                Es opcional, pero conviene cargarlo para identificar mejor al usuario.
+                            </div>
+
+                            {% for error in form.email.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+
+                        <hr class="my-4">
+
+
+                        <div class="mb-4">
+
+                            <label
+                                for="{{ form.rol.id_for_label }}"
+                                class="form-label"
+                            >
+                                Rol
+                            </label>
+
+                            {{ form.rol }}
+
+                            <div class="form-text">
+                                El administrador gestiona usuarios, turnos y configuración.
+                                El entrenador usa las funciones deportivas del sistema.
+                            </div>
+
+                            {% for error in form.rol.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+
+                        <hr class="my-4">
+
+
+                        <div class="mb-3">
+
+                            <h2 class="h6 mb-1">
+                                Contraseña inicial
+                            </h2>
+
+                            <p class="text-muted small mb-3">
+                                El usuario podrá iniciar sesión con esta contraseña.
+                            </p>
+
+                        </div>
+
+
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+
+                                <label
+                                    for="{{ form.password.id_for_label }}"
+                                    class="form-label"
+                                >
+                                    Contraseña
+                                </label>
+
+                                {{ form.password }}
+
+                                {% for error in form.password.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ error }}
+                                    </div>
+                                {% endfor %}
+
+                            </div>
+
+
+                            <div class="col-md-6 mb-3">
+
+                                <label
+                                    for="{{ form.password_confirmacion.id_for_label }}"
+                                    class="form-label"
+                                >
+                                    Repetir contraseña
+                                </label>
+
+                                {{ form.password_confirmacion }}
+
+                                {% for error in form.password_confirmacion.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ error }}
+                                    </div>
+                                {% endfor %}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="alert alert-light border small mb-4">
+                            La contraseña debe cumplir las reglas de seguridad configuradas en Django.
+                        </div>
+
+
+                        <div class="d-flex gap-2 flex-wrap">
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary"
+                            >
+                                Crear usuario
+                            </button>
+
+                            <a
+                                href="{% url 'lista_usuarios' %}"
+                                class="btn btn-outline-secondary"
+                            >
+                                Cancelar
+                            </a>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-lg-5">
+
+            <div class="card shadow-sm mb-4">
+
+                <div class="card-body">
+
+                    <h2 class="h5 mb-3">
+                        Permisos por rol
+                    </h2>
+
+                    <div class="border rounded-3 p-3 mb-3">
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+
+                            <strong>
+                                Administrador
+                            </strong>
+
+                            <span class="badge bg-primary">
+                                Gestión completa
+                            </span>
+
+                        </div>
+
+                        <p class="text-muted small mb-2">
+                            Puede utilizar el sistema deportivo y además administrar:
+                        </p>
+
+                        <ul class="small text-muted mb-0 ps-3">
+                            <li>Usuarios del club</li>
+                            <li>Turnos</li>
+                            <li>Jugadores y ejercicios</li>
+                            <li>Configuración del club</li>
+                        </ul>
+
+                    </div>
+
+
+                    <div class="border rounded-3 p-3">
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+
+                            <strong>
+                                Entrenador
+                            </strong>
+
+                            <span class="badge bg-secondary">
+                                Operación diaria
+                            </span>
+
+                        </div>
+
+                        <p class="text-muted small mb-2">
+                            Puede trabajar con la carga deportiva del club:
+                        </p>
+
+                        <ul class="small text-muted mb-0 ps-3">
+                            <li>Asistencias</li>
+                            <li>Trabajos y parejas</li>
+                            <li>Partidos</li>
+                            <li>Observaciones y cierre de turnos</li>
+                        </ul>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="card shadow-sm">
+
+                <div class="card-body">
+
+                    <h2 class="h6 mb-2">
+                        Seguridad
+                    </h2>
+
+                    <p class="text-muted small mb-0">
+                        El usuario quedará vinculado únicamente a
+                        <strong>{{ club.nombre }}</strong>.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

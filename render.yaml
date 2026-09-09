@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: tdm-coach-clubs-demo
+    runtime: python
+    plan: free
+    buildCommand: ./build.sh
+    startCommand: gunicorn tdm_asistencia.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.4
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tdm-coach-clubs-demo-db
+          property: connectionString
+
+databases:
+  - name: tdm-coach-clubs-demo-db
+    plan: free
+    databaseName: tdm_coach_clubs_demo
+    user: tdm_coach_clubs_demo

@@ -16,13 +16,13 @@ urlpatterns = [
     ),
 
     path(
-        "dia/<str:fecha_str>/turno/<int:turno>/",
+        "dia/<str:fecha_str>/turno/<int:turno_id>/",
         views.dia_turno,
         name="dia_turno",
     ),
 
     path(
-        "dia/<str:fecha_str>/turno/<int:turno>/copiar-jugadores/",
+        "dia/<str:fecha_str>/turno/<int:turno_id>/copiar-jugadores/",
         views.copiar_jugadores_turno,
         name="copiar_jugadores_turno",
     ),
@@ -202,6 +202,10 @@ urlpatterns = [
         views.dashboard_mensual,
         name="dashboard_mensual",
     ),
-    
-    path("resumen-dia/", views.resumen_dia, name="resumen_dia"),
+
+    path(
+        "resumen-dia/",
+        views.resumen_dia,
+        name="resumen_dia",
+    ),
 ]

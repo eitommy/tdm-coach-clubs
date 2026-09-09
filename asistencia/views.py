@@ -13,12 +13,14 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 
+from clubs.models import PerfilUsuario, TurnoClub
+from clubs.utils import obtener_club_usuario, requerir_admin_club
+
 from .forms import (
     EjercicioForm,
     EntrenamientoInfoForm,
     JugadorForm,
     PerfilForm,
-    RegistroEntrenadorForm,
     TrabajoTurnoForm,
     ObservacionJugadorForm,
     MotivoAusenciaForm,
@@ -33,28 +35,56 @@ from .models import (
     EjercicioRealizado,
     EjercicioTurno,
     Entrenamiento,
-    Entrenador,
     Jugador,
     TrabajoTurno,
     ObservacionJugador,
     PartidoTurno,
 )
-def obtener_o_crear_entrenamiento(fecha, turno):
-    entrenamiento, _ = Entrenamiento.objects.get_or_create(fecha=fecha, turno=turno)
+def obtener_o_crear_entrenamiento(
+    fecha,
+    turno,
+    club,
+    turno_config=None,
+):
+    """
+    Obtiene o crea el entrenamiento comercial usando TurnoClub.
+
+    `turno` se conserva temporalmente como argumento de compatibilidad
+    para resolver el TurnoClub por su orden, pero los registros nuevos
+    ya no escriben el campo numérico legacy.
+    """
+    if turno_config is None:
+        turno_config = get_object_or_404(
+            TurnoClub,
+            club=club,
+            dia_semana=fecha.weekday(),
+            orden=int(turno),
+            activo=True,
+        )
+
+    entrenamiento, _ = Entrenamiento.objects.get_or_create(
+        club=club,
+        fecha=fecha,
+        turno_config=turno_config,
+    )
+
     return entrenamiento
 
-
 def nombre_entrenador(entrenamiento):
-    if entrenamiento.entrenador_responsable:
-        return str(entrenamiento.entrenador_responsable)
-
-    if entrenamiento.entrenador:
+    if entrenamiento.responsable_usuario:
         return (
-            entrenamiento.entrenador.get_full_name()
-            or entrenamiento.entrenador.username
+            entrenamiento.responsable_usuario.get_full_name()
+            or entrenamiento.responsable_usuario.username
         )
 
     return "Sin entrenador"
+
+
+def nombre_turno(entrenamiento, incluir_horario=False):
+    if incluir_horario:
+        return entrenamiento.nombre_turno_completo
+
+    return entrenamiento.nombre_turno
 
 
 def asignar_entrenador_si_vacio(entrenamiento, user):
@@ -65,6 +95,48 @@ def asignar_entrenador_si_vacio(entrenamiento, user):
 
 def turno_bloqueado(entrenamiento):
     return entrenamiento.finalizado or entrenamiento.no_se_entreno
+
+
+def usuario_puede_operar_club(user, club):
+    """
+    Verificación explícita para acciones sensibles del entrenamiento.
+
+    Exige:
+    - User activo en Django.
+    - PerfilUsuario activo.
+    - pertenencia al mismo club.
+    - rol administrador o entrenador.
+    """
+    if not user.is_authenticated or not user.is_active:
+        return False
+
+    return PerfilUsuario.objects.filter(
+        usuario=user,
+        club=club,
+        activo=True,
+        rol__in=[
+            PerfilUsuario.Rol.ADMIN,
+            PerfilUsuario.Rol.ENTRENADOR,
+        ],
+    ).exists()
+
+
+def bloquear_si_usuario_no_operativo(request, club):
+    if usuario_puede_operar_club(
+        request.user,
+        club,
+    ):
+        return None
+
+    messages.error(
+        request,
+        (
+            "Tu usuario no tiene permisos activos para "
+            "operar entrenamientos de este club."
+        ),
+    )
+
+    return redirect("inicio")
 
 
 def redirigir_turno_bloqueado(request, entrenamiento):
@@ -79,10 +151,23 @@ def redirigir_turno_bloqueado(request, entrenamiento):
     )
 
 
+def obtener_turno_id_para_url(entrenamiento):
+    """
+    En la parte comercial todo Entrenamiento con club tiene turno_config.
+    Los registros legacy sin club no tienen una URL de TurnoClub.
+    """
+    return entrenamiento.turno_config_id
+
+
 def redirect_dia_turno(entrenamiento, volver_a=""):
+    turno_id = obtener_turno_id_para_url(entrenamiento)
+
+    if turno_id is None:
+        return redirect("inicio")
+
     url = (
         f"/dia/{entrenamiento.fecha.isoformat()}/"
-        f"turno/{entrenamiento.turno}/"
+        f"turno/{turno_id}/"
     )
 
     if volver_a:
@@ -92,21 +177,34 @@ def redirect_dia_turno(entrenamiento, volver_a=""):
 
 
 def registro(request):
-    if request.method == "POST":
-        form = RegistroEntrenadorForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            messages.success(request, "Cuenta creada correctamente.")
-            return redirect("inicio")
-    else:
-        form = RegistroEntrenadorForm()
+    """
+    El producto multiclub no permite autorregistro público.
 
-    return render(request, "registration/register.html", {"form": form})
+    Los usuarios de cada club se crean desde la administración del club.
+    Conservamos temporalmente esta vista para no romper URLs antiguas,
+    pero ya no crea cuentas.
+    """
+    if request.user.is_authenticated:
+        return redirect("inicio")
+
+    messages.info(
+        request,
+        "Las cuentas son creadas por el administrador de cada club.",
+    )
+    return redirect("login")
 
 
 @login_required
 def inicio(request):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     fecha_str = request.GET.get("fecha")
 
     if fecha_str:
@@ -117,14 +215,28 @@ def inicio(request):
     else:
         fecha = timezone.localdate()
 
+    turnos_configurados = (
+        TurnoClub.objects
+        .filter(
+            club=club,
+            dia_semana=fecha.weekday(),
+            activo=True,
+        )
+        .order_by("orden", "hora_inicio", "id")
+    )
+
     turnos_info = []
     total_cargados_dia = 0
     total_marcados_dia = 0
     total_no_entrenados_dia = 0
     total_finalizados_dia = 0
 
-    for turno in [1, 2, 3]:
-        entrenamiento = obtener_o_crear_entrenamiento(fecha, turno)
+    for turno_config in turnos_configurados:
+        entrenamiento = obtener_o_crear_entrenamiento(
+            fecha,
+            turno_config.orden,
+            club,
+        )
 
         cantidad_jugadores = Asistencia.objects.filter(
             entrenamiento=entrenamiento
@@ -182,7 +294,11 @@ def inicio(request):
             estado_detalle = "Falta revisar cierre del turno."
 
         turnos_info.append({
-            "turno": turno,
+            "turno_id": turno_config.id,
+            "turno_config": turno_config,
+            "nombre": turno_config.nombre,
+            "hora_inicio": turno_config.hora_inicio,
+            "hora_fin": turno_config.hora_fin,
             "cantidad_jugadores": cantidad_jugadores,
             "cantidad_marcados": cantidad_marcados,
             "entrenador": nombre_entrenador(entrenamiento),
@@ -201,13 +317,20 @@ def inicio(request):
         })
 
     contexto = {
+        "club": club,
         "fecha": fecha,
         "hoy": timezone.localdate(),
         "ayer": fecha - timedelta(days=1),
         "maniana": fecha + timedelta(days=1),
         "turnos_info": turnos_info,
-        "total_jugadores": Jugador.objects.filter(activo=True).count(),
-        "total_ejercicios": Ejercicio.objects.filter(activo=True).count(),
+        "total_jugadores": Jugador.objects.filter(
+            club=club,
+            activo=True,
+        ).count(),
+        "total_ejercicios": Ejercicio.objects.filter(
+            club=club,
+            activo=True,
+        ).count(),
         "total_cargados_dia": total_cargados_dia,
         "total_marcados_dia": total_marcados_dia,
         "total_no_entrenados_dia": total_no_entrenados_dia,
@@ -219,38 +342,134 @@ def inicio(request):
 
 @login_required
 def ir_a_fecha_asistencia(request):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     fecha_str = request.GET.get("fecha")
-    turno = request.GET.get("turno", 1)
 
     if not fecha_str:
-        fecha_str = timezone.localdate().isoformat()
+        fecha = timezone.localdate()
+        fecha_str = fecha.isoformat()
+    else:
+        try:
+            fecha = datetime.strptime(
+                fecha_str,
+                "%Y-%m-%d",
+            ).date()
+        except ValueError:
+            fecha = timezone.localdate()
+            fecha_str = fecha.isoformat()
 
-    return redirect("dia_turno", fecha_str=fecha_str, turno=int(turno))
+    turno_id = request.GET.get("turno_id")
 
+    turno_config = None
+
+    if turno_id:
+        try:
+            turno_id = int(turno_id)
+        except (TypeError, ValueError):
+            turno_id = None
+
+    if turno_id:
+        turno_config = TurnoClub.objects.filter(
+            id=turno_id,
+            club=club,
+            dia_semana=fecha.weekday(),
+            activo=True,
+        ).first()
+
+    if turno_config is None:
+        turno_config = (
+            TurnoClub.objects
+            .filter(
+                club=club,
+                dia_semana=fecha.weekday(),
+                activo=True,
+            )
+            .order_by(
+                "orden",
+                "hora_inicio",
+                "id",
+            )
+            .first()
+        )
+
+    if turno_config is None:
+        messages.info(
+            request,
+            "No hay turnos configurados para esa fecha.",
+        )
+        return redirect(
+            f"/?fecha={fecha_str}"
+        )
+
+    return redirect(
+        "dia_turno",
+        fecha_str=fecha_str,
+        turno_id=turno_config.id,
+    )
 
 @login_required
-def dia_turno(request, fecha_str, turno):
-    fecha = datetime.strptime(
-        fecha_str,
-        "%Y-%m-%d",
-    ).date()
+def dia_turno(request, fecha_str, turno_id):
+    club = obtener_club_usuario(request.user)
 
-    turno = int(turno)
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
+    try:
+        fecha = datetime.strptime(
+            fecha_str,
+            "%Y-%m-%d",
+        ).date()
+    except ValueError:
+        messages.error(
+            request,
+            "Fecha inválida.",
+        )
+        return redirect("inicio")
+
+    turno_config = get_object_or_404(
+        TurnoClub,
+        id=turno_id,
+        club=club,
+        dia_semana=fecha.weekday(),
+        activo=True,
+    )
+
+    turno = turno_config.orden
 
     entrenamiento = obtener_o_crear_entrenamiento(
         fecha,
         turno,
+        club,
+        turno_config=turno_config,
     )
 
     asistencias = list(
         Asistencia.objects
-        .filter(entrenamiento=entrenamiento)
+        .filter(
+            entrenamiento=entrenamiento,
+            jugador__club=club,
+        )
         .select_related("jugador")
     )
 
     jugadores_disponibles = (
         Jugador.objects
-        .filter(activo=True)
+        .filter(
+            club=club,
+            activo=True,
+        )
         .exclude(
             id__in=[
                 asistencia.jugador_id
@@ -265,7 +484,10 @@ def dia_turno(request, fecha_str, turno):
 
     ejercicios_turno = (
         EjercicioTurno.objects
-        .filter(entrenamiento=entrenamiento)
+        .filter(
+            entrenamiento=entrenamiento,
+            ejercicio__club=club,
+        )
         .select_related("ejercicio")
         .order_by(
             "ejercicio__categoria",
@@ -300,7 +522,14 @@ def dia_turno(request, fecha_str, turno):
 
     trabajos_turno = (
         TrabajoTurno.objects
-        .filter(entrenamiento=entrenamiento)
+        .filter(
+            entrenamiento=entrenamiento,
+            jugador_1__club=club,
+        )
+        .filter(
+            Q(jugador_2__isnull=True)
+            | Q(jugador_2__club=club)
+        )
         .select_related(
             "jugador_1",
             "jugador_2",
@@ -400,16 +629,18 @@ def dia_turno(request, fecha_str, turno):
     trabajos_otros_turnos = (
         TrabajoTurno.objects
         .filter(
+            entrenamiento__club=club,
             entrenamiento__fecha=fecha,
-            entrenamiento__turno__lt=turno,
+            entrenamiento__turno_config__orden__lt=turno_config.orden,
         )
         .select_related(
             "entrenamiento",
+            "entrenamiento__turno_config",
             "jugador_1",
             "jugador_2",
         )
         .order_by(
-            "entrenamiento__turno",
+            "entrenamiento__turno_config__orden",
             "cambio",
             "id",
         )
@@ -417,7 +648,11 @@ def dia_turno(request, fecha_str, turno):
 
     partidos_turno = (
         PartidoTurno.objects
-        .filter(entrenamiento=entrenamiento)
+        .filter(
+            entrenamiento=entrenamiento,
+            jugador_1__club=club,
+            jugador_2__club=club,
+        )
         .select_related(
             "jugador_1",
             "jugador_2",
@@ -528,7 +763,7 @@ def dia_turno(request, fecha_str, turno):
             )
         )
 
-    if entrenamiento.entrenador_responsable is None:
+    if entrenamiento.responsable_usuario is None:
         alertas_resumen_turno.append(
             "El turno no tiene entrenador responsable."
         )
@@ -555,14 +790,35 @@ def dia_turno(request, fecha_str, turno):
             and ausentes_sin_motivo_turno == 0
             and cambios_incompletos_turno == 0
             and partidos_sin_sets_turno == 0
-            and entrenamiento.entrenador_responsable is not None
+            and entrenamiento.responsable_usuario is not None
         ),
     }
+
+    turnos_del_dia = (
+        TurnoClub.objects
+        .filter(
+            club=club,
+            dia_semana=fecha.weekday(),
+            activo=True,
+        )
+        .order_by(
+            "orden",
+            "hora_inicio",
+            "id",
+        )
+    )
+
+    turno_config = entrenamiento.turno_config
+
+    otros_turnos_disponibles = turnos_del_dia.exclude(
+        id=turno_config.id if turno_config else None
+    )
 
     contexto = {
         "entrenamiento": entrenamiento,
         "entrenamiento_form": EntrenamientoInfoForm(
-            instance=entrenamiento
+            instance=entrenamiento,
+            club=club,
         ),
         "no_entrenamiento_form": NoEntrenamientoForm(
             instance=entrenamiento
@@ -584,7 +840,15 @@ def dia_turno(request, fecha_str, turno):
         "partidos_turno": partidos_turno,
         "resumen_turno": resumen_turno,
         "fecha": fecha,
-        "turno": turno,
+        "turno_id": turno_config.id,
+        "turno_config": turno_config,
+        "turno_nombre": (
+            turno_config.nombre
+            if turno_config
+            else f"Turno {turno}"
+        ),
+        "turnos_del_dia": turnos_del_dia,
+        "otros_turnos_disponibles": otros_turnos_disponibles,
         "ayer": fecha - timedelta(days=1),
         "maniana": fecha + timedelta(days=1),
         "hoy": timezone.localdate(),
@@ -600,7 +864,16 @@ def dia_turno(request, fecha_str, turno):
 
 @login_required
 @require_POST
-def copiar_jugadores_turno(request, fecha_str, turno):
+def copiar_jugadores_turno(request, fecha_str, turno_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     try:
         fecha = datetime.strptime(
             fecha_str,
@@ -613,10 +886,18 @@ def copiar_jugadores_turno(request, fecha_str, turno):
         )
         return redirect("inicio")
 
-    turno_origen = request.POST.get("turno_origen")
+    turno_destino_config = get_object_or_404(
+        TurnoClub,
+        id=turno_id,
+        club=club,
+        dia_semana=fecha.weekday(),
+        activo=True,
+    )
+
+    turno_origen_id = request.POST.get("turno_origen")
 
     try:
-        turno_origen = int(turno_origen)
+        turno_origen_id = int(turno_origen_id)
     except (TypeError, ValueError):
         messages.error(
             request,
@@ -625,10 +906,10 @@ def copiar_jugadores_turno(request, fecha_str, turno):
         return redirect(
             "dia_turno",
             fecha_str=fecha_str,
-            turno=turno,
+            turno_id=turno_destino_config.id,
         )
 
-    if turno_origen == turno:
+    if turno_origen_id == turno_destino_config.id:
         messages.error(
             request,
             "No podés copiar jugadores desde el mismo turno.",
@@ -636,12 +917,22 @@ def copiar_jugadores_turno(request, fecha_str, turno):
         return redirect(
             "dia_turno",
             fecha_str=fecha_str,
-            turno=turno,
+            turno_id=turno_destino_config.id,
         )
+
+    turno_origen_config = get_object_or_404(
+        TurnoClub,
+        id=turno_origen_id,
+        club=club,
+        dia_semana=fecha.weekday(),
+        activo=True,
+    )
 
     entrenamiento_destino = obtener_o_crear_entrenamiento(
         fecha,
-        turno,
+        turno_destino_config.orden,
+        club,
+        turno_config=turno_destino_config,
     )
 
     if turno_bloqueado(entrenamiento_destino):
@@ -651,14 +942,18 @@ def copiar_jugadores_turno(request, fecha_str, turno):
         )
 
     entrenamiento_origen = Entrenamiento.objects.filter(
+        club=club,
         fecha=fecha,
-        turno=turno_origen,
+        turno_config=turno_origen_config,
     ).first()
 
     if not entrenamiento_origen:
         messages.error(
             request,
-            f"No existe el turno {turno_origen} para esa fecha.",
+            (
+                f"No existe un entrenamiento cargado para "
+                f"{turno_origen_config.nombre} en esa fecha."
+            ),
         )
         return redirect_dia_turno(
             entrenamiento_destino,
@@ -666,6 +961,7 @@ def copiar_jugadores_turno(request, fecha_str, turno):
 
     asistencias_origen = Asistencia.objects.filter(
         entrenamiento=entrenamiento_origen,
+        jugador__club=club,
     ).select_related(
         "jugador",
     )
@@ -675,7 +971,10 @@ def copiar_jugadores_turno(request, fecha_str, turno):
     if total_origen == 0:
         messages.warning(
             request,
-            f"El turno {turno_origen} no tiene jugadores cargados.",
+            (
+                f"{turno_origen_config.nombre} "
+                "no tiene jugadores cargados."
+            ),
         )
         return redirect_dia_turno(
             entrenamiento_destino,
@@ -701,23 +1000,39 @@ def copiar_jugadores_turno(request, fecha_str, turno):
     if copiados > 0:
         messages.success(
             request,
-            f"Se copiaron {copiados} jugador/es desde el turno {turno_origen}.",
+            (
+                f"Se copiaron {copiados} jugador/es "
+                f"desde {turno_origen_config.nombre}."
+            ),
         )
     else:
         messages.info(
             request,
-            f"No se copiaron jugadores nuevos. Ya estaban cargados los {repetidos} jugador/es.",
+            (
+                "No se copiaron jugadores nuevos. "
+                f"Ya estaban cargados los {repetidos} jugador/es."
+            ),
         )
 
     return redirect_dia_turno(
         entrenamiento_destino,
     )
-    
+
 @login_required
 def editar_trabajo_turno(request, trabajo_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     trabajo = get_object_or_404(
-        TrabajoTurno,
+        TrabajoTurno.objects.select_related("entrenamiento"),
         id=trabajo_id,
+        entrenamiento__club=club,
     )
 
     entrenamiento = trabajo.entrenamiento
@@ -746,7 +1061,7 @@ def editar_trabajo_turno(request, trabajo_id):
             return redirect(
                 "dia_turno",
                 fecha_str=entrenamiento.fecha.isoformat(),
-                turno=entrenamiento.turno,
+                turno_id=obtener_turno_id_para_url(entrenamiento),
             )
     else:
         form = TrabajoTurnoForm(
@@ -769,9 +1084,19 @@ def editar_trabajo_turno(request, trabajo_id):
 @login_required
 @require_POST
 def agregar_trabajo_turno(request, entrenamiento_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     entrenamiento = get_object_or_404(
         Entrenamiento,
         id=entrenamiento_id,
+        club=club,
     )
 
     if turno_bloqueado(entrenamiento):
@@ -819,9 +1144,19 @@ def agregar_trabajo_turno(request, entrenamiento_id):
     
 @login_required
 def crear_partido_turno(request, entrenamiento_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     entrenamiento = get_object_or_404(
         Entrenamiento,
         id=entrenamiento_id,
+        club=club,
     )
 
     if turno_bloqueado(entrenamiento):
@@ -884,7 +1219,7 @@ def crear_partido_turno(request, entrenamiento_id):
             return redirect(
                 "dia_turno",
                 fecha_str=entrenamiento.fecha.isoformat(),
-                turno=entrenamiento.turno,
+                turno_id=obtener_turno_id_para_url(entrenamiento),
             )
     else:
         partido_form = PartidoTurnoForm(
@@ -914,9 +1249,19 @@ def crear_partido_turno(request, entrenamiento_id):
 @login_required
 @require_POST
 def eliminar_trabajo_turno(request, trabajo_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     trabajo = get_object_or_404(
-        TrabajoTurno,
+        TrabajoTurno.objects.select_related("entrenamiento"),
         id=trabajo_id,
+        entrenamiento__club=club,
     )
 
     entrenamiento = trabajo.entrenamiento
@@ -944,20 +1289,40 @@ def eliminar_trabajo_turno(request, trabajo_id):
 @login_required
 @require_POST
 def tomar_turno(request, entrenamiento_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     entrenamiento = get_object_or_404(
         Entrenamiento,
         id=entrenamiento_id,
+        club=club,
     )
 
-    if entrenamiento.entrenador is None:
-        entrenamiento.entrenador = request.user
-        entrenamiento.save()
+    bloqueo_usuario = bloquear_si_usuario_no_operativo(
+        request,
+        club,
+    )
+
+    if bloqueo_usuario:
+        return bloqueo_usuario
+
+    if entrenamiento.responsable_usuario is None:
+        entrenamiento.responsable_usuario = request.user
+        entrenamiento.save(
+            update_fields=["responsable_usuario"],
+        )
         messages.success(
             request,
             "Tomaste este turno correctamente.",
         )
 
-    elif entrenamiento.entrenador == request.user:
+    elif entrenamiento.responsable_usuario == request.user:
         messages.info(
             request,
             "Este turno ya está asignado a vos.",
@@ -972,16 +1337,26 @@ def tomar_turno(request, entrenamiento_id):
     return redirect(
         "dia_turno",
         fecha_str=entrenamiento.fecha.isoformat(),
-        turno=entrenamiento.turno,
+        turno_id=obtener_turno_id_para_url(entrenamiento),
     )
 
 
 @login_required
 @require_POST
 def guardar_info_entrenamiento(request, entrenamiento_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     entrenamiento = get_object_or_404(
         Entrenamiento,
         id=entrenamiento_id,
+        club=club,
     )
 
     if turno_bloqueado(entrenamiento):
@@ -993,6 +1368,7 @@ def guardar_info_entrenamiento(request, entrenamiento_id):
     form = EntrenamientoInfoForm(
         request.POST,
         instance=entrenamiento,
+        club=club,
     )
 
     if form.is_valid():
@@ -1016,9 +1392,19 @@ def guardar_info_entrenamiento(request, entrenamiento_id):
 @login_required
 @require_POST
 def guardar_no_entrenamiento(request, entrenamiento_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     entrenamiento = get_object_or_404(
         Entrenamiento,
         id=entrenamiento_id,
+        club=club,
     )
 
     if entrenamiento.finalizado:
@@ -1109,10 +1495,28 @@ def guardar_no_entrenamiento(request, entrenamiento_id):
 @login_required
 @require_POST
 def finalizar_turno(request, entrenamiento_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     entrenamiento = get_object_or_404(
         Entrenamiento,
         id=entrenamiento_id,
+        club=club,
     )
+
+    bloqueo_usuario = bloquear_si_usuario_no_operativo(
+        request,
+        club,
+    )
+
+    if bloqueo_usuario:
+        return bloqueo_usuario
 
     if entrenamiento.finalizado:
         messages.info(
@@ -1123,7 +1527,7 @@ def finalizar_turno(request, entrenamiento_id):
         return redirect(
             "dia_turno",
             fecha_str=entrenamiento.fecha.isoformat(),
-            turno=entrenamiento.turno,
+            turno_id=obtener_turno_id_para_url(entrenamiento),
         )
 
     if entrenamiento.no_se_entreno:
@@ -1135,7 +1539,7 @@ def finalizar_turno(request, entrenamiento_id):
         return redirect(
             "dia_turno",
             fecha_str=entrenamiento.fecha.isoformat(),
-            turno=entrenamiento.turno,
+            turno_id=obtener_turno_id_para_url(entrenamiento),
         )
 
     errores = []
@@ -1180,7 +1584,7 @@ def finalizar_turno(request, entrenamiento_id):
             + "."
         )
 
-    if entrenamiento.entrenador_responsable is None:
+    if entrenamiento.responsable_usuario is None:
         errores.append(
             "El turno no tiene un entrenador responsable."
         )
@@ -1289,7 +1693,7 @@ def finalizar_turno(request, entrenamiento_id):
         return redirect(
             "dia_turno",
             fecha_str=entrenamiento.fecha.isoformat(),
-            turno=entrenamiento.turno,
+            turno_id=obtener_turno_id_para_url(entrenamiento),
         )
 
     entrenamiento.finalizado = True
@@ -1312,7 +1716,7 @@ def finalizar_turno(request, entrenamiento_id):
     return redirect(
         "dia_turno",
         fecha_str=entrenamiento.fecha.isoformat(),
-        turno=entrenamiento.turno,
+        turno_id=obtener_turno_id_para_url(entrenamiento),
     )
 
 
@@ -1320,10 +1724,28 @@ def finalizar_turno(request, entrenamiento_id):
 @login_required
 @require_POST
 def reabrir_turno(request, entrenamiento_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     entrenamiento = get_object_or_404(
         Entrenamiento,
         id=entrenamiento_id,
+        club=club,
     )
+
+    bloqueo_usuario = bloquear_si_usuario_no_operativo(
+        request,
+        club,
+    )
+
+    if bloqueo_usuario:
+        return bloqueo_usuario
 
     if not entrenamiento.finalizado:
         messages.info(
@@ -1334,7 +1756,7 @@ def reabrir_turno(request, entrenamiento_id):
         return redirect(
             "dia_turno",
             fecha_str=entrenamiento.fecha.isoformat(),
-            turno=entrenamiento.turno,
+            turno_id=obtener_turno_id_para_url(entrenamiento),
         )
 
     entrenamiento.finalizado = False
@@ -1357,18 +1779,29 @@ def reabrir_turno(request, entrenamiento_id):
     return redirect(
         "dia_turno",
         fecha_str=entrenamiento.fecha.isoformat(),
-        turno=entrenamiento.turno,
+        turno_id=obtener_turno_id_para_url(entrenamiento),
     )
 
 @login_required
 @require_POST
 def guardar_observacion_jugador(request, asistencia_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     asistencia = get_object_or_404(
         Asistencia.objects.select_related(
             "jugador",
             "entrenamiento",
         ),
         id=asistencia_id,
+        entrenamiento__club=club,
+        jugador__club=club,
     )
 
     entrenamiento = asistencia.entrenamiento
@@ -1419,9 +1852,19 @@ def guardar_observacion_jugador(request, asistencia_id):
 @login_required
 @require_POST
 def agregar_jugador(request, entrenamiento_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     entrenamiento = get_object_or_404(
         Entrenamiento,
         id=entrenamiento_id,
+        club=club,
     )
 
     if turno_bloqueado(entrenamiento):
@@ -1441,13 +1884,14 @@ def agregar_jugador(request, entrenamiento_id):
         return redirect(
             "dia_turno",
             fecha_str=entrenamiento.fecha.strftime("%Y-%m-%d"),
-            turno=entrenamiento.turno,
+            turno_id=obtener_turno_id_para_url(entrenamiento),
         )
 
     jugadores = (
         Jugador.objects
         .filter(
             id__in=jugadores_ids,
+            club=club,
             activo=True,
         )
         .order_by(
@@ -1476,7 +1920,7 @@ def agregar_jugador(request, entrenamiento_id):
     if agregados > 0:
         messages.success(
             request,
-            f"Se agregaron {agregados} jugador(es) al Turno {entrenamiento.turno}.",
+            f"Se agregaron {agregados} jugador(es) a {nombre_turno(entrenamiento)}.",
         )
 
     if ya_cargados > 0:
@@ -1494,7 +1938,20 @@ def agregar_jugador(request, entrenamiento_id):
 @login_required
 @require_POST
 def copiar_lista_ayer(request, entrenamiento_id):
-    entrenamiento = get_object_or_404(Entrenamiento, id=entrenamiento_id)
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
+    entrenamiento = get_object_or_404(
+        Entrenamiento,
+        id=entrenamiento_id,
+        club=club,
+    )
 
     if turno_bloqueado(entrenamiento):
         return redirigir_turno_bloqueado(
@@ -1505,8 +1962,10 @@ def copiar_lista_ayer(request, entrenamiento_id):
     entrenamiento_anterior = (
         Entrenamiento.objects
         .filter(
+            club=club,
             fecha__lt=entrenamiento.fecha,
-            turno=entrenamiento.turno,
+            turno_id=obtener_turno_id_para_url(entrenamiento),
+            turno_config=entrenamiento.turno_config,
             asistencias__isnull=False
         )
         .annotate(total_jugadores=Count("asistencias"))
@@ -1517,10 +1976,15 @@ def copiar_lista_ayer(request, entrenamiento_id):
 
     if not entrenamiento_anterior:
         messages.info(request, "No se encontró una lista anterior para copiar.")
-        return redirect("dia_turno", fecha_str=entrenamiento.fecha.strftime("%Y-%m-%d"), turno=entrenamiento.turno)
+        return redirect(
+        "dia_turno",
+        fecha_str=entrenamiento.fecha.strftime("%Y-%m-%d"),
+        turno_id=obtener_turno_id_para_url(entrenamiento),
+    )
 
     asistencias_anteriores = Asistencia.objects.filter(
-        entrenamiento=entrenamiento_anterior
+        entrenamiento=entrenamiento_anterior,
+        jugador__club=club,
     ).select_related("jugador")
 
     jugadores_copiados = 0
@@ -1546,13 +2010,30 @@ def copiar_lista_ayer(request, entrenamiento_id):
             "La lista anterior ya estaba cargada en este turno."
         )
 
-    return redirect("dia_turno", fecha_str=entrenamiento.fecha.strftime("%Y-%m-%d"), turno=entrenamiento.turno)
+    return redirect(
+        "dia_turno",
+        fecha_str=entrenamiento.fecha.strftime("%Y-%m-%d"),
+        turno_id=obtener_turno_id_para_url(entrenamiento),
+    )
 
 
 @login_required
 @require_POST
 def marcar_todos_asistieron(request, entrenamiento_id):
-    entrenamiento = get_object_or_404(Entrenamiento, id=entrenamiento_id)
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
+    entrenamiento = get_object_or_404(
+        Entrenamiento,
+        id=entrenamiento_id,
+        club=club,
+    )
     if turno_bloqueado(entrenamiento):
         return redirigir_turno_bloqueado(
             request,
@@ -1573,9 +2054,23 @@ def marcar_todos_asistieron(request, entrenamiento_id):
 @login_required
 @require_POST
 def quitar_jugador(request, asistencia_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     asistencia = get_object_or_404(
-        Asistencia,
+        Asistencia.objects.select_related(
+            "entrenamiento",
+            "jugador",
+        ),
         id=asistencia_id,
+        entrenamiento__club=club,
+        jugador__club=club,
     )
 
     entrenamiento = asistencia.entrenamiento
@@ -1627,9 +2122,25 @@ def quitar_jugador(request, asistencia_id):
 @login_required
 @require_POST
 def cambiar_estado(request, asistencia_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        return JsonResponse(
+            {
+                "ok": False,
+                "error": "Tu usuario no está asociado a un club activo.",
+            },
+            status=403,
+        )
+
     asistencia = get_object_or_404(
-        Asistencia.objects.select_related("entrenamiento"),
+        Asistencia.objects.select_related(
+            "entrenamiento",
+            "jugador",
+        ),
         id=asistencia_id,
+        entrenamiento__club=club,
+        jugador__club=club,
     )
 
     if turno_bloqueado(asistencia.entrenamiento):
@@ -1641,18 +2152,37 @@ def cambiar_estado(request, asistencia_id):
     asignar_entrenador_si_vacio(asistencia.entrenamiento, request.user)
 
     estado_nuevo = request.POST.get("estado")
-    estados_validos = {"asistio", "ausente", "tarde"}
+    estados_validos = {
+        "asistio",
+        "ausente",
+        "tarde",
+    }
+
+    if estado_nuevo not in estados_validos:
+        return JsonResponse(
+            {
+                "ok": False,
+                "error": "Estado de asistencia inválido.",
+            },
+            status=400,
+        )
 
     if asistencia.estado == estado_nuevo:
-      asistencia.estado = "pendiente"
+        asistencia.estado = "pendiente"
     else:
-      asistencia.estado = estado_nuevo
+        asistencia.estado = estado_nuevo
 
     if asistencia.estado != "ausente":
-      asistencia.motivo_ausencia = ""
-    asistencia.detalle_ausencia = ""
+        asistencia.motivo_ausencia = ""
+        asistencia.detalle_ausencia = ""
 
-    asistencia.save()
+    asistencia.save(
+        update_fields=[
+            "estado",
+            "motivo_ausencia",
+            "detalle_ausencia",
+        ]
+    )
 
     return JsonResponse({
         "ok": True,
@@ -1662,12 +2192,23 @@ def cambiar_estado(request, asistencia_id):
 @login_required
 @require_POST
 def guardar_motivo_ausencia(request, asistencia_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     asistencia = get_object_or_404(
         Asistencia.objects.select_related(
             "jugador",
             "entrenamiento",
         ),
         id=asistencia_id,
+        entrenamiento__club=club,
+        jugador__club=club,
     )
 
     if turno_bloqueado(asistencia.entrenamiento):
@@ -1706,19 +2247,28 @@ def guardar_motivo_ausencia(request, asistencia_id):
         )
 
     return redirect_dia_turno(
-    asistencia.entrenamiento,
-    request.POST.get("volver_a", ""),
-)
+        asistencia.entrenamiento,
+        request.POST.get("volver_a", ""),
+    )
 
 
 @login_required
 def lista_jugadores(request):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     hoy = timezone.localdate()
     inicio_mes = hoy.replace(day=1)
 
     jugadores = (
         Jugador.objects
-        .all()
+        .filter(club=club)
         .order_by(
             "apellido",
             "nombre",
@@ -1732,14 +2282,16 @@ def lista_jugadores(request):
             Asistencia.objects
             .filter(
                 jugador=jugador,
+                entrenamiento__club=club,
                 entrenamiento__no_se_entreno=False,
             )
             .select_related(
                 "entrenamiento",
+                "entrenamiento__turno_config",
             )
             .order_by(
                 "-entrenamiento__fecha",
-                "-entrenamiento__turno",
+                "-entrenamiento__turno_config__orden",
             )
             .first()
         )
@@ -1748,6 +2300,7 @@ def lista_jugadores(request):
             Asistencia.objects
             .filter(
                 jugador=jugador,
+                entrenamiento__club=club,
                 entrenamiento__fecha__range=[
                     inicio_mes,
                     hoy,
@@ -1804,88 +2357,232 @@ def lista_jugadores(request):
     )
 
 
-@login_required
+@requerir_admin_club
 def crear_jugador(request):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     if request.method == "POST":
-        form = JugadorForm(request.POST)
+        form = JugadorForm(
+            request.POST,
+            club=club,
+        )
+
         if form.is_valid():
-            form.save()
-            messages.success(request, "Jugador agregado correctamente.")
+            jugador = form.save(commit=False)
+            jugador.club = club
+            jugador.save()
+
+            messages.success(
+                request,
+                "Jugador agregado correctamente.",
+            )
             return redirect("lista_jugadores")
     else:
-        form = JugadorForm()
+        form = JugadorForm(
+            club=club,
+        )
 
-    return render(request, "asistencia/form_jugador.html", {
-        "form": form,
-        "titulo": "Agregar jugador",
-    })
+    return render(
+        request,
+        "asistencia/form_jugador.html",
+        {
+            "form": form,
+            "titulo": "Agregar jugador",
+        },
+    )
 
 
-@login_required
+@requerir_admin_club
 def editar_jugador(request, pk):
-    jugador = get_object_or_404(Jugador, pk=pk)
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
+    jugador = get_object_or_404(
+        Jugador,
+        pk=pk,
+        club=club,
+    )
 
     if request.method == "POST":
-        form = JugadorForm(request.POST, instance=jugador)
+        form = JugadorForm(
+            request.POST,
+            instance=jugador,
+            club=club,
+        )
+
         if form.is_valid():
-            form.save()
-            messages.success(request, "Jugador editado correctamente.")
+            jugador_editado = form.save(commit=False)
+            jugador_editado.club = club
+            jugador_editado.save()
+
+            messages.success(
+                request,
+                "Jugador editado correctamente.",
+            )
             return redirect("lista_jugadores")
     else:
-        form = JugadorForm(instance=jugador)
+        form = JugadorForm(
+            instance=jugador,
+            club=club,
+        )
 
-    return render(request, "asistencia/form_jugador.html", {
-        "form": form,
-        "titulo": "Editar jugador",
-    })
+    return render(
+        request,
+        "asistencia/form_jugador.html",
+        {
+            "form": form,
+            "titulo": "Editar jugador",
+        },
+    )
 
 
 @login_required
 def lista_ejercicios(request):
-    ejercicios = Ejercicio.objects.all()
-    return render(request, "asistencia/lista_ejercicios.html", {"ejercicios": ejercicios})
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
+    ejercicios = (
+        Ejercicio.objects
+        .filter(club=club)
+        .order_by(
+            "categoria",
+            "nombre",
+        )
+    )
+
+    return render(
+        request,
+        "asistencia/lista_ejercicios.html",
+        {
+            "ejercicios": ejercicios,
+        },
+    )
 
 
-@login_required
+@requerir_admin_club
 def crear_ejercicio(request):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     if request.method == "POST":
-        form = EjercicioForm(request.POST)
+        form = EjercicioForm(
+            request.POST,
+            club=club,
+        )
+
         if form.is_valid():
-            form.save()
-            messages.success(request, "Ejercicio agregado correctamente.")
+            ejercicio = form.save(commit=False)
+            ejercicio.club = club
+            ejercicio.save()
+
+            messages.success(
+                request,
+                "Ejercicio agregado correctamente.",
+            )
             return redirect("lista_ejercicios")
     else:
-        form = EjercicioForm()
+        form = EjercicioForm(
+            club=club,
+        )
 
-    return render(request, "asistencia/form_ejercicio.html", {
-        "form": form,
-        "titulo": "Agregar ejercicio",
-    })
+    return render(
+        request,
+        "asistencia/form_ejercicio.html",
+        {
+            "form": form,
+            "titulo": "Agregar ejercicio",
+        },
+    )
 
 
-@login_required
+@requerir_admin_club
 def editar_ejercicio(request, pk):
-    ejercicio = get_object_or_404(Ejercicio, pk=pk)
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
+    ejercicio = get_object_or_404(
+        Ejercicio,
+        pk=pk,
+        club=club,
+    )
 
     if request.method == "POST":
-        form = EjercicioForm(request.POST, instance=ejercicio)
+        form = EjercicioForm(
+            request.POST,
+            instance=ejercicio,
+            club=club,
+        )
+
         if form.is_valid():
-            form.save()
-            messages.success(request, "Ejercicio editado correctamente.")
+            ejercicio_editado = form.save(commit=False)
+            ejercicio_editado.club = club
+            ejercicio_editado.save()
+
+            messages.success(
+                request,
+                "Ejercicio editado correctamente.",
+            )
             return redirect("lista_ejercicios")
     else:
-        form = EjercicioForm(instance=ejercicio)
+        form = EjercicioForm(
+            instance=ejercicio,
+            club=club,
+        )
 
-    return render(request, "asistencia/form_ejercicio.html", {
-        "form": form,
-        "titulo": "Editar ejercicio",
-    })
+    return render(
+        request,
+        "asistencia/form_ejercicio.html",
+        {
+            "form": form,
+            "titulo": "Editar ejercicio",
+        },
+    )
 
 
 @login_required
 def cargar_ejercicios(request):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     fecha_str = request.GET.get("fecha")
-    turno_str = request.GET.get("turno", 1)
+    turno_id = request.GET.get("turno_id")
 
     if fecha_str:
         try:
@@ -1898,52 +2595,110 @@ def cargar_ejercicios(request):
     else:
         fecha = timezone.localdate()
 
-    try:
-        turno = int(turno_str)
-    except (TypeError, ValueError):
-        turno = 1
+    turnos_del_dia = (
+        TurnoClub.objects
+        .filter(
+            club=club,
+            activo=True,
+            dia_semana=fecha.weekday(),
+        )
+        .order_by(
+            "orden",
+            "hora_inicio",
+            "id",
+        )
+    )
 
-    if turno not in [1, 2, 3]:
-        turno = 1
+    turno_config = None
+
+    if turno_id:
+        try:
+            turno_id = int(turno_id)
+        except (TypeError, ValueError):
+            turno_id = None
+
+    if turno_id:
+        turno_config = turnos_del_dia.filter(
+            id=turno_id,
+        ).first()
+
+    if turno_config is None:
+        turno_config = turnos_del_dia.first()
+
+    if turno_config is None:
+        messages.info(
+            request,
+            "No hay turnos configurados para ese día.",
+        )
+        return redirect(
+            f"/?fecha={fecha.isoformat()}"
+        )
 
     entrenamiento = obtener_o_crear_entrenamiento(
         fecha,
-        turno,
+        turno_config.orden,
+        club,
+        turno_config=turno_config,
     )
 
     ejercicios_guardados = list(
         EjercicioTurno.objects
-        .filter(entrenamiento=entrenamiento)
-        .values_list("ejercicio_id", flat=True)
+        .filter(
+            entrenamiento=entrenamiento,
+            ejercicio__club=club,
+        )
+        .values_list(
+            "ejercicio_id",
+            flat=True,
+        )
     )
 
     ejercicios_por_categoria = {
-        "Movilidad": Ejercicio.objects.filter(
-            categoria=Ejercicio.Categoria.MOVILIDAD,
-            activo=True,
-        ).order_by("nombre"),
-
-        "Reacción": Ejercicio.objects.filter(
-            categoria=Ejercicio.Categoria.REACCION,
-            activo=True,
-        ).order_by("nombre"),
-
-        "Saque": Ejercicio.objects.filter(
-            categoria=Ejercicio.Categoria.SAQUE,
-            activo=True,
-        ).order_by("nombre"),
-
-        "Recepción": Ejercicio.objects.filter(
-            categoria=Ejercicio.Categoria.RECEPCION,
-            activo=True,
-        ).order_by("nombre"),
+        "Movilidad": (
+            Ejercicio.objects
+            .filter(
+                club=club,
+                categoria=Ejercicio.Categoria.MOVILIDAD,
+                activo=True,
+            )
+            .order_by("nombre")
+        ),
+        "Reacción": (
+            Ejercicio.objects
+            .filter(
+                club=club,
+                categoria=Ejercicio.Categoria.REACCION,
+                activo=True,
+            )
+            .order_by("nombre")
+        ),
+        "Saque": (
+            Ejercicio.objects
+            .filter(
+                club=club,
+                categoria=Ejercicio.Categoria.SAQUE,
+                activo=True,
+            )
+            .order_by("nombre")
+        ),
+        "Recepción": (
+            Ejercicio.objects
+            .filter(
+                club=club,
+                categoria=Ejercicio.Categoria.RECEPCION,
+                activo=True,
+            )
+            .order_by("nombre")
+        ),
     }
 
     contexto = {
         "entrenamiento": entrenamiento,
         "fecha": fecha,
         "hoy": timezone.localdate(),
-        "turno": turno,
+        "turno_id": turno_config.id,
+        "turno_config": turno_config,
+        "turnos_del_dia": turnos_del_dia,
         "ayer": fecha - timedelta(days=1),
         "maniana": fecha + timedelta(days=1),
         "ejercicios_por_categoria": ejercicios_por_categoria,
@@ -1960,6 +2715,15 @@ def cargar_ejercicios(request):
 @login_required
 @require_POST
 def guardar_ejercicios(request):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     entrenamiento_id = request.POST.get("entrenamiento_id")
     ejercicio_ids = request.POST.getlist("ejercicios")
 
@@ -1968,12 +2732,12 @@ def guardar_ejercicios(request):
             request,
             "No se pudo identificar el turno. Volvé a entrar desde la pantalla de asistencia.",
         )
-
         return redirect("inicio")
 
     entrenamiento = get_object_or_404(
         Entrenamiento,
         id=entrenamiento_id,
+        club=club,
     )
 
     if turno_bloqueado(entrenamiento):
@@ -1990,6 +2754,7 @@ def guardar_ejercicios(request):
         Ejercicio.objects
         .filter(
             id__in=ejercicio_ids,
+            club=club,
             activo=True,
         )
     )
@@ -2002,20 +2767,31 @@ def guardar_ejercicios(request):
 
     messages.success(
         request,
-        f"Ejercicios guardados para el Turno {entrenamiento.turno}.",
+        "Ejercicios del turno guardados correctamente.",
     )
 
-    return redirect(
-        "dia_turno",
-        fecha_str=entrenamiento.fecha.isoformat(),
-        turno=entrenamiento.turno,
+    return redirect_dia_turno(
+        entrenamiento,
     )
+
 
 @login_required
 def seguimiento_semanal(request):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     jugadores = (
         Jugador.objects
-        .filter(activo=True)
+        .filter(
+            club=club,
+            activo=True,
+        )
         .order_by("apellido", "nombre")
     )
 
@@ -2056,6 +2832,7 @@ def seguimiento_semanal(request):
             Jugador.objects
             .filter(
                 id=jugador_id,
+                club=club,
                 activo=True,
             )
             .first()
@@ -2077,18 +2854,28 @@ def seguimiento_semanal(request):
                 entrenamientos_no_entrenados = (
                     Entrenamiento.objects
                     .filter(
+                        club=club,
                         fecha=dia,
                         no_se_entreno=True,
                     )
-                    .order_by("turno")
-                )
-
-                turnos_no_entrenados = list(
-                    entrenamientos_no_entrenados.values_list(
-                        "turno",
-                        flat=True,
+                    .select_related("turno_config")
+                    .order_by(
+                        "turno_config__orden",
                     )
                 )
+
+                turnos_no_entrenados_config = [
+                    {
+                        "turno_config": entrenamiento_no.turno_config,
+                        "nombre": entrenamiento_no.nombre_turno_completo,
+                    }
+                    for entrenamiento_no in entrenamientos_no_entrenados
+                ]
+
+                nombres_turnos_no_entrenados = [
+                    item["nombre"]
+                    for item in turnos_no_entrenados_config
+                ]
 
                 motivos_no_entrenamiento = []
 
@@ -2104,7 +2891,7 @@ def seguimiento_semanal(request):
                         )
 
                     motivos_no_entrenamiento.append({
-                        "turno": entrenamiento_no.turno,
+                        "turno_config": entrenamiento_no.turno_config,
                         "motivo": motivo_texto,
                     })
 
@@ -2112,17 +2899,24 @@ def seguimiento_semanal(request):
                     Asistencia.objects
                     .filter(
                         jugador=jugador_seleccionado,
+                        entrenamiento__club=club,
                         entrenamiento__fecha=dia,
                     )
-                    .select_related("entrenamiento")
-                )
-
-                turnos = list(
-                    asistencias_dia.values_list(
-                        "entrenamiento__turno",
-                        flat=True,
+                    .select_related(
+                        "entrenamiento",
+                        "entrenamiento__turno_config",
                     )
                 )
+
+                turnos_entrenamientos = [
+                    asistencia.entrenamiento
+                    for asistencia in asistencias_dia
+                ]
+
+                turnos = [
+                    entrenamiento.nombre_turno_completo
+                    for entrenamiento in turnos_entrenamientos
+                ]
 
                 estados = list(
                     asistencias_dia.values_list(
@@ -2134,7 +2928,7 @@ def seguimiento_semanal(request):
                 if asistencias_dia.exists():
                     total_dias_programados += 1
 
-                if turnos_no_entrenados:
+                if entrenamientos_no_entrenados.exists():
                     total_dias_no_entrenados += 1
 
                 entrenamientos_del_jugador_dia = [
@@ -2150,9 +2944,10 @@ def seguimiento_semanal(request):
                     .select_related(
                         "ejercicio",
                         "entrenamiento",
+                        "entrenamiento__turno_config",
                     )
                     .order_by(
-                        "entrenamiento__turno",
+                        "entrenamiento__turno_config__orden",
                         "ejercicio__categoria",
                         "ejercicio__nombre",
                     )
@@ -2162,24 +2957,25 @@ def seguimiento_semanal(request):
                 turnos_dict = {}
 
                 for item in ejercicios_qs:
-                    turno_item = item.entrenamiento.turno
+                    turno_config = item.entrenamiento.turno_config
+                    clave_turno = turno_config.id
+
                     categoria = item.ejercicio.get_categoria_display()
 
-                    if turno_item not in turnos_dict:
-                        turnos_dict[turno_item] = {}
+                    if clave_turno not in turnos_dict:
+                        turnos_dict[clave_turno] = {
+                            "turno_config": turno_config,
+                            "categorias": {},
+                        }
 
-                    if categoria not in turnos_dict[turno_item]:
-                        turnos_dict[turno_item][categoria] = []
+                    if categoria not in turnos_dict[clave_turno]["categorias"]:
+                        turnos_dict[clave_turno]["categorias"][categoria] = []
 
-                    turnos_dict[turno_item][categoria].append(
+                    turnos_dict[clave_turno]["categorias"][categoria].append(
                         item.ejercicio.nombre
                     )
 
-                for turno_item in sorted(turnos_dict.keys()):
-                    ejercicios_por_turno.append({
-                        "turno": turno_item,
-                        "categorias": turnos_dict[turno_item],
-                    })
+                ejercicios_por_turno = list(turnos_dict.values())
 
                 cantidad_ejercicios = ejercicios_qs.count()
                 total_ejercicios += cantidad_ejercicios
@@ -2187,6 +2983,7 @@ def seguimiento_semanal(request):
                 trabajos_qs = (
                     TrabajoTurno.objects
                     .filter(
+                        entrenamiento__club=club,
                         entrenamiento__fecha=dia,
                     )
                     .filter(
@@ -2195,11 +2992,12 @@ def seguimiento_semanal(request):
                     )
                     .select_related(
                         "entrenamiento",
+                        "entrenamiento__turno_config",
                         "jugador_1",
                         "jugador_2",
                     )
                     .order_by(
-                        "entrenamiento__turno",
+                        "entrenamiento__turno_config__orden",
                         "cambio",
                         "id",
                     )
@@ -2219,7 +3017,7 @@ def seguimiento_semanal(request):
                         descripcion = trabajo.get_tipo_display()
 
                     trabajos_dia.append({
-                        "turno": trabajo.entrenamiento.turno,
+                        "turno_config": trabajo.entrenamiento.turno_config,
                         "cambio": trabajo.cambio,
                         "tipo": trabajo.tipo,
                         "tipo_texto": trabajo.get_tipo_display(),
@@ -2233,6 +3031,7 @@ def seguimiento_semanal(request):
                 partidos_qs = (
                     PartidoTurno.objects
                     .filter(
+                        entrenamiento__club=club,
                         entrenamiento__fecha=dia,
                     )
                     .filter(
@@ -2241,12 +3040,13 @@ def seguimiento_semanal(request):
                     )
                     .select_related(
                         "entrenamiento",
+                        "entrenamiento__turno_config",
                         "jugador_1",
                         "jugador_2",
                     )
                     .prefetch_related("sets")
                     .order_by(
-                        "entrenamiento__turno",
+                        "entrenamiento__turno_config__orden",
                         "id",
                     )
                 )
@@ -2295,7 +3095,7 @@ def seguimiento_semanal(request):
                         resultado_texto = "Sin definir"
 
                     partidos_dia.append({
-                        "turno": partido.entrenamiento.turno,
+                        "turno_config": partido.entrenamiento.turno_config,
                         "rival": rival,
                         "resultado": f"{sets_propios}-{sets_rival}",
                         "resultado_clase": resultado_clase,
@@ -2327,7 +3127,7 @@ def seguimiento_semanal(request):
                     asistencia_texto = "Sin marcar"
                     asistencia_clase = "secondary"
 
-                elif turnos_no_entrenados:
+                elif entrenamientos_no_entrenados.exists():
                     asistencia_texto = "No se entrenó"
                     asistencia_clase = "danger"
 
@@ -2343,8 +3143,10 @@ def seguimiento_semanal(request):
                     asistencia_texto = "Sin actividad"
                     asistencia_clase = "light text-dark"
 
-                turnos_combinados = sorted(
-                    set(turnos + turnos_no_entrenados)
+                turnos_combinados = list(
+                    dict.fromkeys(
+                        turnos + nombres_turnos_no_entrenados
+                    )
                 )
 
                 filas.append({
@@ -2352,15 +3154,12 @@ def seguimiento_semanal(request):
                     "asistencia_texto": asistencia_texto,
                     "asistencia_clase": asistencia_clase,
                     "turnos": (
-                        ", ".join(
-                            str(turno_item)
-                            for turno_item in turnos_combinados
-                        )
+                        ", ".join(turnos_combinados)
                         if turnos_combinados
                         else "-"
                     ),
-                    "no_se_entreno": bool(turnos_no_entrenados),
-                    "turnos_no_entrenados": turnos_no_entrenados,
+                    "no_se_entreno": entrenamientos_no_entrenados.exists(),
+                    "turnos_no_entrenados_config": turnos_no_entrenados_config,
                     "motivos_no_entrenamiento": motivos_no_entrenamiento,
                     "ejercicios_por_turno": ejercicios_por_turno,
                     "cantidad_ejercicios": cantidad_ejercicios,
@@ -2419,9 +3218,19 @@ def seguimiento_semanal(request):
 
 @login_required
 def historial_jugador(request, jugador_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     jugador = get_object_or_404(
         Jugador,
         id=jugador_id,
+        club=club,
     )
 
     hoy = timezone.localdate()
@@ -2459,6 +3268,7 @@ def historial_jugador(request, jugador_id):
         Asistencia.objects
         .filter(
             jugador=jugador,
+            entrenamiento__club=club,
             entrenamiento__fecha__range=[
                 fecha_desde,
                 fecha_hasta,
@@ -2467,12 +3277,12 @@ def historial_jugador(request, jugador_id):
         )
         .select_related(
             "entrenamiento",
-            "entrenamiento__entrenador",
-            "entrenamiento__entrenador_responsable",
+            "entrenamiento__responsable_usuario",
+            "entrenamiento__turno_config",
         )
         .order_by(
             "-entrenamiento__fecha",
-            "entrenamiento__turno",
+            "entrenamiento__turno_config__orden",
         )
     )
 
@@ -2582,11 +3392,12 @@ def historial_jugador(request, jugador_id):
         )
         .select_related(
             "entrenamiento",
+            "entrenamiento__turno_config",
             "ejercicio",
         )
         .order_by(
             "-entrenamiento__fecha",
-            "entrenamiento__turno",
+            "entrenamiento__turno_config__orden",
             "ejercicio__categoria",
             "ejercicio__nombre",
         )
@@ -2597,7 +3408,7 @@ def historial_jugador(request, jugador_id):
     for item in ejercicios_turno:
         ejercicios.append({
             "fecha": item.entrenamiento.fecha,
-            "turno": item.entrenamiento.turno,
+            "turno_config": item.entrenamiento.turno_config,
             "ejercicio": item.ejercicio,
         })
 
@@ -2614,6 +3425,7 @@ def historial_jugador(request, jugador_id):
     partidos = (
         PartidoTurno.objects
         .filter(
+            entrenamiento__club=club,
             entrenamiento__fecha__range=[
                 fecha_desde,
                 fecha_hasta,
@@ -2625,13 +3437,14 @@ def historial_jugador(request, jugador_id):
         )
         .select_related(
             "entrenamiento",
+            "entrenamiento__turno_config",
             "jugador_1",
             "jugador_2",
         )
         .prefetch_related("sets")
         .order_by(
             "-entrenamiento__fecha",
-            "entrenamiento__turno",
+            "entrenamiento__turno_config__orden",
             "-id",
         )
     )
@@ -2680,6 +3493,7 @@ def historial_jugador(request, jugador_id):
     trabajos = (
         TrabajoTurno.objects
         .filter(
+            entrenamiento__club=club,
             entrenamiento__fecha__range=[
                 fecha_desde,
                 fecha_hasta,
@@ -2691,12 +3505,13 @@ def historial_jugador(request, jugador_id):
         )
         .select_related(
             "entrenamiento",
+            "entrenamiento__turno_config",
             "jugador_1",
             "jugador_2",
         )
         .order_by(
             "-entrenamiento__fecha",
-            "entrenamiento__turno",
+            "entrenamiento__turno_config__orden",
             "cambio",
         )
     )
@@ -2705,6 +3520,7 @@ def historial_jugador(request, jugador_id):
         ObservacionJugador.objects
         .filter(
             jugador=jugador,
+            entrenamiento__club=club,
             entrenamiento__fecha__range=[
                 fecha_desde,
                 fecha_hasta,
@@ -2712,6 +3528,7 @@ def historial_jugador(request, jugador_id):
         )
         .select_related(
             "entrenamiento",
+            "entrenamiento__turno_config",
             "creada_por",
         )
         .order_by(
@@ -2723,15 +3540,17 @@ def historial_jugador(request, jugador_id):
     turnos_no_entrenados = (
         Entrenamiento.objects
         .filter(
+            club=club,
             fecha__range=[
                 fecha_desde,
                 fecha_hasta,
             ],
             no_se_entreno=True,
         )
+        .select_related("turno_config")
         .order_by(
             "-fecha",
-            "turno",
+            "turno_config__orden",
         )
     )
 
@@ -2798,6 +3617,15 @@ def historial_jugador(request, jugador_id):
 
 @login_required
 def reportes(request):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     hoy = timezone.localdate()
     fecha_str = request.GET.get("fecha")
 
@@ -2846,30 +3674,34 @@ def reportes(request):
     turnos_no_entrenados_semana = (
         Entrenamiento.objects
         .filter(
+            club=club,
             fecha__range=[
                 inicio_semana,
                 fin_semana,
             ],
             no_se_entreno=True,
         )
+        .select_related("turno_config")
         .order_by(
             "-fecha",
-            "turno",
+            "turno_config__orden",
         )
     )
 
     turnos_no_entrenados_mes = (
         Entrenamiento.objects
         .filter(
+            club=club,
             fecha__range=[
                 inicio_mes,
                 fin_mes,
             ],
             no_se_entreno=True,
         )
+        .select_related("turno_config")
         .order_by(
             "-fecha",
-            "turno",
+            "turno_config__orden",
         )
     )
 
@@ -2934,7 +3766,10 @@ def reportes(request):
 
     for jugador in (
         Jugador.objects
-        .filter(activo=True)
+        .filter(
+            club=club,
+            activo=True,
+        )
         .order_by(
             "apellido",
             "nombre",
@@ -2944,6 +3779,7 @@ def reportes(request):
 
         asistencias_semana = Asistencia.objects.filter(
             jugador=jugador,
+            entrenamiento__club=club,
             entrenamiento__fecha__range=[
                 inicio_semana,
                 fin_semana,
@@ -2953,6 +3789,7 @@ def reportes(request):
 
         asistencias_mes = Asistencia.objects.filter(
             jugador=jugador,
+            entrenamiento__club=club,
             entrenamiento__fecha__range=[
                 inicio_mes,
                 fin_mes,
@@ -3152,6 +3989,15 @@ def reportes(request):
     
 @login_required
 def resumen_dia(request):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     fecha_str = request.GET.get("fecha")
 
     if fecha_str:
@@ -3167,12 +4013,17 @@ def resumen_dia(request):
 
     entrenamientos = (
         Entrenamiento.objects
-        .filter(fecha=fecha)
-        .select_related(
-            "entrenador_responsable",
-            "entrenador",
+        .filter(
+            club=club,
+            fecha=fecha,
         )
-        .order_by("turno")
+        .select_related(
+            "responsable_usuario",
+            "turno_config",
+        )
+        .order_by(
+            "turno_config__orden",
+        )
     )
 
     turnos_resumen = []
@@ -3428,6 +4279,15 @@ def resumen_dia(request):
     
 @login_required
 def exportar_reporte_mensual(request):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     hoy = timezone.localdate()
     fecha_str = request.GET.get("fecha")
 
@@ -3553,6 +4413,8 @@ def exportar_reporte_mensual(request):
     # DATOS BASE
     # =========================
     asistencias_mes = Asistencia.objects.filter(
+        entrenamiento__club=club,
+        jugador__club=club,
         entrenamiento__fecha__range=[
             inicio_mes,
             fin_mes,
@@ -3561,24 +4423,30 @@ def exportar_reporte_mensual(request):
     ).select_related(
         "jugador",
         "entrenamiento",
-        "entrenamiento__entrenador",
-        "entrenamiento__entrenador_responsable",
+        "entrenamiento__responsable_usuario",
+        "entrenamiento__turno_config",
     )
 
     turnos_no_entrenados = Entrenamiento.objects.filter(
+        club=club,
         fecha__range=[
             inicio_mes,
             fin_mes,
         ],
         no_se_entreno=True,
+    ).select_related(
+        "turno_config",
     ).order_by(
         "fecha",
-        "turno",
+        "turno_config__orden",
     )
 
     partidos_mes = (
         PartidoTurno.objects
         .filter(
+            entrenamiento__club=club,
+            jugador_1__club=club,
+            jugador_2__club=club,
             entrenamiento__fecha__range=[
                 inicio_mes,
                 fin_mes,
@@ -3586,18 +4454,21 @@ def exportar_reporte_mensual(request):
         )
         .select_related(
             "entrenamiento",
+            "entrenamiento__turno_config",
             "jugador_1",
             "jugador_2",
         )
         .prefetch_related("sets")
         .order_by(
             "entrenamiento__fecha",
-            "entrenamiento__turno",
+            "entrenamiento__turno_config__orden",
             "id",
         )
     )
 
-    jugadores = Jugador.objects.all().order_by(
+    jugadores = Jugador.objects.filter(
+        club=club,
+    ).order_by(
         "apellido",
         "nombre",
     )
@@ -3636,7 +4507,7 @@ def exportar_reporte_mensual(request):
     aplicar_titulo(
         ws,
         fila,
-        f"REPORTE MENSUAL - {inicio_mes.strftime('%m/%Y')}",
+        f"REPORTE MENSUAL - {club.nombre} - {inicio_mes.strftime('%m/%Y')}",
     )
 
     fila += 2
@@ -3830,7 +4701,7 @@ def exportar_reporte_mensual(request):
         for entrenamiento in turnos_no_entrenados:
             ws.append([
                 entrenamiento.fecha.strftime("%d/%m/%Y"),
-                entrenamiento.turno,
+                entrenamiento.nombre_turno_completo,
                 entrenamiento.get_motivo_no_entrenamiento_display(),
                 entrenamiento.detalle_no_entrenamiento or "-",
             ])
@@ -3867,7 +4738,7 @@ def exportar_reporte_mensual(request):
 
     asistencias_detalladas = asistencias_mes.order_by(
         "entrenamiento__fecha",
-        "entrenamiento__turno",
+        "entrenamiento__turno_config__orden",
         "jugador__apellido",
         "jugador__nombre",
     )
@@ -3875,19 +4746,11 @@ def exportar_reporte_mensual(request):
     for asistencia in asistencias_detalladas:
         entrenamiento = asistencia.entrenamiento
 
-        if entrenamiento.entrenador_responsable:
-            entrenador = str(entrenamiento.entrenador_responsable)
-        elif entrenamiento.entrenador:
-            entrenador = (
-                entrenamiento.entrenador.get_full_name()
-                or entrenamiento.entrenador.username
-            )
-        else:
-            entrenador = "Sin entrenador"
+        entrenador = nombre_entrenador(entrenamiento)
 
         ws.append([
             entrenamiento.fecha.strftime("%d/%m/%Y"),
-            entrenamiento.turno,
+            entrenamiento.nombre_turno_completo,
             str(asistencia.jugador),
             asistencia.get_estado_display(),
             asistencia.get_motivo_ausencia_display()
@@ -3919,7 +4782,7 @@ def exportar_reporte_mensual(request):
         estado="ausente",
     ).order_by(
         "entrenamiento__fecha",
-        "entrenamiento__turno",
+        "entrenamiento__turno_config__orden",
         "jugador__apellido",
         "jugador__nombre",
     )
@@ -3927,19 +4790,11 @@ def exportar_reporte_mensual(request):
     for asistencia in ausencias_mes:
         entrenamiento = asistencia.entrenamiento
 
-        if entrenamiento.entrenador_responsable:
-            entrenador = str(entrenamiento.entrenador_responsable)
-        elif entrenamiento.entrenador:
-            entrenador = (
-                entrenamiento.entrenador.get_full_name()
-                or entrenamiento.entrenador.username
-            )
-        else:
-            entrenador = "Sin entrenador"
+        entrenador = nombre_entrenador(entrenamiento)
 
         ws.append([
             entrenamiento.fecha.strftime("%d/%m/%Y"),
-            entrenamiento.turno,
+            entrenamiento.nombre_turno_completo,
             str(asistencia.jugador),
             asistencia.get_motivo_ausencia_display()
             if asistencia.motivo_ausencia
@@ -3988,7 +4843,7 @@ def exportar_reporte_mensual(request):
 
         ws.append([
             partido.entrenamiento.fecha.strftime("%d/%m/%Y"),
-            partido.entrenamiento.turno,
+            partido.entrenamiento.nombre_turno_completo,
             str(partido.jugador_1),
             str(partido.jugador_2),
             f"{sets_jugador_1}-{sets_jugador_2}",
@@ -4024,6 +4879,15 @@ def exportar_reporte_mensual(request):
 
 @login_required
 def dashboard_mensual(request):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     hoy = timezone.localdate()
     fecha_str = request.GET.get("fecha")
 
@@ -4061,6 +4925,8 @@ def dashboard_mensual(request):
     asistencias_mes = (
         Asistencia.objects
         .filter(
+            entrenamiento__club=club,
+            jugador__club=club,
             entrenamiento__fecha__range=[
                 inicio_mes,
                 fin_mes,
@@ -4074,6 +4940,7 @@ def dashboard_mensual(request):
     )
 
     entrenamientos_mes = Entrenamiento.objects.filter(
+        club=club,
         fecha__range=[
             inicio_mes,
             fin_mes,
@@ -4083,9 +4950,10 @@ def dashboard_mensual(request):
     turnos_no_entrenados = (
         entrenamientos_mes
         .filter(no_se_entreno=True)
+        .select_related("turno_config")
         .order_by(
             "-fecha",
-            "turno",
+            "turno_config__orden",
         )
     )
 
@@ -4116,6 +4984,7 @@ def dashboard_mensual(request):
     ids_con_asistencia = set(
         Asistencia.objects
         .filter(
+            entrenamiento__club=club,
             entrenamiento__fecha__range=[
                 inicio_mes,
                 fin_mes,
@@ -4130,6 +4999,7 @@ def dashboard_mensual(request):
     ids_con_trabajos = set(
         TrabajoTurno.objects
         .filter(
+            entrenamiento__club=club,
             entrenamiento__fecha__range=[
                 inicio_mes,
                 fin_mes,
@@ -4144,6 +5014,7 @@ def dashboard_mensual(request):
     ids_con_partidos = set(
         PartidoTurno.objects
         .filter(
+            entrenamiento__club=club,
             entrenamiento__fecha__range=[
                 inicio_mes,
                 fin_mes,
@@ -4158,6 +5029,7 @@ def dashboard_mensual(request):
     ids_con_ejercicios = set(
         EjercicioTurno.objects
         .filter(
+            entrenamiento__club=club,
             entrenamiento__fecha__range=[
                 inicio_mes,
                 fin_mes,
@@ -4179,6 +5051,7 @@ def dashboard_mensual(request):
     turnos_realizados = (
         Entrenamiento.objects
         .filter(
+            club=club,
             id__in=ids_turnos_con_actividad,
             no_se_entreno=False,
         )
@@ -4189,7 +5062,10 @@ def dashboard_mensual(request):
 
     for jugador in (
         Jugador.objects
-        .filter(activo=True)
+        .filter(
+            club=club,
+            activo=True,
+        )
         .order_by(
             "apellido",
             "nombre",
@@ -4230,6 +5106,7 @@ def dashboard_mensual(request):
         partidos_jugador = (
             PartidoTurno.objects
             .filter(
+                entrenamiento__club=club,
                 entrenamiento__fecha__range=[
                     inicio_mes,
                     fin_mes,
@@ -4272,6 +5149,7 @@ def dashboard_mensual(request):
         trabajos = (
             TrabajoTurno.objects
             .filter(
+                entrenamiento__club=club,
                 entrenamiento__fecha__range=[
                     inicio_mes,
                     fin_mes,
@@ -4288,6 +5166,7 @@ def dashboard_mensual(request):
             ObservacionJugador.objects
             .filter(
                 jugador=jugador,
+                entrenamiento__club=club,
                 entrenamiento__fecha__range=[
                     inicio_mes,
                     fin_mes,
@@ -4441,9 +5320,23 @@ def perfil(request):
 @login_required
 @require_POST
 def eliminar_observacion_jugador(request, observacion_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     observacion = get_object_or_404(
-        ObservacionJugador,
+        ObservacionJugador.objects.select_related(
+            "entrenamiento",
+            "jugador",
+        ),
         id=observacion_id,
+        entrenamiento__club=club,
+        jugador__club=club,
     )
 
     entrenamiento = observacion.entrenamiento
@@ -4469,9 +5362,23 @@ def eliminar_observacion_jugador(request, observacion_id):
     
 @login_required
 def editar_observacion_jugador(request, observacion_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     observacion = get_object_or_404(
-        ObservacionJugador,
+        ObservacionJugador.objects.select_related(
+            "entrenamiento",
+            "jugador",
+        ),
         id=observacion_id,
+        entrenamiento__club=club,
+        jugador__club=club,
     )
 
     entrenamiento = observacion.entrenamiento
@@ -4499,7 +5406,7 @@ def editar_observacion_jugador(request, observacion_id):
             return redirect(
                 "dia_turno",
                 fecha_str=entrenamiento.fecha.isoformat(),
-                turno=entrenamiento.turno,
+                turno_id=obtener_turno_id_para_url(entrenamiento),
             )
     else:
         form = ObservacionJugadorForm(
@@ -4518,9 +5425,25 @@ def editar_observacion_jugador(request, observacion_id):
     
 @login_required
 def editar_partido_turno(request, partido_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     partido = get_object_or_404(
-        PartidoTurno.objects.select_related("entrenamiento"),
+        PartidoTurno.objects.select_related(
+            "entrenamiento",
+            "jugador_1",
+            "jugador_2",
+        ),
         id=partido_id,
+        entrenamiento__club=club,
+        jugador_1__club=club,
+        jugador_2__club=club,
     )
 
     entrenamiento = partido.entrenamiento
@@ -4568,7 +5491,7 @@ def editar_partido_turno(request, partido_id):
             return redirect(
                 "dia_turno",
                 fecha_str=entrenamiento.fecha.isoformat(),
-                turno=entrenamiento.turno,
+                turno_id=obtener_turno_id_para_url(entrenamiento),
             )
 
     else:
@@ -4597,9 +5520,25 @@ def editar_partido_turno(request, partido_id):
 @login_required
 @require_POST
 def eliminar_partido_turno(request, partido_id):
+    club = obtener_club_usuario(request.user)
+
+    if club is None:
+        messages.error(
+            request,
+            "Tu usuario no está asociado a un club activo.",
+        )
+        return redirect("login")
+
     partido = get_object_or_404(
-        PartidoTurno.objects.select_related("entrenamiento"),
+        PartidoTurno.objects.select_related(
+            "entrenamiento",
+            "jugador_1",
+            "jugador_2",
+        ),
         id=partido_id,
+        entrenamiento__club=club,
+        jugador_1__club=club,
+        jugador_2__club=club,
     )
 
     entrenamiento = partido.entrenamiento

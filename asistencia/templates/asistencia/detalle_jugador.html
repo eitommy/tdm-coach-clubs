@@ -69,7 +69,29 @@
                                 {% for a in asistencias_recientes %}
                                     <tr>
                                         <td>{{ a.entrenamiento.fecha|date:"j M Y" }}</td>
-                                        <td>{{ a.entrenamiento.turno }}</td>
+                                        <td>
+                                            {% if a.entrenamiento.turno_config %}
+                                                <div class="fw-semibold">
+                                                    {{ a.entrenamiento.turno_config.nombre }}
+                                                </div>
+
+                                                {% if a.entrenamiento.turno_config.hora_inicio or a.entrenamiento.turno_config.hora_fin %}
+                                                    <div class="small text-muted">
+                                                        {% if a.entrenamiento.turno_config.hora_inicio %}
+                                                            {{ a.entrenamiento.turno_config.hora_inicio|time:"H:i" }}
+                                                        {% endif %}
+                                                        {% if a.entrenamiento.turno_config.hora_inicio and a.entrenamiento.turno_config.hora_fin %}
+                                                            -
+                                                        {% endif %}
+                                                        {% if a.entrenamiento.turno_config.hora_fin %}
+                                                            {{ a.entrenamiento.turno_config.hora_fin|time:"H:i" }}
+                                                        {% endif %}
+                                                    </div>
+                                                {% endif %}
+                                            {% else %}
+                                                Turno {{ a.entrenamiento.turno }}
+                                            {% endif %}
+                                        </td>
                                         <td>
                                             {% if a.estado == "asistio" %}
                                                 <span class="badge bg-success">Asistió</span>

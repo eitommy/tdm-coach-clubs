@@ -1,267 +1,868 @@
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TDM Coach</title>
 
-    <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=6">
+<!DOCTYPE html>
+
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>
+        {% block title %}
+            {% if club_actual %}
+                {{ club_actual.nombre }} · TDM Coach
+            {% else %}
+                TDM Coach
+            {% endif %}
+        {% endblock %}
+    </title>
+
+    <link
+        rel="icon"
+        type="image/svg+xml"
+        href="{% static 'img/favicon.svg' %}"
+    >
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{% static 'css/style.css' %}?v=6"
+    >
+
+
+    <style>
+
+        :root {
+            --club-primary:
+                {% if club_actual %}
+                    {{ club_actual.color_primario }}
+                {% else %}
+                    #2563EB
+                {% endif %};
+
+            --club-secondary:
+                {% if club_actual %}
+                    {{ club_actual.color_secundario }}
+                {% else %}
+                    #111827
+                {% endif %};
+        }
+
+
+        /*
+        ==========================
+        COLORES DEL CLUB
+        ==========================
+        */
+
+        .tdm-navbar {
+            background-color: var(--club-secondary) !important;
+        }
+
+
+        .club-brand-name {
+            color: #ffffff;
+        }
+
+
+        .club-logo-navbar {
+            width: 42px;
+            height: 42px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #ffffff;
+            padding: 3px;
+        }
+
+
+        .club-logo-fallback {
+            width: 42px;
+            height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background-color: var(--club-primary);
+            font-size: 22px;
+        }
+
+
+        .tdm-nav-link.active,
+        .tdm-nav-link:hover {
+            color: #ffffff !important;
+        }
+
+
+        .btn-primary {
+            background-color: var(--club-primary);
+            border-color: var(--club-primary);
+        }
+
+
+        .btn-primary:hover,
+        .btn-primary:focus,
+        .btn-primary:active {
+            background-color: var(--club-primary) !important;
+            border-color: var(--club-primary) !important;
+            filter: brightness(0.90);
+        }
+
+
+        .btn-outline-primary {
+            color: var(--club-primary);
+            border-color: var(--club-primary);
+        }
+
+
+        .btn-outline-primary:hover,
+        .btn-outline-primary:focus,
+        .btn-outline-primary:active {
+            color: #ffffff !important;
+            background-color: var(--club-primary) !important;
+            border-color: var(--club-primary) !important;
+        }
+
+
+        a {
+            --bs-link-color-rgb: inherit;
+        }
+
+
+        .club-admin-dropdown {
+            border-left: 3px solid var(--club-primary);
+        }
+
+
+        .club-role-badge {
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: rgba(255, 255, 255, 0.75);
+            border-radius: 50rem;
+            padding: 2px 8px;
+            font-size: 0.72rem;
+            white-space: nowrap;
+        }
+
+
+        .footer-club-dot {
+            color: var(--club-primary);
+            font-weight: bold;
+        }
+
+    </style>
+
 </head>
+
 
 <body class="tdm-body d-flex flex-column min-vh-100">
 
+
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark tdm-navbar sticky-top">
+
     <div class="container">
-        <a class="navbar-brand d-flex align-items-center gap-3" href="{% url 'inicio' %}">
-            <span class="tdm-logo">
-                🏓
-            </span>
+
+        <a
+            class="navbar-brand d-flex align-items-center gap-3"
+            href="{% url 'inicio' %}"
+        >
+
+            {% if club_actual and club_actual.logo %}
+
+                <img
+                    src="{{ club_actual.logo.url }}"
+                    alt="{{ club_actual.nombre }}"
+                    class="club-logo-navbar"
+                >
+
+            {% else %}
+
+                <span class="club-logo-fallback">
+                    🏓
+                </span>
+
+            {% endif %}
+
 
             <span class="d-flex flex-column lh-sm">
-                <span class="fw-bold">
-                    TDM Coach
+
+                <span class="fw-bold club-brand-name">
+
+                    {% if club_actual %}
+                        {{ club_actual.nombre }}
+                    {% else %}
+                        TDM Coach
+                    {% endif %}
+
                 </span>
 
                 <small class="brand-subtitle">
-                    Carga diaria de entrenamiento
+
+                    {% if club_actual %}
+                        TDM Coach · Gestión de entrenamientos
+                    {% else %}
+                        Gestión de entrenamientos
+                    {% endif %}
+
                 </small>
+
             </span>
+
         </a>
 
+
         {% if user.is_authenticated %}
-            <button class="navbar-toggler"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#navbarTDM"
-                    aria-controls="navbarTDM"
-                    aria-expanded="false"
-                    aria-label="Abrir menú">
+
+            <button
+                class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarTDM"
+                aria-controls="navbarTDM"
+                aria-expanded="false"
+                aria-label="Abrir menú"
+            >
+
                 <span class="navbar-toggler-icon"></span>
+
             </button>
 
-            <div class="collapse navbar-collapse" id="navbarTDM">
+
+            <div
+                class="collapse navbar-collapse"
+                id="navbarTDM"
+            >
+
+
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0 mt-3 mt-lg-0">
+
+
                     <li class="nav-item">
-                        <a class="nav-link tdm-nav-link" href="{% url 'inicio' %}">
+
+                        <a
+                            class="nav-link tdm-nav-link"
+                            href="{% url 'inicio' %}"
+                        >
                             Carga diaria
                         </a>
+
                     </li>
 
+
                     <li class="nav-item">
-                        <a class="nav-link tdm-nav-link" href="{% url 'lista_jugadores' %}">
+
+                        <a
+                            class="nav-link tdm-nav-link"
+                            href="{% url 'lista_jugadores' %}"
+                        >
                             Jugadores
                         </a>
+
                     </li>
 
+
                     <li class="nav-item">
-                        <a class="nav-link tdm-nav-link" href="{% url 'reportes' %}">
+
+                        <a
+                            class="nav-link tdm-nav-link"
+                            href="{% url 'reportes' %}"
+                        >
                             Reportes
                         </a>
+
                     </li>
 
+
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'resumen_dia' %}">
+
+                        <a
+                            class="nav-link tdm-nav-link"
+                            href="{% url 'resumen_dia' %}"
+                        >
                             Resumen del día
                         </a>
 
+                    </li>
+
+
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle tdm-nav-link"
-                           href="#"
-                           role="button"
-                           data-bs-toggle="dropdown"
-                           aria-expanded="false">
+
+                        <a
+                            class="nav-link dropdown-toggle tdm-nav-link"
+                            href="#"
+                            role="button"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false"
+                        >
                             Más
                         </a>
 
+
                         <ul class="dropdown-menu dropdown-menu-dark">
+
                             <li>
-                                <a class="dropdown-item" href="{% url 'lista_ejercicios' %}">
+
+                                <a
+                                    class="dropdown-item"
+                                    href="{% url 'lista_ejercicios' %}"
+                                >
                                     Base de ejercicios
                                 </a>
+
                             </li>
 
+
                             <li>
-                                <a class="dropdown-item" href="{% url 'seguimiento_semanal' %}">
+
+                                <a
+                                    class="dropdown-item"
+                                    href="{% url 'seguimiento_semanal' %}"
+                                >
                                     Seguimiento semanal
                                 </a>
+
                             </li>
 
+
                             <li>
-                                <a class="dropdown-item" href="{% url 'dashboard_mensual' %}">
+
+                                <a
+                                    class="dropdown-item"
+                                    href="{% url 'dashboard_mensual' %}"
+                                >
                                     Resumen mensual
                                 </a>
+
                             </li>
+
 
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
 
+
                             <li>
-                                <a class="dropdown-item" href="{% url 'acerca' %}">
+
+                                <a
+                                    class="dropdown-item"
+                                    href="{% url 'acerca' %}"
+                                >
                                     Ayuda
                                 </a>
+
                             </li>
+
                         </ul>
+
                     </li>
+
+
+                    {% if es_admin_club %}
+
+                        <li class="nav-item dropdown">
+
+                            <a
+                                class="nav-link dropdown-toggle tdm-nav-link"
+                                href="#"
+                                role="button"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                            >
+                                Administración
+                            </a>
+
+
+                            <ul
+                                class="
+                                    dropdown-menu
+                                    dropdown-menu-dark
+                                    club-admin-dropdown
+                                "
+                            >
+
+                                <li>
+
+                                    <a
+                                        class="dropdown-item"
+                                        href="{% url 'configuracion_club' %}"
+                                    >
+                                        Configuración del club
+                                    </a>
+
+                                </li>
+
+
+                                <li>
+
+                                    <a
+                                        class="dropdown-item"
+                                        href="{% url 'lista_turnos' %}"
+                                    >
+                                        Turnos
+                                    </a>
+
+                                </li>
+
+
+                                <li>
+
+                                    <a
+                                        class="dropdown-item"
+                                        href="{% url 'lista_usuarios' %}"
+                                    >
+                                        Usuarios
+                                    </a>
+
+                                </li>
+
+                            </ul>
+
+                        </li>
+
+                    {% endif %}
+
                 </ul>
 
-                <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-2">
-                    <span class="tdm-user-pill">
-                        <span class="tdm-user-avatar">
-                            {{ user.get_full_name|default:user.username|slice:":1"|upper }}
+
+                <div
+                    class="
+                        d-flex
+                        flex-column
+                        flex-lg-row
+                        align-items-lg-center
+                        gap-2
+                    "
+                >
+
+
+                    {% if perfil_club %}
+
+                        <span class="club-role-badge">
+
+                            {{ perfil_club.get_rol_display }}
+
                         </span>
+
+                    {% endif %}
+
+
+                    <span class="tdm-user-pill">
+
+                        <span class="tdm-user-avatar">
+
+                            {{ user.get_full_name|default:user.username|slice:":1"|upper }}
+
+                        </span>
+
 
                         <span class="tdm-user-name">
+
                             {{ user.get_full_name|default:user.username }}
+
                         </span>
+
                     </span>
 
-                    <form method="post" action="{% url 'logout' %}" class="m-0">
+
+                    <form
+                        method="post"
+                        action="{% url 'logout' %}"
+                        class="m-0"
+                    >
+
                         {% csrf_token %}
 
-                        <button type="submit" class="btn btn-sm btn-outline-light tdm-btn-salir">
+                        <button
+                            type="submit"
+                            class="
+                                btn
+                                btn-sm
+                                btn-outline-light
+                                tdm-btn-salir
+                            "
+                        >
                             Salir
                         </button>
+
                     </form>
+
                 </div>
+
             </div>
+
         {% endif %}
+
     </div>
+
 </nav>
 
+
 <main class="container flex-grow-1 tdm-main">
+
+
     {% if messages %}
+
         {% for message in messages %}
+
             <div
                 class="alert alert-info d-none mensaje-django"
                 data-message="{{ message|escape }}"
                 data-tags="{{ message.tags }}"
             ></div>
+
         {% endfor %}
+
     {% endif %}
 
+
     {% block content %}
+
     {% endblock %}
+
+
 </main>
 
+
 <footer class="footer-tdm mt-auto">
+
     <div class="container">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+        <div
+            class="
+                d-flex
+                justify-content-between
+                align-items-center
+                flex-wrap
+                gap-2
+            "
+        >
+
             <div>
-                <strong>TDM Coach</strong>
+
+                <strong>
+                    TDM Coach
+                </strong>
+
+
+                {% if club_actual %}
+
+                    <span class="footer-club-dot">
+                        ·
+                    </span>
+
+                    <strong>
+                        {{ club_actual.nombre }}
+                    </strong>
+
+                {% endif %}
+
+
                 <span class="text-muted">
+
                     · Sistema de gestión de entrenamientos
+
                 </span>
+
             </div>
+
 
             <div class="text-muted small">
+
                 Desarrollado por Eithan Skliarsky
+
             </div>
+
         </div>
+
     </div>
+
 </footer>
 
-<div id="toast-guardado" class="toast-guardado"></div>
+
+<div
+    id="toast-guardado"
+    class="toast-guardado"
+></div>
+
 
 <script>
-function mostrarToastGuardado(texto = "Guardado correctamente", tipo = "info") {
-    const toast = document.getElementById("toast-guardado");
-    if (!toast) return;
+
+function mostrarToastGuardado(
+    texto = "Guardado correctamente",
+    tipo = "info"
+) {
+
+    const toast = document.getElementById(
+        "toast-guardado"
+    );
+
+    if (!toast) {
+        return;
+    }
+
 
     toast.textContent = texto;
+
     toast.className = "toast-guardado mostrar";
 
+
     if (tipo) {
-        toast.classList.add(`toast-${tipo}`);
+        toast.classList.add(
+            `toast-${tipo}`
+        );
     }
 
-    clearTimeout(window.toastTimeout);
 
-    window.toastTimeout = setTimeout(() => {
-        toast.classList.remove("mostrar");
-    }, 2200);
+    clearTimeout(
+        window.toastTimeout
+    );
+
+
+    window.toastTimeout = setTimeout(
+        () => {
+
+            toast.classList.remove(
+                "mostrar"
+            );
+
+        },
+        2200
+    );
+
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-    const mensaje = document.querySelector(".mensaje-django");
 
-    if (mensaje) {
-        const texto = mensaje.dataset.message || "Guardado correctamente";
-        const tags = mensaje.dataset.tags || "info";
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
 
-        let tipo = "info";
+        const mensaje = document.querySelector(
+            ".mensaje-django"
+        );
 
-        if (tags.includes("success")) {
-            tipo = "success";
-        } else if (tags.includes("error") || tags.includes("danger")) {
-            tipo = "danger";
-        } else if (tags.includes("warning")) {
-            tipo = "warning";
-        }
 
-        mostrarToastGuardado(texto, tipo);
-    }
-});
+        if (mensaje) {
 
-document.addEventListener("click", async function(e) {
-    const btn = e.target.closest(".attendance-btn");
-    if (!btn) return;
+            const texto = (
+                mensaje.dataset.message
+                || "Guardado correctamente"
+            );
 
-    if (btn.disabled || btn.classList.contains("disabled")) {
-        return;
-    }
 
-    const attendanceId = btn.dataset.attendanceId;
-    const status = btn.dataset.status;
-    const csrfTokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+            const tags = (
+                mensaje.dataset.tags
+                || "info"
+            );
 
-    if (!csrfTokenInput) {
-        mostrarToastGuardado("No se encontró el token de seguridad.", "danger");
-        return;
-    }
 
-    const csrfToken = csrfTokenInput.value;
+            let tipo = "info";
 
-    try {
-        const response = await fetch(`/asistencia/${attendanceId}/estado/`, {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": csrfToken,
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: new URLSearchParams({ estado: status })
-        });
 
-        const data = await response.json();
+            if (
+                tags.includes("success")
+            ) {
 
-        if (data.ok) {
-            const row = btn.closest(".attendance-row");
+                tipo = "success";
 
-            if (row) {
-                row.querySelectorAll(".attendance-btn").forEach(b => {
-                    b.classList.remove("active-asistio", "active-ausente", "active-tarde");
-                });
+            } else if (
+                tags.includes("error")
+                || tags.includes("danger")
+            ) {
+
+                tipo = "danger";
+
+            } else if (
+                tags.includes("warning")
+            ) {
+
+                tipo = "warning";
+
             }
 
-            if (data.estado !== "pendiente") {
-                btn.classList.add(`active-${data.estado}`);
-                mostrarToastGuardado("Asistencia guardada", "success");
+
+            mostrarToastGuardado(
+                texto,
+                tipo
+            );
+
+        }
+
+    }
+);
+
+
+document.addEventListener(
+    "click",
+    async function(e) {
+
+        const btn = e.target.closest(
+            ".attendance-btn"
+        );
+
+
+        if (!btn) {
+            return;
+        }
+
+
+        if (
+            btn.disabled
+            || btn.classList.contains(
+                "disabled"
+            )
+        ) {
+
+            return;
+
+        }
+
+
+        const attendanceId = (
+            btn.dataset.attendanceId
+        );
+
+
+        const status = (
+            btn.dataset.status
+        );
+
+
+        const csrfTokenInput = (
+            document.querySelector(
+                "[name=csrfmiddlewaretoken]"
+            )
+        );
+
+
+        if (!csrfTokenInput) {
+
+            mostrarToastGuardado(
+                "No se encontró el token de seguridad.",
+                "danger"
+            );
+
+            return;
+
+        }
+
+
+        const csrfToken = (
+            csrfTokenInput.value
+        );
+
+
+        try {
+
+            const response = await fetch(
+                `/asistencia/${attendanceId}/estado/`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "X-CSRFToken": csrfToken,
+                        "Content-Type":
+                            "application/x-www-form-urlencoded"
+                    },
+
+                    body: new URLSearchParams({
+                        estado: status
+                    })
+                }
+            );
+
+
+            const data = (
+                await response.json()
+            );
+
+
+            if (data.ok) {
+
+                const row = btn.closest(
+                    ".attendance-row"
+                );
+
+
+                if (row) {
+
+                    row
+                        .querySelectorAll(
+                            ".attendance-btn"
+                        )
+                        .forEach(
+                            b => {
+
+                                b.classList.remove(
+                                    "active-asistio",
+                                    "active-ausente",
+                                    "active-tarde"
+                                );
+
+                            }
+                        );
+
+                }
+
+
+                if (
+                    data.estado
+                    !== "pendiente"
+                ) {
+
+                    btn.classList.add(
+                        `active-${data.estado}`
+                    );
+
+
+                    mostrarToastGuardado(
+                        "Asistencia guardada",
+                        "success"
+                    );
+
+                } else {
+
+                    mostrarToastGuardado(
+                        "Asistencia desmarcada",
+                        "warning"
+                    );
+
+                }
+
             } else {
-                mostrarToastGuardado("Asistencia desmarcada", "warning");
+
+                mostrarToastGuardado(
+                    data.error
+                    || "No se pudo guardar el estado.",
+                    "danger"
+                );
+
             }
-        } else {
-            mostrarToastGuardado(data.error || "No se pudo guardar el estado.", "danger");
+
+        } catch (error) {
+
+            mostrarToastGuardado(
+                "Error de conexión al guardar.",
+                "danger"
+            );
+
         }
-    } catch (error) {
-        mostrarToastGuardado("Error de conexión al guardar.", "danger");
+
     }
-});
+);
+
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+></script>
+
 
 </body>
+
 </html>

@@ -6,11 +6,23 @@
     <div>
         <h1 class="mb-1">Editar partido</h1>
         <p class="text-muted mb-0">
-            {{ entrenamiento.fecha|date:"d/m/Y" }} · Turno {{ entrenamiento.turno }}
+            {{ entrenamiento.fecha|date:"d/m/Y" }}
+            ·
+            {% if entrenamiento.turno_config %}
+                {{ entrenamiento.turno_config.nombre }}
+                {% if entrenamiento.turno_config.hora_inicio %}
+                    · {{ entrenamiento.turno_config.hora_inicio|time:"H:i" }}
+                {% endif %}
+                {% if entrenamiento.turno_config.hora_fin %}
+                    - {{ entrenamiento.turno_config.hora_fin|time:"H:i" }}
+                {% endif %}
+            {% else %}
+                Turno {{ entrenamiento.turno }}
+            {% endif %}
         </p>
     </div>
 
-    <a href="{% url 'dia_turno' entrenamiento.fecha|date:'Y-m-d' entrenamiento.turno %}"
+    <a href="{% url 'dia_turno' entrenamiento.fecha|date:'Y-m-d' entrenamiento.turno_config_id %}#partidos-turno"
        class="btn btn-outline-dark">
         ← Volver al turno
     </a>
@@ -119,7 +131,7 @@
                     Guardar cambios
                 </button>
 
-                <a href="{% url 'dia_turno' entrenamiento.fecha|date:'Y-m-d' entrenamiento.turno %}"
+                <a href="{% url 'dia_turno' entrenamiento.fecha|date:'Y-m-d' entrenamiento.turno_config_id %}#partidos-turno"
                    class="btn btn-outline-secondary">
                     Cancelar
                 </a>

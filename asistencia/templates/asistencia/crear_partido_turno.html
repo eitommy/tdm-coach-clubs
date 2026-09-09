@@ -1,21 +1,34 @@
 {% extends "asistencia/base.html" %}
 
+{% block title %}
+Cargar partido · {{ club_actual.nombre|default:"TDM Coach" }}
+{% endblock %}
+
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
     <div>
-        <h1 class="mb-1">
-            Cargar partido
-        </h1>
+        <h1 class="mb-1">Cargar partido</h1>
 
         <p class="text-muted mb-0">
-            {{ entrenamiento.fecha|date:"d/m/Y" }}
-            · Turno {{ entrenamiento.turno }}
+            {{ entrenamiento.fecha|date:"l j F Y" }}
+            ·
+            {% if entrenamiento.turno_config %}
+                {{ entrenamiento.turno_config.nombre }}
+                {% if entrenamiento.turno_config.hora_inicio %}
+                    · {{ entrenamiento.turno_config.hora_inicio|time:"H:i" }}
+                {% endif %}
+                {% if entrenamiento.turno_config.hora_fin %}
+                    - {{ entrenamiento.turno_config.hora_fin|time:"H:i" }}
+                {% endif %}
+            {% else %}
+                Turno {{ entrenamiento.turno }}
+            {% endif %}
         </p>
     </div>
 
     <a
-        href="{% url 'dia_turno' entrenamiento.fecha|date:'Y-m-d' entrenamiento.turno %}"
+        href="{% url 'dia_turno' entrenamiento.fecha|date:'Y-m-d' entrenamiento.turno_config_id %}#partidos-turno"
         class="btn btn-outline-dark"
     >
         ← Volver al turno
@@ -24,6 +37,7 @@
 
 <div class="card shadow-sm border-0">
     <div class="card-body">
+
         <form method="post">
             {% csrf_token %}
 
@@ -40,58 +54,64 @@
             {% endif %}
 
             <div class="row g-3 mb-4">
-                <div class="col-md-4">
-                    <label class="form-label">
-                        Jugador 1
+                <div class="col-md-6">
+                    <label
+                        for="{{ partido_form.jugador_1.id_for_label }}"
+                        class="form-label fw-semibold"
+                    >
+                        {{ partido_form.jugador_1.label }}
                     </label>
 
                     {{ partido_form.jugador_1 }}
 
-                    {% for error in partido_form.jugador_1.errors %}
+                    {% if partido_form.jugador_1.errors %}
                         <div class="text-danger small mt-1">
-                            {{ error }}
+                            {{ partido_form.jugador_1.errors }}
                         </div>
-                    {% endfor %}
+                    {% endif %}
                 </div>
 
-                <div class="col-md-4">
-                    <label class="form-label">
-                        Jugador 2
+                <div class="col-md-6">
+                    <label
+                        for="{{ partido_form.jugador_2.id_for_label }}"
+                        class="form-label fw-semibold"
+                    >
+                        {{ partido_form.jugador_2.label }}
                     </label>
 
                     {{ partido_form.jugador_2 }}
 
-                    {% for error in partido_form.jugador_2.errors %}
+                    {% if partido_form.jugador_2.errors %}
                         <div class="text-danger small mt-1">
-                            {{ error }}
+                            {{ partido_form.jugador_2.errors }}
                         </div>
-                    {% endfor %}
+                    {% endif %}
                 </div>
 
-                <div class="col-md-4">
-                    <label class="form-label">
-                        Detalle opcional
+                <div class="col-12">
+                    <label
+                        for="{{ partido_form.detalle.id_for_label }}"
+                        class="form-label fw-semibold"
+                    >
+                        {{ partido_form.detalle.label }}
                     </label>
 
                     {{ partido_form.detalle }}
 
-                    {% for error in partido_form.detalle.errors %}
+                    {% if partido_form.detalle.errors %}
                         <div class="text-danger small mt-1">
-                            {{ error }}
+                            {{ partido_form.detalle.errors }}
                         </div>
-                    {% endfor %}
+                    {% endif %}
                 </div>
             </div>
 
-            <hr>
+            <hr class="my-4">
 
             <div class="mb-3">
-                <h5 class="mb-1">
-                    Resultado de los sets
-                </h5>
-
+                <h4 class="mb-1">Resultado por sets</h4>
                 <p class="text-muted mb-0">
-                    Completá solamente los sets que se jugaron.
+                    Cargá solamente los sets que se jugaron.
                 </p>
             </div>
 
@@ -99,89 +119,140 @@
 
             <div class="d-flex flex-column gap-3">
                 {% for set_form in sets_formset %}
-                    <div class="border rounded-3 p-3 bg-light">
-                        <div class="row g-3 align-items-end">
-                            <div class="col-md-2">
-                                <strong>
-                                    Set {{ forloop.counter }}
-                                </strong>
-                            </div>
+                    <div class="border rounded-3 p-3">
+                        {% for hidden in set_form.hidden_fields %}
+                            {{ hidden }}
+                        {% endfor %}
 
-                            <div class="col-md-4">
-                                <label class="form-label">
-                                    Puntos jugador 1
-                                </label>
+                        <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                            <h6 class="mb-0">
+                                Set {{ forloop.counter }}
+                            </h6>
 
-                                {{ set_form.puntos_jugador_1 }}
-
-                                {% for error in set_form.puntos_jugador_1.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {{ error }}
-                                    </div>
-                                {% endfor %}
-                            </div>
-
-                            <div class="col-md-4">
-                                <label class="form-label">
-                                    Puntos jugador 2
-                                </label>
-
-                                {{ set_form.puntos_jugador_2 }}
-
-                                {% for error in set_form.puntos_jugador_2.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {{ error }}
-                                    </div>
-                                {% endfor %}
-                            </div>
-
-                            <div class="col-md-2">
-                                {% if set_form.DELETE %}
-                                    <div class="form-check">
-                                        {{ set_form.DELETE }}
-
-                                        <label
-                                            class="form-check-label"
-                                            for="{{ set_form.DELETE.id_for_label }}"
-                                        >
-                                            No incluir
-                                        </label>
-                                    </div>
-                                {% endif %}
-                            </div>
+                            {% if set_form.DELETE %}
+                                <div class="form-check">
+                                    {{ set_form.DELETE }}
+                                    <label
+                                        class="form-check-label"
+                                        for="{{ set_form.DELETE.id_for_label }}"
+                                    >
+                                        No usar este set
+                                    </label>
+                                </div>
+                            {% endif %}
                         </div>
 
                         {% if set_form.non_field_errors %}
-                            <div class="alert alert-danger mt-3 mb-0">
+                            <div class="alert alert-danger py-2">
                                 {{ set_form.non_field_errors }}
                             </div>
                         {% endif %}
 
-                        {% for hidden in set_form.hidden_fields %}
-                            {{ hidden }}
-                        {% endfor %}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label
+                                    for="{{ set_form.puntos_jugador_1.id_for_label }}"
+                                    class="form-label"
+                                >
+                                    {{ set_form.puntos_jugador_1.label }}
+                                </label>
+
+                                {{ set_form.puntos_jugador_1 }}
+
+                                {% if set_form.puntos_jugador_1.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ set_form.puntos_jugador_1.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label
+                                    for="{{ set_form.puntos_jugador_2.id_for_label }}"
+                                    class="form-label"
+                                >
+                                    {{ set_form.puntos_jugador_2.label }}
+                                </label>
+
+                                {{ set_form.puntos_jugador_2 }}
+
+                                {% if set_form.puntos_jugador_2.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ set_form.puntos_jugador_2.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
                 {% endfor %}
             </div>
 
             <div class="d-flex gap-2 flex-wrap mt-4">
-                <button
-                    type="submit"
-                    class="btn btn-primary"
-                >
+                <button type="submit" class="btn btn-primary">
                     Guardar partido
                 </button>
 
                 <a
-                    href="{% url 'dia_turno' entrenamiento.fecha|date:'Y-m-d' entrenamiento.turno %}"
-                    class="btn btn-outline-secondary"
+                    href="{% url 'dia_turno' entrenamiento.fecha|date:'Y-m-d' entrenamiento.turno_config_id %}#partidos-turno"
+                    class="btn btn-outline-dark"
                 >
                     Cancelar
                 </a>
             </div>
         </form>
+
     </div>
 </div>
 
-{% endblock %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const jugador1 = document.getElementById("id_jugador_1");
+    const jugador2 = document.getElementById("id_jugador_2");
 
+    function actualizarOpciones() {
+        if (!jugador1 || !jugador2) {
+            return;
+        }
+
+        Array.from(jugador1.options).forEach(function (opcion) {
+            opcion.disabled = false;
+        });
+
+        Array.from(jugador2.options).forEach(function (opcion) {
+            opcion.disabled = false;
+        });
+
+        if (jugador1.value) {
+            const opcion = jugador2.querySelector(
+                'option[value="' + jugador1.value + '"]'
+            );
+
+            if (opcion) {
+                opcion.disabled = true;
+            }
+        }
+
+        if (jugador2.value) {
+            const opcion = jugador1.querySelector(
+                'option[value="' + jugador2.value + '"]'
+            );
+
+            if (opcion) {
+                opcion.disabled = true;
+            }
+        }
+    }
+
+    if (jugador1) {
+        jugador1.addEventListener("change", actualizarOpciones);
+    }
+
+    if (jugador2) {
+        jugador2.addEventListener("change", actualizarOpciones);
+    }
+
+    actualizarOpciones();
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,204 @@
+{% extends "asistencia/base.html" %}
+
+{% block title %}
+{{ titulo }} - {{ club.nombre }}
+{% endblock %}
+
+{% block content %}
+
+<div class="container py-4">
+
+    <div class="mb-4">
+        <h1 class="h3 mb-1">
+            {{ titulo }}
+        </h1>
+
+        <p class="text-muted mb-0">
+            Configurá el día, horario y nombre del turno.
+        </p>
+    </div>
+
+    <div class="row">
+
+        <div class="col-lg-7">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body">
+
+                    <form method="post">
+
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+
+                        <div class="mb-3">
+
+                            <label
+                                for="{{ form.dia_semana.id_for_label }}"
+                                class="form-label"
+                            >
+                                Día de la semana
+                            </label>
+
+                            {{ form.dia_semana }}
+
+                            {% for error in form.dia_semana.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+
+                        <div class="mb-3">
+
+                            <label
+                                for="{{ form.nombre.id_for_label }}"
+                                class="form-label"
+                            >
+                                Nombre del turno
+                            </label>
+
+                            {{ form.nombre }}
+
+                            <div class="form-text">
+                                Ejemplo: Turno 1, Turno mañana,
+                                Entrenamiento avanzado, etc.
+                            </div>
+
+                            {% for error in form.nombre.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+
+                                <label
+                                    for="{{ form.hora_inicio.id_for_label }}"
+                                    class="form-label"
+                                >
+                                    Hora de inicio
+                                </label>
+
+                                {{ form.hora_inicio }}
+
+                                {% for error in form.hora_inicio.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ error }}
+                                    </div>
+                                {% endfor %}
+
+                            </div>
+
+
+                            <div class="col-md-6 mb-3">
+
+                                <label
+                                    for="{{ form.hora_fin.id_for_label }}"
+                                    class="form-label"
+                                >
+                                    Hora de finalización
+                                </label>
+
+                                {{ form.hora_fin }}
+
+                                {% for error in form.hora_fin.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ error }}
+                                    </div>
+                                {% endfor %}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="mb-3">
+
+                            <label
+                                for="{{ form.orden.id_for_label }}"
+                                class="form-label"
+                            >
+                                Orden
+                            </label>
+
+                            {{ form.orden }}
+
+                            <div class="form-text">
+                                Define en qué posición aparece este turno
+                                dentro del día.
+                            </div>
+
+                            {% for error in form.orden.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+
+                        <div class="form-check mb-4">
+
+                            {{ form.activo }}
+
+                            <label
+                                for="{{ form.activo.id_for_label }}"
+                                class="form-check-label"
+                            >
+                                Turno activo
+                            </label>
+
+                            {% for error in form.activo.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+
+                        <div class="d-flex gap-2">
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary"
+                            >
+                                Guardar turno
+                            </button>
+
+                            <a
+                                href="{% url 'lista_turnos' %}"
+                                class="btn btn-outline-secondary"
+                            >
+                                Cancelar
+                            </a>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
