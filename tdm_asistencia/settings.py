@@ -183,7 +183,7 @@ if DEBUG:
 else:
     STATICFILES_BACKEND = (
         "whitenoise.storage."
-        "CompressedManifestStaticFilesStorage"
+        "CompressedStaticFilesStorage"
     )
 
 STORAGES = {
