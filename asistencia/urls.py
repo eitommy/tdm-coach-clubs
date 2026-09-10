@@ -1,4 +1,7 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.urls import include, path
+
 from . import views
 
 
@@ -111,8 +114,17 @@ urlpatterns = [
         name="guardar_motivo_ausencia",
     ),
 
-    path("jugadores/", views.lista_jugadores, name="lista_jugadores"),
-    path("jugadores/nuevo/", views.crear_jugador, name="crear_jugador"),
+    path(
+        "jugadores/",
+        views.lista_jugadores,
+        name="lista_jugadores",
+    ),
+
+    path(
+        "jugadores/nuevo/",
+        views.crear_jugador,
+        name="crear_jugador",
+    ),
 
     path(
         "jugadores/<int:pk>/editar/",
@@ -126,8 +138,17 @@ urlpatterns = [
         name="historial_jugador",
     ),
 
-    path("ejercicios/", views.lista_ejercicios, name="lista_ejercicios"),
-    path("ejercicios/nuevo/", views.crear_ejercicio, name="crear_ejercicio"),
+    path(
+        "ejercicios/",
+        views.lista_ejercicios,
+        name="lista_ejercicios",
+    ),
+
+    path(
+        "ejercicios/nuevo/",
+        views.crear_ejercicio,
+        name="crear_ejercicio",
+    ),
 
     path(
         "ejercicios/<int:pk>/editar/",
@@ -189,7 +210,11 @@ urlpatterns = [
         name="seguimiento_semanal",
     ),
 
-    path("reportes/", views.reportes, name="reportes"),
+    path(
+        "reportes/",
+        views.reportes,
+        name="reportes",
+    ),
 
     path(
         "reportes/exportar-excel/",
@@ -209,3 +234,9 @@ urlpatterns = [
         name="resumen_dia",
     ),
 ]
+
+
+urlpatterns += static(
+    settings.MEDIA_URL,
+    document_root=settings.MEDIA_ROOT,
+)
