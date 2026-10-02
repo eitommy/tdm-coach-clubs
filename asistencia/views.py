@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 
 from django.contrib import messages
-from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from django.http import JsonResponse, HttpResponse
@@ -14,9 +13,14 @@ from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 
 from clubs.models import PerfilUsuario, TurnoClub
-from clubs.utils import obtener_club_usuario, requerir_admin_club
+from clubs.utils import (
+    obtener_club_usuario,
+    requerir_admin_club,
+    requerir_club,
+)
 
 from .forms import (
+    CategoriaEjercicioForm,
     EjercicioForm,
     EntrenamientoInfoForm,
     JugadorForm,
@@ -31,6 +35,7 @@ from .forms import (
 
 from .models import (
     Asistencia,
+    CategoriaEjercicio,
     Ejercicio,
     EjercicioRealizado,
     EjercicioTurno,
@@ -176,24 +181,6 @@ def redirect_dia_turno(entrenamiento, volver_a=""):
     return redirect(url)
 
 
-def registro(request):
-    """
-    El producto multiclub no permite autorregistro público.
-
-    Los usuarios de cada club se crean desde la administración del club.
-    Conservamos temporalmente esta vista para no romper URLs antiguas,
-    pero ya no crea cuentas.
-    """
-    if request.user.is_authenticated:
-        return redirect("inicio")
-
-    messages.info(
-        request,
-        "Las cuentas son creadas por el administrador de cada club.",
-    )
-    return redirect("login")
-
-
 @login_required
 def inicio(request):
     club = obtener_club_usuario(request.user)
@@ -214,6 +201,35 @@ def inicio(request):
             fecha = timezone.localdate()
     else:
         fecha = timezone.localdate()
+
+    tiene_turnos_club = TurnoClub.objects.filter(
+        club=club,
+        activo=True,
+    ).exists()
+
+    tiene_jugadores = Jugador.objects.filter(
+        club=club,
+        activo=True,
+    ).exists()
+
+    tiene_entrenadores = PerfilUsuario.objects.filter(
+        club=club,
+        rol=PerfilUsuario.Rol.ENTRENADOR,
+        activo=True,
+        usuario__is_active=True,
+    ).exists()
+
+    tiene_ejercicios = Ejercicio.objects.filter(
+        club=club,
+        activo=True,
+    ).exists()
+
+    configuracion_incompleta = not all([
+        tiene_turnos_club,
+        tiene_jugadores,
+        tiene_entrenadores,
+        tiene_ejercicios,
+    ])
 
     turnos_configurados = (
         TurnoClub.objects
@@ -236,6 +252,7 @@ def inicio(request):
             fecha,
             turno_config.orden,
             club,
+            turno_config=turno_config,
         )
 
         cantidad_jugadores = Asistencia.objects.filter(
@@ -262,7 +279,9 @@ def inicio(request):
         if entrenamiento.no_se_entreno:
             estado_texto = "No se entrenó"
             estado_clase = "danger"
-            estado_detalle = entrenamiento.get_motivo_no_entrenamiento_display()
+            estado_detalle = (
+                entrenamiento.get_motivo_no_entrenamiento_display()
+            )
 
             if entrenamiento.detalle_no_entrenamiento:
                 estado_detalle = (
@@ -309,7 +328,9 @@ def inicio(request):
                 if entrenamiento.no_se_entreno
                 else ""
             ),
-            "detalle_no_entrenamiento": entrenamiento.detalle_no_entrenamiento,
+            "detalle_no_entrenamiento": (
+                entrenamiento.detalle_no_entrenamiento
+            ),
             "finalizado": entrenamiento.finalizado,
             "estado_texto": estado_texto,
             "estado_clase": estado_clase,
@@ -335,9 +356,21 @@ def inicio(request):
         "total_marcados_dia": total_marcados_dia,
         "total_no_entrenados_dia": total_no_entrenados_dia,
         "total_finalizados_dia": total_finalizados_dia,
+
+        # Estados de configuración para mostrar ayudas claras
+        # en la pantalla de carga diaria.
+        "tiene_turnos_club": tiene_turnos_club,
+        "tiene_jugadores": tiene_jugadores,
+        "tiene_entrenadores": tiene_entrenadores,
+        "tiene_ejercicios": tiene_ejercicios,
+        "configuracion_incompleta": configuracion_incompleta,
     }
 
-    return render(request, "asistencia/inicio.html", contexto)
+    return render(
+        request,
+        "asistencia/inicio.html",
+        contexto,
+    )
 
 
 @login_required
@@ -488,9 +521,13 @@ def dia_turno(request, fecha_str, turno_id):
             entrenamiento=entrenamiento,
             ejercicio__club=club,
         )
-        .select_related("ejercicio")
+        .select_related(
+            "ejercicio",
+            "ejercicio__categoria_config",
+        )
         .order_by(
-            "ejercicio__categoria",
+            "ejercicio__categoria_config__orden",
+            "ejercicio__categoria_config__nombre",
             "ejercicio__nombre",
         )
     )
@@ -498,7 +535,7 @@ def dia_turno(request, fecha_str, turno_id):
     ejercicios_turno_por_categoria = {}
 
     for ejercicio_turno in ejercicios_turno:
-        categoria = ejercicio_turno.ejercicio.get_categoria_display()
+        categoria = ejercicio_turno.ejercicio.nombre_categoria
 
         ejercicios_turno_por_categoria.setdefault(
             categoria,
@@ -2357,7 +2394,7 @@ def lista_jugadores(request):
     )
 
 
-@requerir_admin_club
+@requerir_club
 def crear_jugador(request):
     club = obtener_club_usuario(request.user)
 
@@ -2399,7 +2436,7 @@ def crear_jugador(request):
     )
 
 
-@requerir_admin_club
+@requerir_club
 def editar_jugador(request, pk):
     club = obtener_club_usuario(request.user)
 
@@ -2463,8 +2500,10 @@ def lista_ejercicios(request):
     ejercicios = (
         Ejercicio.objects
         .filter(club=club)
+        .select_related("categoria_config")
         .order_by(
-            "categoria",
+            "categoria_config__orden",
+            "categoria_config__nombre",
             "nombre",
         )
     )
@@ -2478,7 +2517,115 @@ def lista_ejercicios(request):
     )
 
 
-@requerir_admin_club
+@requerir_club
+def lista_categorias_ejercicio(request):
+    club = obtener_club_usuario(request.user)
+
+    categorias = (
+        CategoriaEjercicio.objects
+        .filter(club=club)
+        .annotate(
+            cantidad_ejercicios=Count("ejercicios")
+        )
+        .order_by(
+            "orden",
+            "nombre",
+        )
+    )
+
+    return render(
+        request,
+        "asistencia/lista_categorias_ejercicio.html",
+        {
+            "categorias": categorias,
+        },
+    )
+
+
+@requerir_club
+def crear_categoria_ejercicio(request):
+    club = obtener_club_usuario(request.user)
+
+    if request.method == "POST":
+        form = CategoriaEjercicioForm(
+            request.POST,
+            club=club,
+        )
+
+        if form.is_valid():
+            categoria = form.save(commit=False)
+            categoria.club = club
+            categoria.save()
+
+            messages.success(
+                request,
+                "Categoría creada correctamente.",
+            )
+            return redirect(
+                "lista_categorias_ejercicio"
+            )
+    else:
+        form = CategoriaEjercicioForm(
+            club=club,
+        )
+
+    return render(
+        request,
+        "asistencia/form_categoria_ejercicio.html",
+        {
+            "form": form,
+            "titulo": "Agregar categoría",
+        },
+    )
+
+
+@requerir_club
+def editar_categoria_ejercicio(request, pk):
+    club = obtener_club_usuario(request.user)
+
+    categoria = get_object_or_404(
+        CategoriaEjercicio,
+        pk=pk,
+        club=club,
+    )
+
+    if request.method == "POST":
+        form = CategoriaEjercicioForm(
+            request.POST,
+            instance=categoria,
+            club=club,
+        )
+
+        if form.is_valid():
+            categoria_editada = form.save(commit=False)
+            categoria_editada.club = club
+            categoria_editada.save()
+
+            messages.success(
+                request,
+                "Categoría editada correctamente.",
+            )
+            return redirect(
+                "lista_categorias_ejercicio"
+            )
+    else:
+        form = CategoriaEjercicioForm(
+            instance=categoria,
+            club=club,
+        )
+
+    return render(
+        request,
+        "asistencia/form_categoria_ejercicio.html",
+        {
+            "form": form,
+            "titulo": "Editar categoría",
+            "categoria": categoria,
+        },
+    )
+
+
+@requerir_club
 def crear_ejercicio(request):
     club = obtener_club_usuario(request.user)
 
@@ -2488,6 +2635,18 @@ def crear_ejercicio(request):
             "Tu usuario no está asociado a un club activo.",
         )
         return redirect("login")
+
+    if not CategoriaEjercicio.objects.filter(
+        club=club,
+        activo=True,
+    ).exists():
+        messages.info(
+            request,
+            "Primero creá al menos una categoría de ejercicios.",
+        )
+        return redirect(
+            "lista_categorias_ejercicio"
+        )
 
     if request.method == "POST":
         form = EjercicioForm(
@@ -2520,7 +2679,7 @@ def crear_ejercicio(request):
     )
 
 
-@requerir_admin_club
+@requerir_club
 def editar_ejercicio(request, pk):
     club = obtener_club_usuario(request.user)
 
@@ -2532,7 +2691,9 @@ def editar_ejercicio(request, pk):
         return redirect("login")
 
     ejercicio = get_object_or_404(
-        Ejercicio,
+        Ejercicio.objects.select_related(
+            "categoria_config"
+        ),
         pk=pk,
         club=club,
     )
@@ -2653,44 +2814,31 @@ def cargar_ejercicios(request):
         )
     )
 
-    ejercicios_por_categoria = {
-        "Movilidad": (
+    categorias_activas = (
+        CategoriaEjercicio.objects
+        .filter(
+            club=club,
+            activo=True,
+        )
+        .order_by(
+            "orden",
+            "nombre",
+        )
+    )
+
+    ejercicios_por_categoria = {}
+
+    for categoria in categorias_activas:
+        ejercicios_por_categoria[categoria.nombre] = (
             Ejercicio.objects
             .filter(
                 club=club,
-                categoria=Ejercicio.Categoria.MOVILIDAD,
+                categoria_config=categoria,
                 activo=True,
             )
             .order_by("nombre")
-        ),
-        "Reacción": (
-            Ejercicio.objects
-            .filter(
-                club=club,
-                categoria=Ejercicio.Categoria.REACCION,
-                activo=True,
-            )
-            .order_by("nombre")
-        ),
-        "Saque": (
-            Ejercicio.objects
-            .filter(
-                club=club,
-                categoria=Ejercicio.Categoria.SAQUE,
-                activo=True,
-            )
-            .order_by("nombre")
-        ),
-        "Recepción": (
-            Ejercicio.objects
-            .filter(
-                club=club,
-                categoria=Ejercicio.Categoria.RECEPCION,
-                activo=True,
-            )
-            .order_by("nombre")
-        ),
-    }
+        )
+
 
     contexto = {
         "entrenamiento": entrenamiento,
@@ -2943,12 +3091,14 @@ def seguimiento_semanal(request):
                     )
                     .select_related(
                         "ejercicio",
+                        "ejercicio__categoria_config",
                         "entrenamiento",
                         "entrenamiento__turno_config",
                     )
                     .order_by(
                         "entrenamiento__turno_config__orden",
-                        "ejercicio__categoria",
+                        "ejercicio__categoria_config__orden",
+                        "ejercicio__categoria_config__nombre",
                         "ejercicio__nombre",
                     )
                 )
@@ -2960,7 +3110,7 @@ def seguimiento_semanal(request):
                     turno_config = item.entrenamiento.turno_config
                     clave_turno = turno_config.id
 
-                    categoria = item.ejercicio.get_categoria_display()
+                    categoria = item.ejercicio.nombre_categoria
 
                     if clave_turno not in turnos_dict:
                         turnos_dict[clave_turno] = {
@@ -3373,9 +3523,13 @@ def historial_jugador(request, jugador_id):
             .filter(
                 entrenamiento=asistencia.entrenamiento,
             )
-            .select_related("ejercicio")
+            .select_related(
+                "ejercicio",
+                "ejercicio__categoria_config",
+            )
             .order_by(
-                "ejercicio__categoria",
+                "ejercicio__categoria_config__orden",
+                "ejercicio__categoria_config__nombre",
                 "ejercicio__nombre",
             )
         )
@@ -3394,11 +3548,13 @@ def historial_jugador(request, jugador_id):
             "entrenamiento",
             "entrenamiento__turno_config",
             "ejercicio",
+            "ejercicio__categoria_config",
         )
         .order_by(
             "-entrenamiento__fecha",
             "entrenamiento__turno_config__orden",
-            "ejercicio__categoria",
+            "ejercicio__categoria_config__orden",
+            "ejercicio__categoria_config__nombre",
             "ejercicio__nombre",
         )
     )
@@ -3416,7 +3572,7 @@ def historial_jugador(request, jugador_id):
         ejercicios_turno
         .values(
             "ejercicio__nombre",
-            "ejercicio__categoria",
+            "ejercicio__categoria_config__nombre",
         )
         .annotate(total=Count("id"))
         .order_by("-total")[:8]
@@ -3763,6 +3919,7 @@ def reportes(request):
     total_semana_ausentes = 0
     total_mes_presentes = 0
     total_mes_ausentes = 0
+    total_mes_pendientes = 0
 
     for jugador in (
         Jugador.objects
@@ -3916,6 +4073,7 @@ def reportes(request):
         total_semana_ausentes += semana_ausentes
         total_mes_presentes += mes_presentes
         total_mes_ausentes += mes_ausentes
+        total_mes_pendientes += mes_pendientes
 
         datos.append({
             "jugador": jugador,
@@ -3954,6 +4112,18 @@ def reportes(request):
         "total_semana_ausentes": total_semana_ausentes,
         "total_mes_presentes": total_mes_presentes,
         "total_mes_ausentes": total_mes_ausentes,
+        "total_mes_pendientes": total_mes_pendientes,
+        "total_mes_asistencias": (
+            total_mes_presentes
+            + total_mes_ausentes
+            + total_mes_pendientes
+        ),
+        "tiene_actividad_mes": (
+            total_mes_presentes > 0
+            or total_mes_ausentes > 0
+            or total_mes_pendientes > 0
+            or total_turnos_no_entrenados_mes > 0
+        ),
         "dias_no_entrenados_semana": dias_no_entrenados_semana,
         "dias_no_entrenados_mes": dias_no_entrenados_mes,
         "total_turnos_no_entrenados_semana": (
@@ -4147,9 +4317,13 @@ def resumen_dia(request):
         ejercicios_turno = (
             EjercicioTurno.objects
             .filter(entrenamiento=entrenamiento)
-            .select_related("ejercicio")
+            .select_related(
+                "ejercicio",
+                "ejercicio__categoria_config",
+            )
             .order_by(
-                "ejercicio__categoria",
+                "ejercicio__categoria_config__orden",
+                "ejercicio__categoria_config__nombre",
                 "ejercicio__nombre",
             )
         )
@@ -4159,10 +4333,7 @@ def resumen_dia(request):
         for ejercicio_turno in ejercicios_turno:
             ejercicio = ejercicio_turno.ejercicio
 
-            if hasattr(ejercicio, "get_categoria_display"):
-                categoria = ejercicio.get_categoria_display()
-            else:
-                categoria = getattr(ejercicio, "categoria", "")
+            categoria = ejercicio.nombre_categoria
 
             ejercicios.append(
                 {
@@ -5266,6 +5437,14 @@ def dashboard_mensual(request):
         "total_ausentes": total_ausentes,
         "total_tardes": total_tardes,
         "total_partidos": total_partidos,
+        "tiene_actividad_mes": (
+            turnos_realizados > 0
+            or turnos_no_entrenados.exists()
+            or total_presentes > 0
+            or total_ausentes > 0
+            or total_tardes > 0
+            or total_partidos > 0
+        ),
         "motivo_principal": (
             motivos[0]["motivo"]
             if motivos
@@ -5295,6 +5474,7 @@ def dashboard_mensual(request):
         "asistencia/dashboard_mensual.html",
         contexto,
     )
+
 
 
 @login_required

@@ -243,6 +243,42 @@ class Entrenamiento(models.Model):
             ),
         ]
 
+    def clean(self):
+        super().clean()
+
+        # Los registros legacy (club=None) se mantienen sin estas
+        # validaciones para preservar el histórico existente.
+        if not self.club_id:
+            return
+
+        if (
+            self.turno_config_id
+            and self.turno_config.club_id != self.club_id
+        ):
+            raise ValidationError({
+                "turno_config": (
+                    "El turno seleccionado pertenece a otro club."
+                )
+            })
+
+        if self.responsable_usuario_id:
+            perfil = getattr(
+                self.responsable_usuario,
+                "perfil_club",
+                None,
+            )
+
+            if (
+                perfil is None
+                or perfil.club_id != self.club_id
+            ):
+                raise ValidationError({
+                    "responsable_usuario": (
+                        "El responsable debe pertenecer al mismo club "
+                        "del entrenamiento."
+                    )
+                })
+
     @property
     def nombre_turno(self):
         if self.turno_config:
@@ -282,29 +318,26 @@ class Entrenamiento(models.Model):
 
         return self.nombre_turno
 
-    def __str__(self):
+    @property
+    def nombre_entrenador(self):
         if self.responsable_usuario:
-            nombre_entrenador = (
+            return (
                 self.responsable_usuario.get_full_name()
                 or self.responsable_usuario.username
             )
 
-        elif self.entrenador_responsable:
-            nombre_entrenador = str(
-                self.entrenador_responsable
-            )
+        if self.entrenador_responsable:
+            return str(self.entrenador_responsable)
 
-        elif self.entrenador:
-            nombre_entrenador = (
+        if self.entrenador:
+            return (
                 self.entrenador.get_full_name()
                 or self.entrenador.username
             )
 
-        else:
-            nombre_entrenador = "Sin entrenador"
+        return "Sin entrenador"
 
-        nombre_turno = self.nombre_turno
-
+    def __str__(self):
         estado = (
             "Finalizado"
             if self.finalizado
@@ -313,8 +346,8 @@ class Entrenamiento(models.Model):
 
         return (
             f"{self.fecha} - "
-            f"{nombre_turno} - "
-            f"{nombre_entrenador} - "
+            f"{self.nombre_turno} - "
+            f"{self.nombre_entrenador} - "
             f"{estado}"
         )
 
@@ -370,6 +403,22 @@ class Asistencia(models.Model):
             "jugador",
         )
 
+    def clean(self):
+        super().clean()
+
+        if (
+            self.entrenamiento_id
+            and self.entrenamiento.club_id
+            and self.jugador_id
+            and self.jugador.club_id != self.entrenamiento.club_id
+        ):
+            raise ValidationError({
+                "jugador": (
+                    "El jugador debe pertenecer al mismo club "
+                    "del entrenamiento."
+                )
+            })
+
     def __str__(self):
         return (
             f"{self.jugador} - "
@@ -378,13 +427,49 @@ class Asistencia(models.Model):
         )
 
 
-class Ejercicio(models.Model):
-    class Categoria(models.TextChoices):
-        MOVILIDAD = "movilidad", "Movilidad"
-        REACCION = "reaccion", "Reacción"
-        SAQUE = "saque", "Saque"
-        RECEPCION = "recepcion", "Recepción"
+class CategoriaEjercicio(models.Model):
+    club = models.ForeignKey(
+        Club,
+        on_delete=models.CASCADE,
+        related_name="categorias_ejercicio",
+    )
 
+    nombre = models.CharField(
+        max_length=100,
+    )
+
+    orden = models.PositiveSmallIntegerField(
+        default=1,
+    )
+
+    activo = models.BooleanField(
+        default=True,
+    )
+
+    class Meta:
+        ordering = [
+            "orden",
+            "nombre",
+        ]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "club",
+                    "nombre",
+                ],
+                name="categoria_ejercicio_unica_por_club",
+            ),
+        ]
+
+        verbose_name = "Categoría de ejercicio"
+        verbose_name_plural = "Categorías de ejercicios"
+
+    def __str__(self):
+        return self.nombre
+
+
+class Ejercicio(models.Model):
     club = models.ForeignKey(
         Club,
         on_delete=models.CASCADE,
@@ -397,12 +482,13 @@ class Ejercicio(models.Model):
         max_length=150,
     )
 
-    # Por ahora mantenemos las categorías actuales.
-    # Después las haremos configurables por club.
-    categoria = models.CharField(
-        max_length=20,
-        choices=Categoria.choices,
-        default=Categoria.MOVILIDAD,
+    categoria_config = models.ForeignKey(
+        CategoriaEjercicio,
+        on_delete=models.PROTECT,
+        related_name="ejercicios",
+        null=True,
+        blank=True,
+        help_text="Categoría configurable del club.",
     )
 
     activo = models.BooleanField(
@@ -411,7 +497,8 @@ class Ejercicio(models.Model):
 
     class Meta:
         ordering = [
-            "categoria",
+            "categoria_config__orden",
+            "categoria_config__nombre",
             "nombre",
         ]
 
@@ -420,15 +507,46 @@ class Ejercicio(models.Model):
                 fields=[
                     "club",
                     "nombre",
-                    "categoria",
+                    "categoria_config",
                 ],
-                name="ejercicio_unico_por_club_categoria",
+                name="ejercicio_unico_por_club_categoria_config",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(club__isnull=True)
+                    | models.Q(categoria_config__isnull=False)
+                ),
+                name="ejercicio_comercial_requiere_categoria_config",
             ),
         ]
 
+    def clean(self):
+        super().clean()
+
+        # Los ejercicios legacy pueden seguir sin club/categoría.
+        if not self.club_id:
+            return
+
+        if (
+            self.categoria_config_id
+            and self.categoria_config.club_id != self.club_id
+        ):
+            raise ValidationError({
+                "categoria_config": (
+                    "La categoría seleccionada pertenece a otro club."
+                )
+            })
+
+    @property
+    def nombre_categoria(self):
+        if self.categoria_config_id:
+            return self.categoria_config.nombre
+
+        return "Sin categoría"
+
     def __str__(self):
         return (
-            f"{self.get_categoria_display()} - "
+            f"{self.nombre_categoria} - "
             f"{self.nombre}"
         )
 
@@ -466,7 +584,8 @@ class EjercicioRealizado(models.Model):
         ordering = [
             "-fecha",
             "jugador__apellido",
-            "ejercicio__categoria",
+            "ejercicio__categoria_config__orden",
+            "ejercicio__categoria_config__nombre",
             "ejercicio__nombre",
         ]
 
@@ -538,6 +657,8 @@ class TrabajoTurno(models.Model):
         verbose_name_plural = "Trabajos del turno"
 
     def clean(self):
+        super().clean()
+
         if self.tipo == self.Tipo.PAREJA:
             if not self.jugador_2:
                 raise ValidationError({
@@ -561,6 +682,34 @@ class TrabajoTurno(models.Model):
                     "el tipo es Pareja."
                 )
             })
+
+        if (
+            self.entrenamiento_id
+            and self.entrenamiento.club_id
+        ):
+            club_id = self.entrenamiento.club_id
+
+            if (
+                self.jugador_1_id
+                and self.jugador_1.club_id != club_id
+            ):
+                raise ValidationError({
+                    "jugador_1": (
+                        "El jugador debe pertenecer al mismo club "
+                        "del entrenamiento."
+                    )
+                })
+
+            if (
+                self.jugador_2_id
+                and self.jugador_2.club_id != club_id
+            ):
+                raise ValidationError({
+                    "jugador_2": (
+                        "El compañero debe pertenecer al mismo club "
+                        "del entrenamiento."
+                    )
+                })
 
     def __str__(self):
         if (
@@ -612,12 +761,29 @@ class EjercicioTurno(models.Model):
         ordering = [
             "entrenamiento__fecha",
             "entrenamiento__turno_config__orden",
-            "ejercicio__categoria",
+            "ejercicio__categoria_config__orden",
+            "ejercicio__categoria_config__nombre",
             "ejercicio__nombre",
         ]
 
         verbose_name = "Ejercicio del turno"
         verbose_name_plural = "Ejercicios del turno"
+
+    def clean(self):
+        super().clean()
+
+        if (
+            self.entrenamiento_id
+            and self.entrenamiento.club_id
+            and self.ejercicio_id
+            and self.ejercicio.club_id != self.entrenamiento.club_id
+        ):
+            raise ValidationError({
+                "ejercicio": (
+                    "El ejercicio debe pertenecer al mismo club "
+                    "del entrenamiento."
+                )
+            })
 
     def __str__(self):
         return (
@@ -668,6 +834,22 @@ class ObservacionJugador(models.Model):
         verbose_name = "Observación de jugador"
         verbose_name_plural = "Observaciones de jugadores"
 
+    def clean(self):
+        super().clean()
+
+        if (
+            self.entrenamiento_id
+            and self.entrenamiento.club_id
+            and self.jugador_id
+            and self.jugador.club_id != self.entrenamiento.club_id
+        ):
+            raise ValidationError({
+                "jugador": (
+                    "El jugador debe pertenecer al mismo club "
+                    "del entrenamiento."
+                )
+            })
+
     def __str__(self):
         return (
             f"{self.jugador} · "
@@ -716,6 +898,39 @@ class PartidoTurno(models.Model):
 
         verbose_name = "Partido del turno"
         verbose_name_plural = "Partidos del turno"
+
+    def clean(self):
+        super().clean()
+
+        if not (
+            self.entrenamiento_id
+            and self.entrenamiento.club_id
+        ):
+            return
+
+        club_id = self.entrenamiento.club_id
+
+        if (
+            self.jugador_1_id
+            and self.jugador_1.club_id != club_id
+        ):
+            raise ValidationError({
+                "jugador_1": (
+                    "El jugador 1 debe pertenecer al mismo club "
+                    "del entrenamiento."
+                )
+            })
+
+        if (
+            self.jugador_2_id
+            and self.jugador_2.club_id != club_id
+        ):
+            raise ValidationError({
+                "jugador_2": (
+                    "El jugador 2 debe pertenecer al mismo club "
+                    "del entrenamiento."
+                )
+            })
 
     def __str__(self):
         return (

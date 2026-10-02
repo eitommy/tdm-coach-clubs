@@ -2,15 +2,11 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-SECRET_KEY = os.environ.get(
-    "SECRET_KEY",
-    "django-insecure-demo-local-cambiar-en-render",
-)
 
 DEBUG = os.environ.get(
     "DEBUG",
@@ -18,16 +14,45 @@ DEBUG = os.environ.get(
 ).lower() == "true"
 
 
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY",
+    "",
+)
+
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "django-insecure-local-solo-desarrollo"
+    else:
+        raise ImproperlyConfigured(
+            "Falta configurar SECRET_KEY en producción."
+        )
+
+
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
 ]
 
+EXTRA_ALLOWED_HOSTS = os.environ.get(
+    "ALLOWED_HOSTS",
+    "",
+)
+
+for host in EXTRA_ALLOWED_HOSTS.split(","):
+    host = host.strip()
+
+    if host and host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(host)
+
+
 RENDER_EXTERNAL_HOSTNAME = os.environ.get(
     "RENDER_EXTERNAL_HOSTNAME"
 )
 
-if RENDER_EXTERNAL_HOSTNAME:
+if (
+    RENDER_EXTERNAL_HOSTNAME
+    and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS
+):
     ALLOWED_HOSTS.append(
         RENDER_EXTERNAL_HOSTNAME
     )
@@ -35,10 +60,26 @@ if RENDER_EXTERNAL_HOSTNAME:
 
 CSRF_TRUSTED_ORIGINS = []
 
+EXTRA_CSRF_TRUSTED_ORIGINS = os.environ.get(
+    "CSRF_TRUSTED_ORIGINS",
+    "",
+)
+
+for origin in EXTRA_CSRF_TRUSTED_ORIGINS.split(","):
+    origin = origin.strip()
+
+    if origin and origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(origin)
+
 if RENDER_EXTERNAL_HOSTNAME:
-    CSRF_TRUSTED_ORIGINS.append(
+    render_origin = (
         f"https://{RENDER_EXTERNAL_HOSTNAME}"
     )
+
+    if render_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(
+            render_origin
+        )
 
 
 INSTALLED_APPS = [
@@ -174,7 +215,7 @@ if STATIC_DIR.exists():
 
 
 # En local/tests no usamos manifest porque collectstatic todavía no corrió.
-# En Render (DEBUG=False) usamos WhiteNoise con archivos versionados.
+# En producción usamos WhiteNoise para servir archivos estáticos.
 if DEBUG:
     STATICFILES_BACKEND = (
         "django.contrib.staticfiles.storage."
@@ -186,21 +227,112 @@ else:
         "CompressedStaticFilesStorage"
     )
 
-STORAGES = {
-    "default": {
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+
+# Media de producción (logos de clubes) en Cloudflare R2.
+#
+# Si NO están configuradas estas variables, seguimos usando el filesystem
+# local exactamente como hasta ahora.
+#
+# Para activar R2 deben existir TODAS:
+# - R2_ACCESS_KEY_ID
+# - R2_SECRET_ACCESS_KEY
+# - R2_BUCKET_NAME
+# - R2_ENDPOINT_URL
+# - R2_PUBLIC_DOMAIN
+#
+# R2_PUBLIC_DOMAIN debe ser solo el hostname, por ejemplo:
+# media.tdmcoach.com
+R2_ACCESS_KEY_ID = os.environ.get(
+    "R2_ACCESS_KEY_ID",
+    "",
+).strip()
+
+R2_SECRET_ACCESS_KEY = os.environ.get(
+    "R2_SECRET_ACCESS_KEY",
+    "",
+).strip()
+
+R2_BUCKET_NAME = os.environ.get(
+    "R2_BUCKET_NAME",
+    "",
+).strip()
+
+R2_ENDPOINT_URL = os.environ.get(
+    "R2_ENDPOINT_URL",
+    "",
+).strip()
+
+R2_PUBLIC_DOMAIN = os.environ.get(
+    "R2_PUBLIC_DOMAIN",
+    "",
+).strip().removeprefix("https://").removeprefix("http://").rstrip("/")
+
+R2_CONFIG = {
+    "R2_ACCESS_KEY_ID": R2_ACCESS_KEY_ID,
+    "R2_SECRET_ACCESS_KEY": R2_SECRET_ACCESS_KEY,
+    "R2_BUCKET_NAME": R2_BUCKET_NAME,
+    "R2_ENDPOINT_URL": R2_ENDPOINT_URL,
+    "R2_PUBLIC_DOMAIN": R2_PUBLIC_DOMAIN,
+}
+
+R2_CONFIGURADO_PARCIALMENTE = any(
+    R2_CONFIG.values()
+)
+
+R2_CONFIGURADO = all(
+    R2_CONFIG.values()
+)
+
+if (
+    R2_CONFIGURADO_PARCIALMENTE
+    and not R2_CONFIGURADO
+):
+    faltantes = [
+        nombre
+        for nombre, valor in R2_CONFIG.items()
+        if not valor
+    ]
+
+    raise ImproperlyConfigured(
+        "Configuración R2 incompleta. Faltan: "
+        + ", ".join(faltantes)
+    )
+
+
+if R2_CONFIGURADO:
+    DEFAULT_STORAGE = {
+        "BACKEND": "storages.s3.S3Storage",
+        "OPTIONS": {
+            "access_key": R2_ACCESS_KEY_ID,
+            "secret_key": R2_SECRET_ACCESS_KEY,
+            "bucket_name": R2_BUCKET_NAME,
+            "endpoint_url": R2_ENDPOINT_URL,
+            "region_name": "auto",
+            "custom_domain": R2_PUBLIC_DOMAIN,
+            "querystring_auth": False,
+            "file_overwrite": False,
+            "default_acl": None,
+        },
+    }
+else:
+    DEFAULT_STORAGE = {
         "BACKEND": (
             "django.core.files.storage."
             "FileSystemStorage"
         ),
-    },
+    }
+
+
+STORAGES = {
+    "default": DEFAULT_STORAGE,
     "staticfiles": {
         "BACKEND": STATICFILES_BACKEND,
     },
 }
-
-
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
 
 
 DEFAULT_AUTO_FIELD = (
@@ -213,10 +345,64 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
 
 
-EMAIL_BACKEND = (
-    "django.core.mail.backends.console."
-    "EmailBackend"
+# Recuperación de contraseña.
+# En local, si EMAIL_HOST está vacío, Django imprime el email completo
+# en la terminal para poder probar el flujo sin SMTP real.
+EMAIL_HOST = os.environ.get(
+    "EMAIL_HOST",
+    "",
 )
+
+if EMAIL_HOST:
+    EMAIL_BACKEND = (
+        "django.core.mail.backends.smtp.EmailBackend"
+    )
+    EMAIL_PORT = int(
+        os.environ.get(
+            "EMAIL_PORT",
+            "587",
+        )
+    )
+    EMAIL_HOST_USER = os.environ.get(
+        "EMAIL_HOST_USER",
+        "",
+    )
+    EMAIL_HOST_PASSWORD = os.environ.get(
+        "EMAIL_HOST_PASSWORD",
+        "",
+    )
+    EMAIL_USE_TLS = os.environ.get(
+        "EMAIL_USE_TLS",
+        "True",
+    ).lower() == "true"
+else:
+    EMAIL_BACKEND = (
+        "django.core.mail.backends.console."
+        "EmailBackend"
+    )
+
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "DEFAULT_FROM_EMAIL",
+    "TDM Coach <no-reply@tdmcoach.local>",
+)
+
+
+# URL base pública de la aplicación.
+# En local apunta a 127.0.0.1; en Render se arma automáticamente.
+APP_BASE_URL = os.environ.get(
+    "APP_BASE_URL",
+    "",
+).rstrip("/")
+
+if not APP_BASE_URL:
+    if RENDER_EXTERNAL_HOSTNAME:
+        APP_BASE_URL = (
+            f"https://{RENDER_EXTERNAL_HOSTNAME}"
+        )
+    else:
+        APP_BASE_URL = (
+            "http://127.0.0.1:8000"
+        )
 
 
 if RENDER_EXTERNAL_HOSTNAME:
@@ -224,3 +410,10 @@ if RENDER_EXTERNAL_HOSTNAME:
         "HTTP_X_FORWARDED_PROTO",
         "https",
     )
+
+
+# Endurecimiento básico cuando la app corre sin DEBUG.
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True

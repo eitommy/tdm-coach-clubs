@@ -5,6 +5,24 @@ from . import views
 
 urlpatterns = [
     path(
+        "registro/<uuid:token>/",
+        views.registro_club_invitacion,
+        name="registro_club_invitacion",
+    ),
+
+    path(
+        "onboarding/",
+        views.onboarding_club,
+        name="onboarding_club",
+    ),
+
+    path(
+        "perfil/",
+        views.mi_perfil,
+        name="mi_perfil",
+    ),
+
+    path(
         "configuracion/",
         views.configuracion_club,
         name="configuracion_club",

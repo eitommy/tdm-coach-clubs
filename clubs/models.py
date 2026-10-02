@@ -1,8 +1,15 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 
 
 class Club(models.Model):
+    class EstadoPago(models.TextChoices):
+        AL_DIA = "al_dia", "Al día"
+        PENDIENTE = "pendiente", "Pago pendiente"
+        VENCIDO = "vencido", "Vencido"
+
     nombre = models.CharField(max_length=150)
 
     logo = models.ImageField(
@@ -35,10 +42,74 @@ class Club(models.Model):
 
     activo = models.BooleanField(default=True)
 
+    estado_pago = models.CharField(
+        max_length=20,
+        choices=EstadoPago.choices,
+        default=EstadoPago.PENDIENTE,
+        help_text=(
+            "Estado informativo de la suscripción. "
+            "No bloquea automáticamente el acceso al club."
+        ),
+    )
+
+    pagado_hasta = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Última fecha cubierta por el pago del club.",
+    )
+
+    observacion_pago = models.TextField(
+        blank=True,
+        help_text=(
+            "Nota interna visible para el administrador técnico."
+        ),
+    )
+
     creado = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.nombre
+
+
+class InvitacionClub(models.Model):
+    token = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+    )
+
+    referencia = models.CharField(
+        max_length=150,
+        blank=True,
+        help_text=(
+            "Nombre interno opcional para identificar a quién se envió "
+            "la invitación. Ej: Spin TDM."
+        ),
+    )
+
+    creada = models.DateTimeField(auto_now_add=True)
+
+    usada_en = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    club_creado = models.OneToOneField(
+        Club,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="invitacion_origen",
+    )
+
+    @property
+    def usada(self):
+        return self.usada_en is not None
+
+    def __str__(self):
+        estado = "Usada" if self.usada else "Disponible"
+        referencia = self.referencia or str(self.token)
+        return f"{referencia} - {estado}"
 
 
 class PerfilUsuario(models.Model):

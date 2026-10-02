@@ -7,6 +7,7 @@ from clubs.models import PerfilUsuario
 
 from .models import (
     Jugador,
+    CategoriaEjercicio,
     Ejercicio,
     Entrenamiento,
     TrabajoTurno,
@@ -108,19 +109,87 @@ class JugadorForm(forms.ModelForm):
         ).strip()
 
 
-class EjercicioForm(forms.ModelForm):
+class CategoriaEjercicioForm(forms.ModelForm):
     class Meta:
-        model = Ejercicio
-
-        # El club se asignará desde la vista.
+        model = CategoriaEjercicio
         fields = [
-            "categoria",
             "nombre",
+            "orden",
             "activo",
         ]
 
         widgets = {
-            "categoria": forms.Select(
+            "nombre": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Ejemplo: Multibola",
+                    "autocomplete": "off",
+                }
+            ),
+            "orden": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "min": 1,
+                }
+            ),
+            "activo": forms.CheckboxInput(
+                attrs={
+                    "class": "form-check-input",
+                }
+            ),
+        }
+
+    def __init__(self, *args, club=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.club = club
+
+    def clean_nombre(self):
+        nombre = self.cleaned_data.get(
+            "nombre",
+            "",
+        ).strip()
+
+        if not nombre:
+            raise forms.ValidationError(
+                "El nombre de la categoría es obligatorio."
+            )
+
+        if self.club:
+            categorias = CategoriaEjercicio.objects.filter(
+                club=self.club,
+                nombre__iexact=nombre,
+            )
+
+            if self.instance and self.instance.pk:
+                categorias = categorias.exclude(
+                    pk=self.instance.pk,
+                )
+
+            if categorias.exists():
+                raise forms.ValidationError(
+                    "Ya existe una categoría con ese nombre."
+                )
+
+        return nombre
+
+
+class EjercicioForm(forms.ModelForm):
+    class Meta:
+        model = Ejercicio
+
+        # El club se asigna desde la vista.
+        fields = [
+            "categoria_config",
+            "nombre",
+            "activo",
+        ]
+
+        labels = {
+            "categoria_config": "Categoría",
+        }
+
+        widgets = {
+            "categoria_config": forms.Select(
                 attrs={
                     "class": "form-select",
                     "autocomplete": "off",
@@ -144,6 +213,37 @@ class EjercicioForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.club = club
 
+        categorias = CategoriaEjercicio.objects.none()
+
+        if club:
+            categorias = CategoriaEjercicio.objects.filter(
+                club=club,
+                activo=True,
+            )
+
+            # Si se edita un ejercicio cuya categoría fue desactivada,
+            # la seguimos mostrando para no romper la edición.
+            if (
+                self.instance
+                and self.instance.pk
+                and self.instance.categoria_config_id
+            ):
+                categorias = CategoriaEjercicio.objects.filter(
+                    Q(club=club, activo=True)
+                    | Q(pk=self.instance.categoria_config_id)
+                )
+
+        self.fields[
+            "categoria_config"
+        ].queryset = categorias.distinct().order_by(
+            "orden",
+            "nombre",
+        )
+
+        self.fields[
+            "categoria_config"
+        ].empty_label = "Seleccionar categoría"
+
     def clean_nombre(self):
         nombre = self.cleaned_data.get(
             "nombre",
@@ -157,18 +257,38 @@ class EjercicioForm(forms.ModelForm):
 
         return nombre
 
+    def clean_categoria_config(self):
+        categoria = self.cleaned_data.get(
+            "categoria_config"
+        )
+
+        if categoria is None:
+            raise forms.ValidationError(
+                "Seleccioná una categoría."
+            )
+
+        if (
+            self.club
+            and categoria.club_id != self.club.id
+        ):
+            raise forms.ValidationError(
+                "La categoría seleccionada no pertenece a este club."
+            )
+
+        return categoria
+
     def clean(self):
         cleaned_data = super().clean()
 
         nombre = cleaned_data.get("nombre")
-        categoria = cleaned_data.get("categoria")
+        categoria = cleaned_data.get("categoria_config")
 
         if not nombre or not categoria:
             return cleaned_data
 
         ejercicios = Ejercicio.objects.filter(
             nombre__iexact=nombre,
-            categoria=categoria,
+            categoria_config=categoria,
         )
 
         if self.club:
@@ -187,6 +307,7 @@ class EjercicioForm(forms.ModelForm):
             )
 
         return cleaned_data
+
 
 
 class EntrenamientoInfoForm(forms.ModelForm):

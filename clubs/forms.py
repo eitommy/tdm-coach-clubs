@@ -224,12 +224,15 @@ class UsuarioClubForm(forms.Form):
 
     email = forms.EmailField(
         label="Email",
-        required=False,
+        required=True,
         widget=forms.EmailInput(
             attrs={
                 "class": "form-control",
                 "autocomplete": "email",
             }
+        ),
+        help_text=(
+            "Este email se usará también para recuperar la contraseña."
         ),
     )
 
@@ -276,6 +279,18 @@ class UsuarioClubForm(forms.Form):
             )
 
         return username
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+
+        if User.objects.filter(
+            email__iexact=email,
+        ).exists():
+            raise forms.ValidationError(
+                "Ya existe un usuario con ese email."
+            )
+
+        return email
 
     def clean(self):
         cleaned_data = super().clean()
@@ -372,12 +387,15 @@ class EditarUsuarioClubForm(forms.Form):
 
     email = forms.EmailField(
         label="Email",
-        required=False,
+        required=True,
         widget=forms.EmailInput(
             attrs={
                 "class": "form-control",
                 "autocomplete": "email",
             }
+        ),
+        help_text=(
+            "Este email se usará también para recuperar la contraseña."
         ),
     )
 
@@ -409,6 +427,25 @@ class EditarUsuarioClubForm(forms.Form):
     ):
         super().__init__(*args, **kwargs)
         self.usuario = usuario
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+
+        usuarios = User.objects.filter(
+            email__iexact=email,
+        )
+
+        if self.usuario is not None:
+            usuarios = usuarios.exclude(
+                pk=self.usuario.pk,
+            )
+
+        if usuarios.exists():
+            raise forms.ValidationError(
+                "Ya existe otro usuario con ese email."
+            )
+
+        return email
 
     def clean(self):
         cleaned_data = super().clean()
@@ -442,6 +479,230 @@ class EditarUsuarioClubForm(forms.Form):
                 for mensaje in error.messages:
                     self.add_error(
                         "nueva_password",
+                        mensaje,
+                    )
+
+        return cleaned_data
+
+
+class RegistroClubInvitacionForm(forms.Form):
+    nombre_club = forms.CharField(
+        label="Nombre del club",
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "organization",
+                "placeholder": "Ej: Spin TDM",
+            }
+        ),
+    )
+
+    logo = forms.ImageField(
+        label="Logo del club",
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={
+                "class": "form-control",
+                "accept": "image/*",
+            }
+        ),
+    )
+
+    color_primario = forms.CharField(
+        label="Color primario",
+        initial="#2563EB",
+        max_length=7,
+        widget=forms.TextInput(
+            attrs={
+                "type": "color",
+                "class": "form-control form-control-color",
+            }
+        ),
+    )
+
+    color_secundario = forms.CharField(
+        label="Color secundario",
+        initial="#111827",
+        max_length=7,
+        widget=forms.TextInput(
+            attrs={
+                "type": "color",
+                "class": "form-control form-control-color",
+            }
+        ),
+    )
+
+    email_club = forms.EmailField(
+        label="Email del club",
+        required=False,
+        widget=forms.EmailInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "organization-email",
+            }
+        ),
+    )
+
+    nombre_admin = forms.CharField(
+        label="Nombre",
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "given-name",
+            }
+        ),
+    )
+
+    apellido_admin = forms.CharField(
+        label="Apellido",
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "family-name",
+            }
+        ),
+    )
+
+    email_admin = forms.EmailField(
+        label="Email personal del administrador",
+        required=True,
+        widget=forms.EmailInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "email",
+            }
+        ),
+        help_text=(
+            "Este email se usará también para recuperar la contraseña."
+        ),
+    )
+
+    username = forms.CharField(
+        label="Usuario",
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "username",
+            }
+        ),
+    )
+
+    password = forms.CharField(
+        label="Contraseña",
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "new-password",
+            }
+        ),
+    )
+
+    password_confirmacion = forms.CharField(
+        label="Repetir contraseña",
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "new-password",
+            }
+        ),
+    )
+
+    def clean_nombre_club(self):
+        nombre = self.cleaned_data[
+            "nombre_club"
+        ].strip()
+
+        if Club.objects.filter(
+            nombre__iexact=nombre,
+        ).exists():
+            raise forms.ValidationError(
+                "Ya existe un club con ese nombre."
+            )
+
+        return nombre
+
+    def clean_username(self):
+        username = self.cleaned_data[
+            "username"
+        ].strip()
+
+        if User.objects.filter(
+            username__iexact=username,
+        ).exists():
+            raise forms.ValidationError(
+                "Ya existe un usuario con ese nombre."
+            )
+
+        return username
+
+    def clean_email_admin(self):
+        email = self.cleaned_data[
+            "email_admin"
+        ].strip().lower()
+
+        if User.objects.filter(
+            email__iexact=email,
+        ).exists():
+            raise forms.ValidationError(
+                "Ya existe un usuario con ese email."
+            )
+
+        return email
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        password = cleaned_data.get("password")
+        password_confirmacion = cleaned_data.get(
+            "password_confirmacion"
+        )
+
+        if (
+            password
+            and password_confirmacion
+            and password != password_confirmacion
+        ):
+            self.add_error(
+                "password_confirmacion",
+                "Las contraseñas no coinciden.",
+            )
+
+        if password:
+            usuario_temporal = User(
+                username=cleaned_data.get(
+                    "username",
+                    "",
+                ),
+                first_name=cleaned_data.get(
+                    "nombre_admin",
+                    "",
+                ),
+                last_name=cleaned_data.get(
+                    "apellido_admin",
+                    "",
+                ),
+                email=cleaned_data.get(
+                    "email_admin",
+                    "",
+                ),
+            )
+
+            try:
+                validate_password(
+                    password,
+                    user=usuario_temporal,
+                )
+            except ValidationError as error:
+                for mensaje in error.messages:
+                    self.add_error(
+                        "password",
                         mensaje,
                     )
 

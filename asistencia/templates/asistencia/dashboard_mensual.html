@@ -88,6 +88,53 @@
     </div>
 </div>
 
+{% if resumen.jugadores_activos == 0 %}
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body text-center py-5">
+        <div class="fs-1 mb-2">📅</div>
+
+        <h4 class="mb-2">
+            Todavía no hay datos para el resumen mensual
+        </h4>
+
+        <p class="text-muted mb-3">
+            Este club todavía no tiene jugadores activos.
+            Cargá al menos uno para empezar a generar estadísticas mensuales.
+        </p>
+
+        {% if es_admin_club %}
+            <a
+                href="{% url 'crear_jugador' %}"
+                class="btn btn-primary"
+            >
+                Agregar primer jugador
+            </a>
+        {% else %}
+            <a
+                href="{% url 'lista_jugadores' %}"
+                class="btn btn-outline-primary"
+            >
+                Ver jugadores
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% elif not resumen.tiene_actividad_mes %}
+<div class="alert alert-info shadow-sm mb-4">
+    <div class="fw-bold mb-1">
+        Todavía no hay actividad registrada en este mes
+    </div>
+
+    <div>
+        Hay {{ resumen.jugadores_activos }}
+        jugador{{ resumen.jugadores_activos|pluralize:"es" }}
+        activo{{ resumen.jugadores_activos|pluralize:"s" }},
+        pero todavía no se registraron asistencias, partidos,
+        ejercicios ni turnos sin entrenamiento en el período seleccionado.
+    </div>
+</div>
+{% endif %}
+
 <div class="row g-3 mb-4">
     <div class="col-lg-3 col-md-6">
         <div class="card shadow-sm border-0 h-100">
@@ -163,6 +210,7 @@
     </div>
 </div>
 
+{% if resumen.tiene_actividad_mes %}
 <div class="row g-3 mb-4">
     <div class="col-lg-4">
         <div class="card shadow-sm border-0 h-100">
@@ -258,6 +306,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 {% if motivos %}
     <div class="card shadow-sm border-0 mb-4">
@@ -292,6 +341,7 @@
     </div>
 {% endif %}
 
+{% if resumen.tiene_actividad_mes %}
 <div class="row g-3 mb-4">
     <div class="col-lg-6">
         <div class="card shadow-sm border-0 h-100">
@@ -367,6 +417,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 {% if turnos_no_entrenados %}
     <div class="card shadow-sm border-0">
@@ -392,7 +443,7 @@
                                             - {{ entrenamiento.turno_config.hora_fin|time:"H:i" }}
                                         {% endif %}
                                     {% else %}
-                                        Turno {{ entrenamiento.turno }}
+                                        Turno {{ entrenamiento.nombre_turno }}
                                     {% endif %}
                                 </strong>
 

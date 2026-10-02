@@ -70,12 +70,12 @@ class PermisosAdministracionClubTests(TestCase):
             reverse("configuracion_club")
         )
 
-        self.assertNotEqual(
+        self.assertEqual(
             response.status_code,
-            200,
+            403,
         )
 
-    def test_entrenador_no_puede_gestionar_turnos(self):
+    def test_entrenador_puede_gestionar_turnos(self):
         self.client.force_login(self.entrenador)
 
         for nombre_url in [
@@ -87,7 +87,7 @@ class PermisosAdministracionClubTests(TestCase):
                     reverse(nombre_url)
                 )
 
-                self.assertNotEqual(
+                self.assertEqual(
                     response.status_code,
                     200,
                 )
@@ -104,9 +104,9 @@ class PermisosAdministracionClubTests(TestCase):
                     reverse(nombre_url)
                 )
 
-                self.assertNotEqual(
+                self.assertEqual(
                     response.status_code,
-                    200,
+                    403,
                 )
 
     def test_admin_puede_entrar_a_administracion(self):
@@ -146,6 +146,21 @@ class PermisosAdministracionClubTests(TestCase):
 
     def test_admin_no_puede_editar_turno_de_otro_club(self):
         self.client.force_login(self.admin)
+
+        response = self.client.get(
+            reverse(
+                "editar_turno",
+                args=[self.turno_otro.id],
+            )
+        )
+
+        self.assertEqual(
+            response.status_code,
+            404,
+        )
+
+    def test_entrenador_no_puede_editar_turno_de_otro_club(self):
+        self.client.force_login(self.entrenador)
 
         response = self.client.get(
             reverse(

@@ -78,15 +78,8 @@ def usuario_es_entrenador(user):
 
 def requerir_club(view_func):
     """
-    Decorador para vistas a las que solamente puede entrar un usuario
-    que tenga un club activo asociado.
-
-    Ejemplo:
-
-        @requerir_club
-        def inicio(request):
-            club = obtener_club_usuario(request.user)
-            ...
+    Decorador para vistas operativas disponibles para cualquier usuario
+    comercial activo del club, tanto administrador como entrenador.
     """
 
     @wraps(view_func)
@@ -115,10 +108,9 @@ def requerir_admin_club(view_func):
     Decorador para pantallas exclusivas del administrador del club.
 
     Por ejemplo:
-    - configuración del club
-    - usuarios
-    - turnos
-    - pagos
+    - configuración y branding del club
+    - usuarios, entrenadores y roles
+    - administración comercial/pagos
     """
 
     @wraps(view_func)

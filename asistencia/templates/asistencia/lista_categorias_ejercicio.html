@@ -1,0 +1,100 @@
+{% extends "asistencia/base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <h1 class="mb-1">Categorías de ejercicios</h1>
+        <p class="text-muted mb-0">
+            Administrá las categorías disponibles para los ejercicios de tu club.
+        </p>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap">
+        <a
+            href="{% url 'lista_ejercicios' %}"
+            class="btn btn-outline-dark"
+        >
+            ← Volver a ejercicios
+        </a>
+
+        <a
+            href="{% url 'crear_categoria_ejercicio' %}"
+            class="btn btn-primary"
+        >
+            + Agregar categoría
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        {% if categorias %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Orden</th>
+                            <th>Nombre</th>
+                            <th>Ejercicios</th>
+                            <th>Estado</th>
+                            <th class="text-end pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for categoria in categorias %}
+                            <tr>
+                                <td class="ps-4 fw-semibold">
+                                    {{ categoria.orden }}
+                                </td>
+                                <td>
+                                    {{ categoria.nombre }}
+                                </td>
+                                <td>
+                                    <span class="badge text-bg-light border">
+                                        {{ categoria.cantidad_ejercicios }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if categoria.activo %}
+                                        <span class="badge text-bg-success">
+                                            Activa
+                                        </span>
+                                    {% else %}
+                                        <span class="badge text-bg-secondary">
+                                            Inactiva
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-4">
+                                    <a
+                                        href="{% url 'editar_categoria_ejercicio' categoria.id %}"
+                                        class="btn btn-sm btn-outline-primary"
+                                    >
+                                        Editar
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="p-5 text-center">
+                <h5 class="mb-2">Todavía no hay categorías</h5>
+                <p class="text-muted mb-3">
+                    Creá la primera categoría para poder empezar a cargar ejercicios.
+                </p>
+
+                <a
+                    href="{% url 'crear_categoria_ejercicio' %}"
+                    class="btn btn-primary"
+                >
+                    Crear primera categoría
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

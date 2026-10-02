@@ -80,6 +80,53 @@
     </div>
 </div>
 
+{% if resumen_general.total_jugadores == 0 %}
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body text-center py-5">
+        <div class="fs-1 mb-2">📊</div>
+
+        <h4 class="mb-2">
+            Todavía no hay datos para reportar
+        </h4>
+
+        <p class="text-muted mb-3">
+            Este club todavía no tiene jugadores activos.
+            Cargá al menos un jugador para empezar a generar reportes de asistencia.
+        </p>
+
+        {% if es_admin_club %}
+            <a
+                href="{% url 'crear_jugador' %}"
+                class="btn btn-primary"
+            >
+                Agregar primer jugador
+            </a>
+        {% else %}
+            <a
+                href="{% url 'lista_jugadores' %}"
+                class="btn btn-outline-primary"
+            >
+                Ver jugadores
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% elif not resumen_general.tiene_actividad_mes %}
+<div class="alert alert-info shadow-sm mb-4">
+    <div class="fw-bold mb-1">
+        Todavía no hay actividad registrada en este mes
+    </div>
+
+    <div>
+        Hay {{ resumen_general.total_jugadores }}
+        jugador{{ resumen_general.total_jugadores|pluralize:"es" }}
+        activo{{ resumen_general.total_jugadores|pluralize:"s" }},
+        pero todavía no se cargaron asistencias ni turnos sin entrenamiento
+        dentro del período seleccionado.
+    </div>
+</div>
+{% endif %}
+
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <div class="card text-center shadow-sm border-0 h-100">
@@ -203,7 +250,7 @@
                                                 - {{ entrenamiento.turno_config.hora_fin|time:"H:i" }}
                                             {% endif %}
                                         {% else %}
-                                            Turno {{ entrenamiento.turno }}
+                                            Turno {{ entrenamiento.nombre_turno }}
                                         {% endif %}
                                     </span>
                                 </td>
@@ -235,6 +282,7 @@
             </span>
         </div>
 
+        {% if datos %}
         <div class="table-responsive">
             <table class="table align-middle mb-0">
                 <thead>
@@ -317,16 +365,22 @@
                                 </div>
                             </td>
                         </tr>
-                    {% empty %}
-                        <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
-                                Todavía no hay jugadores cargados.
-                            </td>
-                        </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+        {% else %}
+            <div class="text-center py-4 border rounded-3 bg-light">
+                <div class="fw-semibold mb-1">
+                    Sin jugadores para mostrar
+                </div>
+
+                <div class="text-muted small">
+                    Cuando el club tenga jugadores activos, acá vas a ver
+                    el seguimiento de asistencia de cada uno.
+                </div>
+            </div>
+        {% endif %}
     </div>
 </div>
 

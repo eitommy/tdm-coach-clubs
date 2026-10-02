@@ -280,7 +280,7 @@
                                 - {{ entrenamiento.turno_config.hora_fin|time:"H:i" }}
                             {% endif %}
                         {% else %}
-                            Turno {{ entrenamiento.turno }}
+                            Turno {{ entrenamiento.nombre_turno }}
                         {% endif %}
                         · {{ entrenamiento.get_motivo_no_entrenamiento_display }}
                     </span>
@@ -338,7 +338,7 @@
                                                     </div>
                                                 {% endif %}
                                             {% else %}
-                                                Turno {{ asistencia.entrenamiento.turno }}
+                                                Turno {{ asistencia.entrenamiento.nombre_turno }}
                                             {% endif %}
                                         </td>
 
@@ -381,16 +381,12 @@
                                         </td>
 
                                         <td>
-                                            {% if asistencia.entrenamiento.responsable_usuario %}
-                                                {{ asistencia.entrenamiento.responsable_usuario.get_full_name|default:asistencia.entrenamiento.responsable_usuario.username }}
-                                            {% elif asistencia.entrenamiento.entrenador_responsable %}
-                                                {{ asistencia.entrenamiento.entrenador_responsable }}
-                                            {% elif asistencia.entrenamiento.entrenador %}
-                                                {{ asistencia.entrenamiento.entrenador.get_full_name|default:asistencia.entrenamiento.entrenador.username }}
-                                            {% else %}
+                                            {% if asistencia.entrenamiento.nombre_entrenador == "Sin entrenador" %}
                                                 <span class="text-muted">
                                                     Sin entrenador
                                                 </span>
+                                            {% else %}
+                                                {{ asistencia.entrenamiento.nombre_entrenador }}
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -424,7 +420,7 @@
                                     </strong>
 
                                     <div class="small text-muted">
-                                        {{ item.ejercicio__categoria }}
+                                        {{ item.ejercicio__categoria_config__nombre|default:"Sin categoría" }}
                                     </div>
                                 </div>
 
@@ -477,7 +473,7 @@
                                             - {{ partido.entrenamiento.turno_config.hora_fin|time:"H:i" }}
                                         {% endif %}
                                     {% else %}
-                                        Turno {{ partido.entrenamiento.turno }}
+                                        Turno {{ partido.entrenamiento.nombre_turno }}
                                     {% endif %}
                                 </div>
                             </div>
@@ -589,7 +585,7 @@
                                                     - {{ trabajo.entrenamiento.turno_config.hora_fin|time:"H:i" }}
                                                 {% endif %}
                                             {% else %}
-                                                Turno {{ trabajo.entrenamiento.turno }}
+                                                Turno {{ trabajo.entrenamiento.nombre_turno }}
                                             {% endif %}
                                             · Cambio {{ trabajo.cambio }}
                                         </div>
@@ -656,7 +652,7 @@
                                             - {{ observacion.entrenamiento.turno_config.hora_fin|time:"H:i" }}
                                         {% endif %}
                                     {% else %}
-                                        Turno {{ observacion.entrenamiento.turno }}
+                                        Turno {{ observacion.entrenamiento.nombre_turno }}
                                     {% endif %}
                                     · {{ observacion.creada_el|date:"H:i" }}
 
@@ -728,7 +724,7 @@
                                 </td>
 
                                 <td>
-                                    {{ item.ejercicio.get_categoria_display }}
+                                    {{ item.ejercicio.nombre_categoria }}
                                 </td>
 
                                 <td>

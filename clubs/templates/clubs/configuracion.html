@@ -224,6 +224,54 @@ Configuración - {{ club.nombre }}
 
         <div class="col-lg-4">
 
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                        <div>
+                            <h2 class="h5 mb-1">Suscripción</h2>
+                            <p class="text-muted small mb-0">
+                                Estado administrado por TDM Coach.
+                            </p>
+                        </div>
+
+                        {% if club.estado_pago == "al_dia" %}
+                            <span class="badge text-bg-success">
+                                {{ club.get_estado_pago_display }}
+                            </span>
+                        {% elif club.estado_pago == "vencido" %}
+                            <span class="badge text-bg-danger">
+                                {{ club.get_estado_pago_display }}
+                            </span>
+                        {% else %}
+                            <span class="badge text-bg-warning">
+                                {{ club.get_estado_pago_display }}
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="border rounded p-3 bg-light">
+                        <div class="small text-muted mb-1">
+                            Pago cubierto hasta
+                        </div>
+
+                        <div class="fw-semibold">
+                            {% if club.pagado_hasta %}
+                                {{ club.pagado_hasta|date:"d/m/Y" }}
+                            {% else %}
+                                Sin fecha cargada
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <p class="text-muted small mt-3 mb-0">
+                        Este estado es informativo y no puede modificarse
+                        desde la configuración del club.
+                    </p>
+
+                </div>
+            </div>
+
             <div class="card shadow-sm">
                 <div class="card-body text-center">
 

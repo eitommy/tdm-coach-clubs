@@ -1,0 +1,119 @@
+{% extends "asistencia/base.html" %}
+
+{% block title %}Primeros pasos · {{ club.nombre }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-xl-9 col-lg-10">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <div>
+                <h1 class="h3 mb-1">
+                    Primeros pasos en {{ club.nombre }}
+                </h1>
+                <p class="text-muted mb-0">
+                    Completá esta configuración inicial para dejar el club listo para trabajar.
+                </p>
+            </div>
+
+            <div class="text-md-end">
+                <div class="fw-semibold">
+                    {{ completados }} de {{ total }} completados
+                </div>
+                <div class="text-muted small">
+                    {{ porcentaje }}%
+                </div>
+            </div>
+        </div>
+
+        <div
+            class="progress mb-4"
+            role="progressbar"
+            aria-label="Progreso de configuración"
+            aria-valuenow="{{ porcentaje }}"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            style="height: 10px;"
+        >
+            <div
+                class="progress-bar"
+                style="width: {{ porcentaje }}%;"
+            ></div>
+        </div>
+
+        {% if onboarding_completo %}
+            <div class="alert alert-success border-0 shadow-sm mb-4">
+                <strong>El club ya está listo.</strong>
+                Completaste toda la configuración inicial.
+            </div>
+        {% endif %}
+
+        <div class="vstack gap-3">
+            {% for paso in pasos %}
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+                            <div class="d-flex gap-3">
+                                <div>
+                                    {% if paso.completo %}
+                                        <span
+                                            class="badge rounded-pill text-bg-success"
+                                            style="font-size: .9rem;"
+                                        >
+                                            ✓
+                                        </span>
+                                    {% else %}
+                                        <span
+                                            class="badge rounded-pill text-bg-secondary"
+                                            style="font-size: .9rem;"
+                                        >
+                                            {{ forloop.counter }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                <div>
+                                    <h2 class="h5 mb-1">
+                                        {{ paso.titulo }}
+                                    </h2>
+                                    <p class="text-muted mb-0">
+                                        {{ paso.descripcion }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="align-self-md-center">
+                                <a
+                                    href="{{ paso.url }}"
+                                    class="btn {% if paso.completo %}btn-outline-secondary{% else %}btn-primary{% endif %}"
+                                >
+                                    {% if paso.completo %}
+                                        Revisar
+                                    {% else %}
+                                        {{ paso.boton }}
+                                    {% endif %}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <a
+                href="{% url 'configuracion_club' %}"
+                class="btn btn-outline-secondary"
+            >
+                Configuración del club
+            </a>
+
+            <a
+                href="{% url 'inicio' %}"
+                class="btn btn-primary"
+            >
+                Ir a la app
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

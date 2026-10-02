@@ -15,6 +15,7 @@
     </a>
 </div>
 
+{% if jugadores %}
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-body">
         <form method="get" class="row g-3 align-items-end">
@@ -56,6 +57,7 @@
         </form>
     </div>
 </div>
+{% endif %}
 
 {% if jugador_seleccionado %}
 
@@ -465,6 +467,7 @@
 
 {% else %}
 
+{% if jugadores %}
 <div class="card shadow-sm border-0">
     <div class="card-body text-center py-5">
         <h4 class="mb-2">Seleccioná un jugador</h4>
@@ -474,6 +477,38 @@
         </p>
     </div>
 </div>
+{% else %}
+<div class="card shadow-sm border-0">
+    <div class="card-body text-center py-5">
+        <div class="fs-1 mb-2">👤</div>
+
+        <h4 class="mb-2">
+            Todavía no hay jugadores disponibles
+        </h4>
+
+        <p class="text-muted mb-3">
+            Para usar el seguimiento semanal, primero cargá al menos
+            un jugador activo en el club.
+        </p>
+
+        {% if es_admin_club %}
+            <a
+                href="{% url 'crear_jugador' %}"
+                class="btn btn-primary"
+            >
+                Agregar primer jugador
+            </a>
+        {% else %}
+            <a
+                href="{% url 'lista_jugadores' %}"
+                class="btn btn-outline-primary"
+            >
+                Ver jugadores
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
 
 {% endif %}
 

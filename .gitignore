@@ -1,7 +1,26 @@
 venv/
+.venv/
 __pycache__/
 *.pyc
+*.pyo
+*.sqlite3
 db.sqlite3
 .env
+.env.*
 staticfiles/
 media/
+.pytest_cache/
+.coverage
+# Backups temporales de desarrollo
+*.bak_step*
+
+# Copias temporales de archivos
+*_actual.txt
+
+# Scripts auxiliares usados durante el desarrollo
+/aplicar_sesion_password.py
+/cambiar_historial_entrenador.py
+/eliminar_registro_publico.py
+/limpieza_categorias.py
+/limpieza_entrenador_historial.py
+/limpieza_turnos_template.py

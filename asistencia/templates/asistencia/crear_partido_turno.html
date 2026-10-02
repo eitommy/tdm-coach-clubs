@@ -22,7 +22,7 @@ Cargar partido · {{ club_actual.nombre|default:"TDM Coach" }}
                     - {{ entrenamiento.turno_config.hora_fin|time:"H:i" }}
                 {% endif %}
             {% else %}
-                Turno {{ entrenamiento.turno }}
+                Turno {{ entrenamiento.nombre_turno }}
             {% endif %}
         </p>
     </div>

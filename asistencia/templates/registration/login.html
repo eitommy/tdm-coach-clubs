@@ -1,12 +1,20 @@
 {% extends "asistencia/base.html" %}
 
+{% block title %}
+Ingresar · TDM Coach
+{% endblock %}
+
 {% block content %}
 
 <div class="row justify-content-center">
     <div class="col-lg-5 col-md-7">
+
         <div class="card shadow-sm border-0 mt-4">
+
             <div class="card-body p-4">
+
                 <div class="text-center mb-4">
+
                     <h1 class="h3 mb-1">
                         TDM Coach
                     </h1>
@@ -14,7 +22,9 @@
                     <p class="text-muted mb-0">
                         Acceso al sistema de entrenamiento
                     </p>
+
                 </div>
+
 
                 {% if form.errors %}
                     <div class="alert alert-danger">
@@ -22,10 +32,14 @@
                     </div>
                 {% endif %}
 
+
                 <form method="post">
+
                     {% csrf_token %}
 
+
                     <div class="mb-3">
+
                         <label
                             for="{{ form.username.id_for_label }}"
                             class="form-label"
@@ -41,17 +55,33 @@
                             autocomplete="username"
                             required
                         >
+
                     </div>
 
-                    <div class="mb-3">
-                        <label
-                            for="{{ form.password.id_for_label }}"
-                            class="form-label"
-                        >
-                            Contraseña
-                        </label>
 
-                        <div class="input-group">
+                    <div class="mb-2">
+
+                        <div class="d-flex justify-content-between align-items-center">
+
+                            <label
+                                for="{{ form.password.id_for_label }}"
+                                class="form-label mb-0"
+                            >
+                                Contraseña
+                            </label>
+
+                            <a
+                                href="{% url 'password_reset' %}"
+                                class="small text-decoration-none"
+                            >
+                                ¿Olvidaste tu contraseña?
+                            </a>
+
+                        </div>
+
+
+                        <div class="input-group mt-2">
+
                             <input
                                 type="password"
                                 name="{{ form.password.html_name }}"
@@ -65,47 +95,146 @@
                                 type="button"
                                 class="btn btn-outline-secondary"
                                 id="toggle-password"
-                                aria-label="Mostrar u ocultar contraseña"
+                                aria-label="Mostrar contraseña"
+                                title="Mostrar contraseña"
                             >
-                                Ver
+
+                                <svg
+                                    class="icon-eye"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+
+                                <svg
+                                    class="icon-eye-off d-none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path d="M3 3l18 18"></path>
+                                    <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"></path>
+                                    <path d="M9.9 4.2A10.8 10.8 0 0 1 12 4c6.5 0 10 8 10 8a18 18 0 0 1-2.1 3.2"></path>
+                                    <path d="M6.2 6.2C3.6 8 2 12 2 12s3.5 8 10 8a10.3 10.3 0 0 0 4.1-.8"></path>
+                                </svg>
+
                             </button>
+
                         </div>
+
                     </div>
+
 
                     <button
                         type="submit"
-                        class="btn btn-primary w-100"
+                        class="btn btn-primary w-100 mt-3"
                     >
                         Ingresar al sistema
                     </button>
+
                 </form>
 
+
                 <p class="text-muted small text-center mb-0 mt-3">
-                    El entrenador responsable se selecciona dentro de cada turno.
+                    El acceso es exclusivo para usuarios de clubes habilitados.
                 </p>
+
             </div>
+
         </div>
+
     </div>
 </div>
 
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+
     const passwordInput = document.getElementById(
         "{{ form.password.id_for_label }}"
     );
 
-    const toggleButton = document.getElementById("toggle-password");
+    const toggleButton = document.getElementById(
+        "toggle-password"
+    );
 
     if (!passwordInput || !toggleButton) {
         return;
     }
 
-    toggleButton.addEventListener("click", function () {
-        const estaOculta = passwordInput.type === "password";
+    const iconoOjo = toggleButton.querySelector(
+        ".icon-eye"
+    );
 
-        passwordInput.type = estaOculta ? "text" : "password";
-        toggleButton.textContent = estaOculta ? "Ocultar" : "Ver";
+    const iconoOjoOff = toggleButton.querySelector(
+        ".icon-eye-off"
+    );
+
+    toggleButton.addEventListener("click", function () {
+
+        if (passwordInput.type === "password") {
+
+            passwordInput.type = "text";
+
+            iconoOjo.classList.add(
+                "d-none"
+            );
+
+            iconoOjoOff.classList.remove(
+                "d-none"
+            );
+
+            toggleButton.setAttribute(
+                "aria-label",
+                "Ocultar contraseña"
+            );
+
+            toggleButton.setAttribute(
+                "title",
+                "Ocultar contraseña"
+            );
+
+        } else {
+
+            passwordInput.type = "password";
+
+            iconoOjo.classList.remove(
+                "d-none"
+            );
+
+            iconoOjoOff.classList.add(
+                "d-none"
+            );
+
+            toggleButton.setAttribute(
+                "aria-label",
+                "Mostrar contraseña"
+            );
+
+            toggleButton.setAttribute(
+                "title",
+                "Mostrar contraseña"
+            );
+
+        }
+
     });
+
 });
 </script>
 

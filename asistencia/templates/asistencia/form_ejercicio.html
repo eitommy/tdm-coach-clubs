@@ -2,29 +2,119 @@
 
 {% block content %}
 
-<div class="card col-md-6 mx-auto">
-    <div class="card-header fw-bold">{{ titulo }}</div>
-    <div class="card-body">
-        <form method="post">
-            {% csrf_token %}
+<div class="row justify-content-center">
+    <div class="col-lg-7 col-xl-6">
 
-            <div class="mb-3">
-                <label class="form-label">Categoría</label>
-                {{ form.categoria }}
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+            <div>
+                <h1 class="mb-1">
+                    {{ titulo }}
+                </h1>
+
+                <p class="text-muted mb-0">
+                    Elegí una categoría del club y definí el ejercicio.
+                </p>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label">Nombre del ejercicio</label>
-                {{ form.nombre }}
-            </div>
+            <a
+                href="{% url 'lista_ejercicios' %}"
+                class="btn btn-outline-dark"
+            >
+                ← Volver
+            </a>
+        </div>
 
-            <div class="form-check mb-3">
-                {{ form.activo }}
-                <label class="form-check-label">Activo</label>
-            </div>
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
 
-            <button class="btn btn-dark">Guardar</button>
-        </form>
+                <form method="post">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center gap-2">
+                            <label
+                                for="{{ form.categoria_config.id_for_label }}"
+                                class="form-label"
+                            >
+                                Categoría
+                            </label>
+
+                            <a
+                                href="{% url 'lista_categorias_ejercicio' %}"
+                                class="small text-decoration-none"
+                            >
+                                Administrar categorías
+                            </a>
+                        </div>
+
+                        {{ form.categoria_config }}
+
+                        {% for error in form.categoria_config.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label
+                            for="{{ form.nombre.id_for_label }}"
+                            class="form-label"
+                        >
+                            Nombre del ejercicio
+                        </label>
+
+                        {{ form.nombre }}
+
+                        {% for error in form.nombre.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="form-check mb-4">
+                        {{ form.activo }}
+
+                        <label
+                            for="{{ form.activo.id_for_label }}"
+                            class="form-check-label"
+                        >
+                            Ejercicio activo
+                        </label>
+
+                        {% for error in form.activo.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a
+                            href="{% url 'lista_ejercicios' %}"
+                            class="btn btn-outline-secondary"
+                        >
+                            Cancelar
+                        </a>
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                        >
+                            Guardar ejercicio
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
     </div>
 </div>
 

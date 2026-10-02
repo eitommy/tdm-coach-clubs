@@ -2,11 +2,11 @@ from django.contrib import admin
 
 from .models import (
     Asistencia,
+    CategoriaEjercicio,
     Ejercicio,
     EjercicioRealizado,
     EjercicioTurno,
     Entrenamiento,
-    Entrenador,
     Jugador,
     ObservacionJugador,
     PartidoTurno,
@@ -20,12 +20,6 @@ class JugadorAdmin(admin.ModelAdmin):
     list_display = ("__str__", "club", "activo")
     list_filter = ("club", "activo")
     search_fields = ("nombre", "apellido")
-
-
-@admin.register(Entrenador)
-class EntrenadorAdmin(admin.ModelAdmin):
-    list_display = ("__str__", "club")
-    list_filter = ("club",)
 
 
 @admin.register(Entrenamiento)
@@ -88,20 +82,44 @@ class AsistenciaAdmin(admin.ModelAdmin):
     )
 
 
+@admin.register(CategoriaEjercicio)
+class CategoriaEjercicioAdmin(admin.ModelAdmin):
+    list_display = (
+        "nombre",
+        "club",
+        "orden",
+        "activo",
+    )
+    list_filter = (
+        "club",
+        "activo",
+    )
+    search_fields = ("nombre",)
+    ordering = (
+        "club",
+        "orden",
+        "nombre",
+    )
+
+
 @admin.register(Ejercicio)
 class EjercicioAdmin(admin.ModelAdmin):
     list_display = (
         "nombre",
-        "categoria",
+        "categoria_config",
         "club",
         "activo",
     )
     list_filter = (
         "club",
-        "categoria",
+        "categoria_config",
         "activo",
     )
     search_fields = ("nombre",)
+    list_select_related = (
+        "club",
+        "categoria_config",
+    )
 
 
 @admin.register(EjercicioTurno)
@@ -110,7 +128,7 @@ class EjercicioTurnoAdmin(admin.ModelAdmin):
     list_filter = (
         "entrenamiento__club",
         "entrenamiento__turno_config",
-        "ejercicio__categoria",
+        "ejercicio__categoria_config",
     )
 
 

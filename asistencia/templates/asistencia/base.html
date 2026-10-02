@@ -321,6 +321,18 @@
 
                                 <a
                                     class="dropdown-item"
+                                    href="{% url 'lista_turnos' %}"
+                                >
+                                    Turnos
+                                </a>
+
+                            </li>
+
+
+                            <li>
+
+                                <a
+                                    class="dropdown-item"
                                     href="{% url 'seguimiento_semanal' %}"
                                 >
                                     Seguimiento semanal
@@ -401,18 +413,6 @@
 
                                     <a
                                         class="dropdown-item"
-                                        href="{% url 'lista_turnos' %}"
-                                    >
-                                        Turnos
-                                    </a>
-
-                                </li>
-
-
-                                <li>
-
-                                    <a
-                                        class="dropdown-item"
                                         href="{% url 'lista_usuarios' %}"
                                     >
                                         Usuarios
@@ -451,45 +451,79 @@
                     {% endif %}
 
 
-                    <span class="tdm-user-pill">
-
-                        <span class="tdm-user-avatar">
-
-                            {{ user.get_full_name|default:user.username|slice:":1"|upper }}
-
-                        </span>
-
-
-                        <span class="tdm-user-name">
-
-                            {{ user.get_full_name|default:user.username }}
-
-                        </span>
-
-                    </span>
-
-
-                    <form
-                        method="post"
-                        action="{% url 'logout' %}"
-                        class="m-0"
-                    >
-
-                        {% csrf_token %}
+                    <div class="dropdown">
 
                         <button
-                            type="submit"
                             class="
-                                btn
-                                btn-sm
-                                btn-outline-light
-                                tdm-btn-salir
+                                tdm-user-pill
+                                border-0
+                                dropdown-toggle
                             "
+                            type="button"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false"
                         >
-                            Salir
+
+                            <span class="tdm-user-avatar">
+
+                                {{ user.get_full_name|default:user.username|slice:":1"|upper }}
+
+                            </span>
+
+
+                            <span class="tdm-user-name">
+
+                                {{ user.get_full_name|default:user.username }}
+
+                            </span>
+
                         </button>
 
-                    </form>
+
+                        <ul class="dropdown-menu dropdown-menu-end">
+
+                            <li>
+                                <a
+                                    class="dropdown-item"
+                                    href="{% url 'mi_perfil' %}"
+                                >
+                                    Mi perfil
+                                </a>
+                            </li>
+
+                            <li>
+                                <a
+                                    class="dropdown-item"
+                                    href="{% url 'password_change' %}"
+                                >
+                                    Cambiar contraseña
+                                </a>
+                            </li>
+
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+
+                            <li>
+                                <form
+                                    method="post"
+                                    action="{% url 'logout' %}"
+                                    class="m-0"
+                                >
+                                    {% csrf_token %}
+
+                                    <button
+                                        type="submit"
+                                        class="dropdown-item text-danger"
+                                    >
+                                        Cerrar sesión
+                                    </button>
+                                </form>
+                            </li>
+
+                        </ul>
+
+                    </div>
 
                 </div>
 
@@ -832,6 +866,18 @@ document.addEventListener(
                     );
 
                 }
+
+                setTimeout(function () {
+                    history.replaceState(
+                        null,
+                        "",
+                        window.location.pathname
+                        + window.location.search
+                        + "#jugadores-turno"
+                    );
+
+                    window.location.reload();
+                }, 250);
 
             } else {
 

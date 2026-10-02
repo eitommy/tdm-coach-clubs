@@ -1,0 +1,475 @@
+{% extends "asistencia/base.html" %}
+
+{% block title %}Crear club · TDM Coach{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-xl-8 col-lg-9">
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-body p-4 p-md-5">
+
+                <div class="mb-4">
+                    <h1 class="h3 mb-2">Crear tu club</h1>
+
+                    <p class="text-muted mb-0">
+                        Completá los datos del club y de la persona que será
+                        su primer administrador.
+                    </p>
+                </div>
+
+
+                {% if invitacion.referencia %}
+                    <div class="alert alert-light border">
+                        Invitación para:
+                        <strong>{{ invitacion.referencia }}</strong>
+                    </div>
+                {% endif %}
+
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+
+
+                <form method="post" enctype="multipart/form-data">
+
+                    {% csrf_token %}
+
+
+                    <h2 class="h5 mb-3">
+                        Datos del club
+                    </h2>
+
+
+                    <div class="mb-3">
+
+                        <label
+                            class="form-label"
+                            for="{{ form.nombre_club.id_for_label }}"
+                        >
+                            {{ form.nombre_club.label }}
+                        </label>
+
+                        {{ form.nombre_club }}
+
+                        {% for error in form.nombre_club.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+
+                    </div>
+
+
+                    <div class="mb-3">
+
+                        <label
+                            class="form-label"
+                            for="{{ form.logo.id_for_label }}"
+                        >
+                            {{ form.logo.label }}
+                        </label>
+
+                        {{ form.logo }}
+
+                        {% for error in form.logo.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+
+                    </div>
+
+
+                    <div class="row">
+
+                        <div class="col-md-6 mb-3">
+
+                            <label
+                                class="form-label"
+                                for="{{ form.color_primario.id_for_label }}"
+                            >
+                                {{ form.color_primario.label }}
+                            </label>
+
+                            {{ form.color_primario }}
+
+                        </div>
+
+
+                        <div class="col-md-6 mb-3">
+
+                            <label
+                                class="form-label"
+                                for="{{ form.color_secundario.id_for_label }}"
+                            >
+                                {{ form.color_secundario.label }}
+                            </label>
+
+                            {{ form.color_secundario }}
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="mb-4">
+
+                        <label
+                            class="form-label"
+                            for="{{ form.email_club.id_for_label }}"
+                        >
+                            {{ form.email_club.label }}
+                        </label>
+
+                        {{ form.email_club }}
+
+                        {% for error in form.email_club.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+
+                    </div>
+
+
+                    <hr class="my-4">
+
+
+                    <h2 class="h5 mb-3">
+                        Administrador del club
+                    </h2>
+
+
+                    <div class="row">
+
+                        <div class="col-md-6 mb-3">
+
+                            <label
+                                class="form-label"
+                                for="{{ form.nombre_admin.id_for_label }}"
+                            >
+                                {{ form.nombre_admin.label }}
+                            </label>
+
+                            {{ form.nombre_admin }}
+
+                            {% for error in form.nombre_admin.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+
+                        <div class="col-md-6 mb-3">
+
+                            <label
+                                class="form-label"
+                                for="{{ form.apellido_admin.id_for_label }}"
+                            >
+                                {{ form.apellido_admin.label }}
+                            </label>
+
+                            {{ form.apellido_admin }}
+
+                            {% for error in form.apellido_admin.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="mb-3">
+
+                        <label
+                            class="form-label"
+                            for="{{ form.email_admin.id_for_label }}"
+                        >
+                            {{ form.email_admin.label }}
+                        </label>
+
+                        {{ form.email_admin }}
+
+                        {% if form.email_admin.help_text %}
+                            <div class="form-text">
+                                {{ form.email_admin.help_text }}
+                            </div>
+                        {% endif %}
+
+                        {% for error in form.email_admin.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+
+                    </div>
+
+
+                    <div class="mb-3">
+
+                        <label
+                            class="form-label"
+                            for="{{ form.username.id_for_label }}"
+                        >
+                            {{ form.username.label }}
+                        </label>
+
+                        {{ form.username }}
+
+                        {% for error in form.username.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+
+                    </div>
+
+
+                    <div class="row">
+
+                        <div class="col-md-6 mb-3">
+
+                            <label
+                                class="form-label"
+                                for="{{ form.password.id_for_label }}"
+                            >
+                                {{ form.password.label }}
+                            </label>
+
+                            <div class="input-group">
+
+                                {{ form.password }}
+
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-secondary js-toggle-password"
+                                    data-target="{{ form.password.id_for_label }}"
+                                    aria-label="Mostrar contraseña"
+                                    title="Mostrar contraseña"
+                                >
+
+                                    <svg
+                                        class="icon-eye"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+
+                                    <svg
+                                        class="icon-eye-off d-none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M3 3l18 18"></path>
+                                        <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"></path>
+                                        <path d="M9.9 4.2A10.8 10.8 0 0 1 12 4c6.5 0 10 8 10 8a18 18 0 0 1-2.1 3.2"></path>
+                                        <path d="M6.2 6.2C3.6 8 2 12 2 12s3.5 8 10 8a10.3 10.3 0 0 0 4.1-.8"></path>
+                                    </svg>
+
+                                </button>
+
+                            </div>
+
+                            {% for error in form.password.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+
+                        <div class="col-md-6 mb-3">
+
+                            <label
+                                class="form-label"
+                                for="{{ form.password_confirmacion.id_for_label }}"
+                            >
+                                {{ form.password_confirmacion.label }}
+                            </label>
+
+                            <div class="input-group">
+
+                                {{ form.password_confirmacion }}
+
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-secondary js-toggle-password"
+                                    data-target="{{ form.password_confirmacion.id_for_label }}"
+                                    aria-label="Mostrar contraseña"
+                                    title="Mostrar contraseña"
+                                >
+
+                                    <svg
+                                        class="icon-eye"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+
+                                    <svg
+                                        class="icon-eye-off d-none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M3 3l18 18"></path>
+                                        <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"></path>
+                                        <path d="M9.9 4.2A10.8 10.8 0 0 1 12 4c6.5 0 10 8 10 8a18 18 0 0 1-2.1 3.2"></path>
+                                        <path d="M6.2 6.2C3.6 8 2 12 2 12s3.5 8 10 8a10.3 10.3 0 0 0 4.1-.8"></path>
+                                    </svg>
+
+                                </button>
+
+                            </div>
+
+                            {% for error in form.password_confirmacion.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary w-100 mt-2"
+                    >
+                        Crear club y comenzar
+                    </button>
+
+                </form>
+
+
+                <p class="text-muted small text-center mt-3 mb-0">
+                    Este enlace puede utilizarse una sola vez.
+                </p>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const botones = document.querySelectorAll(
+        ".js-toggle-password"
+    );
+
+    botones.forEach(function (boton) {
+
+        boton.addEventListener("click", function () {
+
+            const inputId = boton.dataset.target;
+            const input = document.getElementById(inputId);
+
+            if (!input) {
+                return;
+            }
+
+            const iconoOjo = boton.querySelector(
+                ".icon-eye"
+            );
+
+            const iconoOjoOff = boton.querySelector(
+                ".icon-eye-off"
+            );
+
+            if (input.type === "password") {
+
+                input.type = "text";
+
+                iconoOjo.classList.add(
+                    "d-none"
+                );
+
+                iconoOjoOff.classList.remove(
+                    "d-none"
+                );
+
+                boton.setAttribute(
+                    "aria-label",
+                    "Ocultar contraseña"
+                );
+
+                boton.setAttribute(
+                    "title",
+                    "Ocultar contraseña"
+                );
+
+            } else {
+
+                input.type = "password";
+
+                iconoOjo.classList.remove(
+                    "d-none"
+                );
+
+                iconoOjoOff.classList.add(
+                    "d-none"
+                );
+
+                boton.setAttribute(
+                    "aria-label",
+                    "Mostrar contraseña"
+                );
+
+                boton.setAttribute(
+                    "title",
+                    "Mostrar contraseña"
+                );
+
+            }
+
+        });
+
+    });
+
+});
+</script>
+
+{% endblock %}
