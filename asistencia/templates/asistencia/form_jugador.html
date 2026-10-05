@@ -2,26 +2,156 @@
 
 {% block content %}
 
-<div class="card col-md-6 mx-auto">
-    <div class="card-header fw-bold">{{ titulo }}</div>
-    <div class="card-body">
-        <form method="post">
-            {% csrf_token %}
-            <div class="mb-3">
-                <label class="form-label">Nombre</label>
-                {{ form.nombre }}
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Apellido</label>
-                {{ form.apellido }}
-            </div>
-            <div class="form-check mb-3">
-                {{ form.activo }}
-                <label class="form-check-label">Activo</label>
-            </div>
-            <button class="btn btn-dark">Guardar</button>
-        </form>
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+
+        <div>
+            <h1 class="h3 mb-1">
+                {{ titulo }}
+            </h1>
+
+            <p class="text-muted mb-0">
+                Completá los datos del jugador.
+            </p>
+        </div>
+
+        {% if viene_de_onboarding %}
+            <a
+                href="{% url 'onboarding_club' %}"
+                class="btn btn-outline-secondary"
+            >
+                ← Volver al onboarding
+            </a>
+        {% endif %}
+
     </div>
+
+
+    <div class="row">
+
+        <div class="col-md-6">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body">
+
+                    <form method="post">
+
+                        {% csrf_token %}
+
+                        {% if viene_de_onboarding %}
+                            <input
+                                type="hidden"
+                                name="onboarding"
+                                value="1"
+                            >
+                        {% endif %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+
+                        <div class="mb-3">
+
+                            <label
+                                for="{{ form.nombre.id_for_label }}"
+                                class="form-label"
+                            >
+                                Nombre
+                            </label>
+
+                            {{ form.nombre }}
+
+                            {% for error in form.nombre.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+
+                        <div class="mb-3">
+
+                            <label
+                                for="{{ form.apellido.id_for_label }}"
+                                class="form-label"
+                            >
+                                Apellido
+                            </label>
+
+                            {{ form.apellido }}
+
+                            {% for error in form.apellido.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+
+                        <div class="form-check mb-4">
+
+                            {{ form.activo }}
+
+                            <label
+                                for="{{ form.activo.id_for_label }}"
+                                class="form-check-label"
+                            >
+                                Activo
+                            </label>
+
+                            {% for error in form.activo.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+
+                        <div class="d-flex gap-2 flex-wrap">
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary"
+                            >
+                                Guardar jugador
+                            </button>
+
+                            {% if viene_de_onboarding %}
+                                <a
+                                    href="{% url 'onboarding_club' %}"
+                                    class="btn btn-outline-secondary"
+                                >
+                                    Cancelar y volver al onboarding
+                                </a>
+                            {% else %}
+                                <a
+                                    href="{% url 'lista_jugadores' %}"
+                                    class="btn btn-outline-secondary"
+                                >
+                                    Cancelar
+                                </a>
+                            {% endif %}
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
 </div>
 
 {% endblock %}

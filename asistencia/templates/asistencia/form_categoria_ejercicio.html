@@ -4,28 +4,52 @@
 
 <div class="row justify-content-center">
     <div class="col-lg-7 col-xl-6">
+
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+
             <div>
                 <h1 class="mb-1">
                     {{ titulo }}
                 </h1>
+
                 <p class="text-muted mb-0">
                     Las categorías organizan los ejercicios disponibles para tu club.
                 </p>
             </div>
 
-            <a
-                href="{% url 'lista_categorias_ejercicio' %}"
-                class="btn btn-outline-dark"
-            >
-                ← Volver
-            </a>
+            {% if viene_de_onboarding %}
+                <a
+                    href="{% url 'onboarding_club' %}"
+                    class="btn btn-outline-dark"
+                >
+                    ← Volver al onboarding
+                </a>
+            {% else %}
+                <a
+                    href="{% url 'lista_categorias_ejercicio' %}"
+                    class="btn btn-outline-dark"
+                >
+                    ← Volver
+                </a>
+            {% endif %}
+
         </div>
 
         <div class="card shadow-sm border-0">
+
             <div class="card-body p-4">
+
                 <form method="post">
+
                     {% csrf_token %}
+
+                    {% if viene_de_onboarding %}
+                        <input
+                            type="hidden"
+                            name="onboarding"
+                            value="1"
+                        >
+                    {% endif %}
 
                     {% if form.non_field_errors %}
                         <div class="alert alert-danger">
@@ -34,6 +58,7 @@
                     {% endif %}
 
                     <div class="mb-3">
+
                         <label
                             for="{{ form.nombre.id_for_label }}"
                             class="form-label"
@@ -48,9 +73,11 @@
                                 {{ error }}
                             </div>
                         {% endfor %}
+
                     </div>
 
                     <div class="mb-3">
+
                         <label
                             for="{{ form.orden.id_for_label }}"
                             class="form-label"
@@ -69,10 +96,13 @@
                                 {{ error }}
                             </div>
                         {% endfor %}
+
                     </div>
 
                     <div class="form-check mb-4">
+
                         {{ form.activo }}
+
                         <label
                             for="{{ form.activo.id_for_label }}"
                             class="form-check-label"
@@ -85,15 +115,26 @@
                                 {{ error }}
                             </div>
                         {% endfor %}
+
                     </div>
 
-                    <div class="d-flex justify-content-end gap-2">
-                        <a
-                            href="{% url 'lista_categorias_ejercicio' %}"
-                            class="btn btn-outline-secondary"
-                        >
-                            Cancelar
-                        </a>
+                    <div class="d-flex justify-content-end gap-2 flex-wrap">
+
+                        {% if viene_de_onboarding %}
+                            <a
+                                href="{% url 'onboarding_club' %}"
+                                class="btn btn-outline-secondary"
+                            >
+                                Cancelar y volver al onboarding
+                            </a>
+                        {% else %}
+                            <a
+                                href="{% url 'lista_categorias_ejercicio' %}"
+                                class="btn btn-outline-secondary"
+                            >
+                                Cancelar
+                            </a>
+                        {% endif %}
 
                         <button
                             type="submit"
@@ -101,10 +142,15 @@
                         >
                             Guardar categoría
                         </button>
+
                     </div>
+
                 </form>
+
             </div>
+
         </div>
+
     </div>
 </div>
 

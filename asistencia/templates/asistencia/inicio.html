@@ -7,7 +7,9 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+
     <div>
+
         <h1 class="mb-1">Carga diaria</h1>
 
         <p class="text-muted mb-2">
@@ -17,9 +19,11 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
         <p class="mb-0 text-secondary">
             Elegí el día y entrá al turno que querés cargar.
         </p>
+
     </div>
 
     <div class="d-flex gap-2 flex-wrap">
+
         <a
             href="{% url 'reportes' %}"
             class="btn btn-outline-dark"
@@ -33,36 +37,73 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
         >
             Jugadores
         </a>
+
     </div>
+
 </div>
 
 
+{% if viene_de_onboarding %}
+
+    <div class="alert alert-primary mb-4">
+
+        <div class="fw-semibold mb-1">
+            Último paso del onboarding
+        </div>
+
+        Cargá un entrenamiento y finalizalo para completar
+        la configuración inicial del club.
+
+    </div>
+
+{% endif %}
+
+
 {% if configuracion_incompleta %}
+
 <div class="card shadow-sm border-0 mb-4">
+
     <div class="card-body">
+
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+
             <div>
-                <h5 class="mb-1">Configuración pendiente</h5>
+
+                <h5 class="mb-1">
+                    Configuración pendiente
+                </h5>
+
                 <p class="text-muted mb-0">
                     Hay algunos datos iniciales que todavía conviene completar.
                 </p>
+
             </div>
 
             {% if es_admin_club %}
+
                 <a
                     href="{% url 'onboarding_club' %}"
                     class="btn btn-outline-primary btn-sm"
                 >
                     Ver primeros pasos
                 </a>
+
             {% endif %}
+
         </div>
 
+
         <div class="row g-3">
+
             {% if not tiene_turnos_club %}
+
                 <div class="col-md-6 col-lg-3">
+
                     <div class="border rounded-3 p-3 h-100 bg-light">
-                        <div class="fw-bold mb-1">Turnos</div>
+
+                        <div class="fw-bold mb-1">
+                            Turnos
+                        </div>
 
                         <div class="small text-muted mb-3">
                             Todavía no hay turnos activos configurados.
@@ -74,15 +115,23 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
                         >
                             Crear turno
                         </a>
+
                     </div>
+
                 </div>
+
             {% endif %}
 
 
             {% if not tiene_jugadores %}
+
                 <div class="col-md-6 col-lg-3">
+
                     <div class="border rounded-3 p-3 h-100 bg-light">
-                        <div class="fw-bold mb-1">Jugadores</div>
+
+                        <div class="fw-bold mb-1">
+                            Jugadores
+                        </div>
 
                         <div class="small text-muted mb-3">
                             No hay jugadores activos para cargar a los entrenamientos.
@@ -94,41 +143,61 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
                         >
                             Agregar jugador
                         </a>
+
                     </div>
+
                 </div>
+
             {% endif %}
 
 
             {% if not tiene_entrenadores %}
+
                 <div class="col-md-6 col-lg-3">
+
                     <div class="border rounded-3 p-3 h-100 bg-light">
-                        <div class="fw-bold mb-1">Entrenadores</div>
+
+                        <div class="fw-bold mb-1">
+                            Entrenadores
+                        </div>
 
                         <div class="small text-muted mb-3">
                             Todavía no hay usuarios con rol de entrenador activos.
                         </div>
 
                         {% if es_admin_club %}
+
                             <a
                                 href="{% url 'crear_usuario' %}"
                                 class="btn btn-sm btn-primary"
                             >
                                 Agregar entrenador
                             </a>
+
                         {% else %}
+
                             <div class="small text-muted">
                                 El administrador puede crear accesos para entrenadores.
                             </div>
+
                         {% endif %}
+
                     </div>
+
                 </div>
+
             {% endif %}
 
 
             {% if not tiene_ejercicios %}
+
                 <div class="col-md-6 col-lg-3">
+
                     <div class="border rounded-3 p-3 h-100 bg-light">
-                        <div class="fw-bold mb-1">Ejercicios</div>
+
+                        <div class="fw-bold mb-1">
+                            Ejercicios
+                        </div>
 
                         <div class="small text-muted mb-3">
                             La biblioteca de ejercicios todavía está vacía.
@@ -140,20 +209,30 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
                         >
                             Configurar ejercicios
                         </a>
+
                     </div>
+
                 </div>
+
             {% endif %}
+
         </div>
+
     </div>
+
 </div>
+
 {% endif %}
 
 
 <div class="card mb-4 shadow-sm border-0 card-fecha-panel">
+
     <div class="card-body">
 
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+
             <div>
+
                 <h5 class="mb-1">
                     Fecha de trabajo
                 </h5>
@@ -161,38 +240,53 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
                 <p class="text-muted mb-0">
                     Seleccioná el día de entrenamiento.
                 </p>
+
             </div>
 
             <div class="d-flex gap-2 flex-wrap">
+
                 <a
-                    href="{% url 'inicio' %}?fecha={{ ayer|date:'Y-m-d' }}"
+                    href="{% url 'inicio' %}?fecha={{ ayer|date:'Y-m-d' }}{% if viene_de_onboarding %}&onboarding=1{% endif %}"
                     class="btn btn-outline-secondary"
                 >
                     ← Ayer
                 </a>
 
                 <a
-                    href="{% url 'inicio' %}?fecha={{ hoy|date:'Y-m-d' }}"
+                    href="{% url 'inicio' %}?fecha={{ hoy|date:'Y-m-d' }}{% if viene_de_onboarding %}&onboarding=1{% endif %}"
                     class="btn btn-dark"
                 >
                     Hoy
                 </a>
 
                 <a
-                    href="{% url 'inicio' %}?fecha={{ maniana|date:'Y-m-d' }}"
+                    href="{% url 'inicio' %}?fecha={{ maniana|date:'Y-m-d' }}{% if viene_de_onboarding %}&onboarding=1{% endif %}"
                     class="btn btn-outline-secondary"
                 >
                     Mañana →
                 </a>
+
             </div>
+
         </div>
+
 
         <form
             method="get"
             action="{% url 'inicio' %}"
             class="row g-2 align-items-end"
         >
+
+            {% if viene_de_onboarding %}
+                <input
+                    type="hidden"
+                    name="onboarding"
+                    value="1"
+                >
+            {% endif %}
+
             <div class="col-md-9">
+
                 <label class="form-label">
                     Seleccionar fecha
                 </label>
@@ -204,27 +298,35 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
                     value="{{ fecha|date:'Y-m-d' }}"
                     required
                 >
+
             </div>
 
             <div class="col-md-3">
+
                 <button
                     type="submit"
                     class="btn btn-outline-primary w-100"
                 >
                     Ir a esa fecha
                 </button>
+
             </div>
+
         </form>
 
     </div>
+
 </div>
 
 
 <div class="row g-3 mb-4">
 
     <div class="col-6 col-lg-3">
+
         <div class="card shadow-sm border-0 h-100">
+
             <div class="card-body text-center">
+
                 <div class="small text-muted">
                     Jugadores cargados
                 </div>
@@ -232,14 +334,20 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
                 <div class="fs-3 fw-bold">
                     {{ total_cargados_dia }}
                 </div>
+
             </div>
+
         </div>
+
     </div>
 
 
     <div class="col-6 col-lg-3">
+
         <div class="card shadow-sm border-0 h-100">
+
             <div class="card-body text-center">
+
                 <div class="small text-muted">
                     Asistencias marcadas
                 </div>
@@ -247,14 +355,20 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
                 <div class="fs-3 fw-bold">
                     {{ total_marcados_dia }}
                 </div>
+
             </div>
+
         </div>
+
     </div>
 
 
     <div class="col-6 col-lg-3">
+
         <div class="card shadow-sm border-0 h-100">
+
             <div class="card-body text-center">
+
                 <div class="small text-muted">
                     Turnos finalizados
                 </div>
@@ -262,14 +376,20 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
                 <div class="fs-3 fw-bold text-success">
                     {{ total_finalizados_dia }}
                 </div>
+
             </div>
+
         </div>
+
     </div>
 
 
     <div class="col-6 col-lg-3">
+
         <div class="card shadow-sm border-0 h-100">
+
             <div class="card-body text-center">
+
                 <div class="small text-muted">
                     Sin entrenamiento
                 </div>
@@ -277,25 +397,33 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
                 <div class="fs-3 fw-bold text-danger">
                     {{ total_no_entrenados_dia }}
                 </div>
+
             </div>
+
         </div>
+
     </div>
 
 </div>
 
 
 <div class="card shadow-sm border-0 mb-4">
+
     <div class="card-body">
 
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+
             <div>
+
                 <h4 class="mb-1">
                     Turnos del día
                 </h4>
 
                 <p class="text-muted mb-0">
-                    Entrá al turno para cargar asistencia, trabajos, partidos y cierre.
+                    Entrá al turno para cargar asistencia, trabajos,
+                    partidos y cierre.
                 </p>
+
             </div>
 
             <a
@@ -304,6 +432,7 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
             >
                 Configurar turnos
             </a>
+
         </div>
 
 
@@ -355,22 +484,35 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
 
 
                             <div class="small mb-2">
-                                <strong>Responsable:</strong>
+
+                                <strong>
+                                    Responsable:
+                                </strong>
+
                                 {{ item.entrenador }}
+
                             </div>
 
 
                             <div class="small text-muted">
+
                                 {{ item.cantidad_jugadores }}
+
                                 jugador{{ item.cantidad_jugadores|pluralize:"es" }}
+
                                 cargado{{ item.cantidad_jugadores|pluralize:"s" }}
+
                             </div>
 
 
                             <div class="small text-muted mb-2">
+
                                 {{ item.cantidad_marcados }}
+
                                 asistencia{{ item.cantidad_marcados|pluralize:"s" }}
+
                                 marcada{{ item.cantidad_marcados|pluralize:"s" }}
+
                             </div>
 
 
@@ -382,7 +524,7 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
                             <div class="mt-auto">
 
                                 <a
-                                    href="{% url 'dia_turno' fecha|date:'Y-m-d' item.turno_id %}"
+                                    href="{% url 'dia_turno' fecha|date:'Y-m-d' item.turno_id %}{% if viene_de_onboarding %}?onboarding=1{% endif %}"
                                     class="btn btn-primary w-100"
                                 >
                                     Abrir turno
@@ -435,9 +577,13 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
                     </h5>
 
                     <p class="text-muted mb-3">
+
                         {{ club_actual.nombre }}
+
                         no tiene turnos activos para
+
                         {{ fecha|date:"l" }}.
+
                     </p>
 
                     <a
@@ -454,14 +600,18 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
         {% endif %}
 
     </div>
+
 </div>
 
 
 <div class="card shadow-sm border-0">
+
     <div class="card-body">
 
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+
             <div>
+
                 <h5 class="mb-1">
                     Accesos secundarios
                 </h5>
@@ -470,7 +620,9 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
                     Herramientas que no se usan en cada carga,
                     pero quedan disponibles.
                 </p>
+
             </div>
+
         </div>
 
 
@@ -526,6 +678,7 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
         </div>
 
     </div>
+
 </div>
 
 {% endblock %}

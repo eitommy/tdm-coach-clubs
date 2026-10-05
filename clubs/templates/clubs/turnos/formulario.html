@@ -8,14 +8,27 @@
 
 <div class="container py-4">
 
-    <div class="mb-4">
-        <h1 class="h3 mb-1">
-            {{ titulo }}
-        </h1>
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
 
-        <p class="text-muted mb-0">
-            Configurá el día, horario y nombre del turno.
-        </p>
+        <div>
+            <h1 class="h3 mb-1">
+                {{ titulo }}
+            </h1>
+
+            <p class="text-muted mb-0">
+                Configurá el día, horario y nombre del turno.
+            </p>
+        </div>
+
+        {% if viene_de_onboarding %}
+            <a
+                href="{% url 'onboarding_club' %}"
+                class="btn btn-outline-secondary"
+            >
+                ← Volver al onboarding
+            </a>
+        {% endif %}
+
     </div>
 
     <div class="row">
@@ -29,6 +42,14 @@
                     <form method="post">
 
                         {% csrf_token %}
+
+                        {% if viene_de_onboarding %}
+                            <input
+                                type="hidden"
+                                name="onboarding"
+                                value="1"
+                            >
+                        {% endif %}
 
                         {% if form.non_field_errors %}
                             <div class="alert alert-danger">
@@ -171,7 +192,7 @@
                         </div>
 
 
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 flex-wrap">
 
                             <button
                                 type="submit"
@@ -180,12 +201,21 @@
                                 Guardar turno
                             </button>
 
-                            <a
-                                href="{% url 'lista_turnos' %}"
-                                class="btn btn-outline-secondary"
-                            >
-                                Cancelar
-                            </a>
+                            {% if viene_de_onboarding %}
+                                <a
+                                    href="{% url 'onboarding_club' %}"
+                                    class="btn btn-outline-secondary"
+                                >
+                                    Cancelar y volver al onboarding
+                                </a>
+                            {% else %}
+                                <a
+                                    href="{% url 'lista_turnos' %}"
+                                    class="btn btn-outline-secondary"
+                                >
+                                    Cancelar
+                                </a>
+                            {% endif %}
 
                         </div>
 

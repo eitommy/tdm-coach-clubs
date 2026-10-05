@@ -11,7 +11,7 @@ from django.db import transaction
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
-
+from django.urls import reverse
 from clubs.models import PerfilUsuario, TurnoClub
 from clubs.utils import (
     obtener_club_usuario,
@@ -45,6 +45,11 @@ from .models import (
     ObservacionJugador,
     PartidoTurno,
 )
+def _viene_de_onboarding(request):
+    return (
+        request.GET.get("onboarding") == "1"
+        or request.POST.get("onboarding") == "1"
+    )
 def obtener_o_crear_entrenamiento(
     fecha,
     turno,
@@ -191,6 +196,8 @@ def inicio(request):
             "Tu usuario no está asociado a un club activo.",
         )
         return redirect("login")
+
+    viene_de_onboarding = request.GET.get("onboarding") == "1"
 
     fecha_str = request.GET.get("fecha")
 
@@ -364,6 +371,7 @@ def inicio(request):
         "tiene_entrenadores": tiene_entrenadores,
         "tiene_ejercicios": tiene_ejercicios,
         "configuracion_incompleta": configuracion_incompleta,
+        "viene_de_onboarding": viene_de_onboarding,
     }
 
     return render(
@@ -486,6 +494,18 @@ def dia_turno(request, fecha_str, turno_id):
         turno,
         club,
         turno_config=turno_config,
+    )
+
+    if request.GET.get("onboarding") == "1":
+        request.session[
+            "onboarding_entrenamiento_id"
+        ] = entrenamiento.id
+
+    viene_de_onboarding = (
+        request.session.get(
+            "onboarding_entrenamiento_id"
+        )
+        == entrenamiento.id
     )
 
     asistencias = list(
@@ -889,6 +909,7 @@ def dia_turno(request, fecha_str, turno_id):
         "ayer": fecha - timedelta(days=1),
         "maniana": fecha + timedelta(days=1),
         "hoy": timezone.localdate(),
+        "viene_de_onboarding": viene_de_onboarding,
     }
 
     return render(
@@ -1745,6 +1766,30 @@ def finalizar_turno(request, entrenamiento_id):
         ]
     )
 
+    onboarding_entrenamiento_id = (
+        request.session.get(
+            "onboarding_entrenamiento_id"
+        )
+    )
+
+    if onboarding_entrenamiento_id == entrenamiento.id:
+        request.session.pop(
+            "onboarding_entrenamiento_id",
+            None,
+        )
+
+        messages.success(
+            request,
+            (
+                "¡Primer entrenamiento registrado! "
+                "Completaste la configuración inicial del club."
+            ),
+        )
+
+        return redirect(
+            "onboarding_club"
+        )
+
     messages.success(
         request,
         "Turno finalizado correctamente.",
@@ -2405,6 +2450,10 @@ def crear_jugador(request):
         )
         return redirect("login")
 
+    viene_de_onboarding = _viene_de_onboarding(
+        request
+    )
+
     if request.method == "POST":
         form = JugadorForm(
             request.POST,
@@ -2420,7 +2469,16 @@ def crear_jugador(request):
                 request,
                 "Jugador agregado correctamente.",
             )
-            return redirect("lista_jugadores")
+
+            if viene_de_onboarding:
+                return redirect(
+                    "onboarding_club"
+                )
+
+            return redirect(
+                "lista_jugadores"
+            )
+
     else:
         form = JugadorForm(
             club=club,
@@ -2432,9 +2490,9 @@ def crear_jugador(request):
         {
             "form": form,
             "titulo": "Agregar jugador",
+            "viene_de_onboarding": viene_de_onboarding,
         },
     )
-
 
 @requerir_club
 def editar_jugador(request, pk):
@@ -2546,6 +2604,10 @@ def lista_categorias_ejercicio(request):
 def crear_categoria_ejercicio(request):
     club = obtener_club_usuario(request.user)
 
+    viene_de_onboarding = _viene_de_onboarding(
+        request
+    )
+
     if request.method == "POST":
         form = CategoriaEjercicioForm(
             request.POST,
@@ -2561,9 +2623,17 @@ def crear_categoria_ejercicio(request):
                 request,
                 "Categoría creada correctamente.",
             )
+
+            if viene_de_onboarding:
+                return redirect(
+                    reverse("crear_ejercicio")
+                    + "?onboarding=1"
+                )
+
             return redirect(
                 "lista_categorias_ejercicio"
             )
+
     else:
         form = CategoriaEjercicioForm(
             club=club,
@@ -2575,6 +2645,7 @@ def crear_categoria_ejercicio(request):
         {
             "form": form,
             "titulo": "Agregar categoría",
+            "viene_de_onboarding": viene_de_onboarding,
         },
     )
 
@@ -2636,14 +2707,26 @@ def crear_ejercicio(request):
         )
         return redirect("login")
 
+    viene_de_onboarding = _viene_de_onboarding(
+        request
+    )
+
     if not CategoriaEjercicio.objects.filter(
         club=club,
         activo=True,
     ).exists():
+
         messages.info(
             request,
             "Primero creá al menos una categoría de ejercicios.",
         )
+
+        if viene_de_onboarding:
+            return redirect(
+                reverse("crear_categoria_ejercicio")
+                + "?onboarding=1"
+            )
+
         return redirect(
             "lista_categorias_ejercicio"
         )
@@ -2663,7 +2746,16 @@ def crear_ejercicio(request):
                 request,
                 "Ejercicio agregado correctamente.",
             )
-            return redirect("lista_ejercicios")
+
+            if viene_de_onboarding:
+                return redirect(
+                    "onboarding_club"
+                )
+
+            return redirect(
+                "lista_ejercicios"
+            )
+
     else:
         form = EjercicioForm(
             club=club,
@@ -2675,9 +2767,9 @@ def crear_ejercicio(request):
         {
             "form": form,
             "titulo": "Agregar ejercicio",
+            "viene_de_onboarding": viene_de_onboarding,
         },
     )
-
 
 @requerir_club
 def editar_ejercicio(request, pk):

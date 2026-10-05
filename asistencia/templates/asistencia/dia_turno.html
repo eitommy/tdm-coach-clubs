@@ -37,10 +37,28 @@
     </div>
 
     <div class="d-flex gap-2 flex-wrap">
-        <a href="{% url 'inicio' %}?fecha={{ fecha|date:'Y-m-d' }}"
-           class="btn btn-outline-dark">
-            ← Volver al panel
-        </a>
+        {% if viene_de_onboarding %}
+            <a
+                href="{% url 'inicio' %}?fecha={{ fecha|date:'Y-m-d' }}&onboarding=1"
+                class="btn btn-outline-dark"
+            >
+                ← Volver a carga diaria
+            </a>
+
+            <a
+                href="{% url 'onboarding_club' %}"
+                class="btn btn-outline-secondary"
+            >
+                Ver onboarding
+            </a>
+        {% else %}
+            <a
+                href="{% url 'inicio' %}?fecha={{ fecha|date:'Y-m-d' }}"
+                class="btn btn-outline-dark"
+            >
+                ← Volver al panel
+            </a>
+        {% endif %}
 
         {% if not entrenamiento.no_se_entreno and not entrenamiento.finalizado %}
             <a class="btn btn-outline-primary"
@@ -50,6 +68,16 @@
         {% endif %}
     </div>
 </div>
+
+{% if viene_de_onboarding %}
+    <div class="alert alert-primary mb-4">
+        <div class="fw-semibold mb-1">
+            Último paso del onboarding
+        </div>
+        Completá la carga de este entrenamiento y finalizalo para terminar
+        la configuración inicial del club.
+    </div>
+{% endif %}
 
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-body">
@@ -62,6 +90,10 @@
                       class="d-flex gap-2">
 
                     <input type="hidden" name="turno_id" value="{{ turno_config.id }}">
+
+                    {% if viene_de_onboarding %}
+                        <input type="hidden" name="onboarding" value="1">
+                    {% endif %}
 
                     <input type="date"
                            name="fecha"
@@ -77,17 +109,17 @@
 
             <div class="col-md-3">
                 <div class="d-flex gap-2">
-                    <a href="{% url 'ir_a_fecha_asistencia' %}?fecha={{ ayer|date:'Y-m-d' }}"
+                    <a href="{% url 'ir_a_fecha_asistencia' %}?fecha={{ ayer|date:'Y-m-d' }}{% if viene_de_onboarding %}&onboarding=1{% endif %}"
                        class="btn btn-outline-secondary w-100">
                         ← Ayer
                     </a>
 
-                    <a href="{% url 'ir_a_fecha_asistencia' %}?fecha={{ hoy|date:'Y-m-d' }}"
+                    <a href="{% url 'ir_a_fecha_asistencia' %}?fecha={{ hoy|date:'Y-m-d' }}{% if viene_de_onboarding %}&onboarding=1{% endif %}"
                        class="btn btn-dark w-100">
                         Hoy
                     </a>
 
-                    <a href="{% url 'ir_a_fecha_asistencia' %}?fecha={{ maniana|date:'Y-m-d' }}"
+                    <a href="{% url 'ir_a_fecha_asistencia' %}?fecha={{ maniana|date:'Y-m-d' }}{% if viene_de_onboarding %}&onboarding=1{% endif %}"
                        class="btn btn-outline-secondary w-100">
                         Mañana →
                     </a>
@@ -101,7 +133,7 @@
                     <div class="d-flex gap-2 flex-wrap">
                         {% for turno_dia in turnos_del_dia %}
                             <a
-                                href="{% url 'dia_turno' fecha|date:'Y-m-d' turno_dia.id %}"
+                                href="{% url 'dia_turno' fecha|date:'Y-m-d' turno_dia.id %}{% if viene_de_onboarding %}?onboarding=1{% endif %}"
                                 class="btn {% if turno_config and turno_dia.id == turno_config.id %}btn-primary{% else %}btn-outline-primary{% endif %}"
                             >
                                 {{ turno_dia.nombre }}
@@ -1349,6 +1381,11 @@
                         action="{% url 'finalizar_turno' entrenamiento.id %}"
                         class="mb-0">
                         {% csrf_token %}
+
+                        {% if viene_de_onboarding %}
+                            <input type="hidden" name="onboarding" value="1">
+                        {% endif %}
+
                         <input type="hidden" name="volver_a" value="#cierre-turno">
 
                         <button

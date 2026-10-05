@@ -20,12 +20,21 @@ Nuevo usuario - {{ club.nombre }}
             </p>
         </div>
 
-        <a
-            href="{% url 'lista_usuarios' %}"
-            class="btn btn-outline-secondary"
-        >
-            Volver a usuarios
-        </a>
+        {% if viene_de_onboarding %}
+            <a
+                href="{% url 'onboarding_club' %}"
+                class="btn btn-outline-secondary"
+            >
+                ← Volver al onboarding
+            </a>
+        {% else %}
+            <a
+                href="{% url 'lista_usuarios' %}"
+                class="btn btn-outline-secondary"
+            >
+                Volver a usuarios
+            </a>
+        {% endif %}
 
     </div>
 
@@ -41,6 +50,14 @@ Nuevo usuario - {{ club.nombre }}
                     <form method="post">
 
                         {% csrf_token %}
+
+                        {% if viene_de_onboarding %}
+                            <input
+                                type="hidden"
+                                name="onboarding"
+                                value="1"
+                            >
+                        {% endif %}
 
                         {% if form.non_field_errors %}
                             <div class="alert alert-danger">
@@ -322,7 +339,16 @@ Nuevo usuario - {{ club.nombre }}
 
 
                         <div class="alert alert-light border small mb-4">
-                            La contraseña debe cumplir las reglas de seguridad configuradas en Django.
+                            <div class="fw-semibold mb-2">
+                                Requisitos de la contraseña
+                            </div>
+
+                            <ul class="mb-0 ps-3">
+                                <li>Debe tener al menos 8 caracteres.</li>
+                                <li>No puede ser demasiado parecida al nombre, apellido, email o usuario.</li>
+                                <li>No puede ser una contraseña demasiado común.</li>
+                                <li>No puede estar formada únicamente por números.</li>
+                            </ul>
                         </div>
 
 
@@ -335,12 +361,21 @@ Nuevo usuario - {{ club.nombre }}
                                 Crear usuario
                             </button>
 
-                            <a
-                                href="{% url 'lista_usuarios' %}"
-                                class="btn btn-outline-secondary"
-                            >
-                                Cancelar
-                            </a>
+                            {% if viene_de_onboarding %}
+                                <a
+                                    href="{% url 'onboarding_club' %}"
+                                    class="btn btn-outline-secondary"
+                                >
+                                    Cancelar y volver al onboarding
+                                </a>
+                            {% else %}
+                                <a
+                                    href="{% url 'lista_usuarios' %}"
+                                    class="btn btn-outline-secondary"
+                                >
+                                    Cancelar
+                                </a>
+                            {% endif %}
 
                         </div>
 

@@ -47,9 +47,24 @@ def _es_ultimo_admin_activo(perfil):
     )
 
 
+def _viene_de_onboarding(request):
+    """
+    Indica si la pantalla actual forma parte del flujo guiado
+    de configuración inicial del club.
+    """
+    return (
+        request.GET.get("onboarding") == "1"
+        or request.POST.get("onboarding") == "1"
+    )
+
+
 @requerir_admin_club
 def configuracion_club(request):
     club = obtener_club_usuario(request.user)
+
+    viene_de_onboarding = _viene_de_onboarding(
+        request
+    )
 
     if request.method == "POST":
         form = ClubForm(
@@ -66,7 +81,14 @@ def configuracion_club(request):
                 "La configuración del club se guardó correctamente.",
             )
 
-            return redirect("configuracion_club")
+            if viene_de_onboarding:
+                return redirect(
+                    "onboarding_club"
+                )
+
+            return redirect(
+                "configuracion_club"
+            )
 
     else:
         form = ClubForm(
@@ -79,6 +101,7 @@ def configuracion_club(request):
         {
             "form": form,
             "club": club,
+            "viene_de_onboarding": viene_de_onboarding,
         },
     )
 
@@ -111,6 +134,10 @@ def lista_turnos(request):
 def crear_turno(request):
     club = obtener_club_usuario(request.user)
 
+    viene_de_onboarding = _viene_de_onboarding(
+        request
+    )
+
     if request.method == "POST":
         form = TurnoClubForm(
             request.POST,
@@ -127,7 +154,14 @@ def crear_turno(request):
                 "El turno se creó correctamente.",
             )
 
-            return redirect("lista_turnos")
+            if viene_de_onboarding:
+                return redirect(
+                    "onboarding_club"
+                )
+
+            return redirect(
+                "lista_turnos"
+            )
 
     else:
         form = TurnoClubForm(
@@ -141,6 +175,7 @@ def crear_turno(request):
             "form": form,
             "club": club,
             "titulo": "Nuevo turno",
+            "viene_de_onboarding": viene_de_onboarding,
         },
     )
 
@@ -264,6 +299,10 @@ def lista_usuarios(request):
 def crear_usuario(request):
     club = obtener_club_usuario(request.user)
 
+    viene_de_onboarding = _viene_de_onboarding(
+        request
+    )
+
     if request.method == "POST":
         form = UsuarioClubForm(
             request.POST,
@@ -294,7 +333,14 @@ def crear_usuario(request):
                 ),
             )
 
-            return redirect("lista_usuarios")
+            if viene_de_onboarding:
+                return redirect(
+                    "onboarding_club"
+                )
+
+            return redirect(
+                "lista_usuarios"
+            )
 
     else:
         form = UsuarioClubForm()
@@ -305,6 +351,7 @@ def crear_usuario(request):
         {
             "form": form,
             "club": club,
+            "viene_de_onboarding": viene_de_onboarding,
         },
     )
 
@@ -675,6 +722,7 @@ def registro_club_invitacion(request, token):
         },
     )
 
+
 @requerir_admin_club
 def onboarding_club(request):
     """
@@ -723,8 +771,9 @@ def onboarding_club(request):
     )
 
     tiene_entrenamientos = Entrenamiento.objects.filter(
-        club=club,
-    ).exists()
+    club=club,
+    finalizado=True,
+).exists()
 
     pasos = [
         {
@@ -734,7 +783,10 @@ def onboarding_club(request):
                 "ya están configurados."
             ),
             "completo": True,
-            "url": reverse("configuracion_club"),
+            "url": (
+                reverse("configuracion_club")
+                + "?onboarding=1"
+            ),
             "boton": "Revisar configuración",
         },
         {
@@ -743,7 +795,10 @@ def onboarding_club(request):
                 "Definí los días y horarios en los que entrena el club."
             ),
             "completo": tiene_turnos,
-            "url": reverse("crear_turno"),
+            "url": (
+                reverse("crear_turno")
+                + "?onboarding=1"
+            ),
             "boton": "Crear turno",
         },
         {
@@ -753,7 +808,10 @@ def onboarding_club(request):
                 "con los entrenamientos."
             ),
             "completo": tiene_entrenadores,
-            "url": reverse("crear_usuario"),
+            "url": (
+                reverse("crear_usuario")
+                + "?onboarding=1"
+            ),
             "boton": "Agregar entrenador",
         },
         {
@@ -763,7 +821,10 @@ def onboarding_club(request):
                 "los entrenamientos."
             ),
             "completo": tiene_jugadores,
-            "url": reverse("crear_jugador"),
+            "url": (
+                reverse("crear_jugador")
+                + "?onboarding=1"
+            ),
             "boton": "Agregar jugador",
         },
         {
@@ -772,7 +833,19 @@ def onboarding_club(request):
                 "Armá la biblioteca de ejercicios que va a usar el club."
             ),
             "completo": tiene_biblioteca,
-            "url": reverse("lista_ejercicios"),
+            "url": (
+                (
+                    reverse("crear_categoria_ejercicio")
+                    + "?onboarding=1"
+                )
+                if not tiene_categorias
+                else (
+                    reverse("crear_ejercicio")
+                    + "?onboarding=1"
+                )
+                if not tiene_ejercicios
+                else reverse("lista_ejercicios")
+            ),
             "boton": "Configurar ejercicios",
         },
         {
@@ -782,7 +855,10 @@ def onboarding_club(request):
                 "a usar la carga diaria."
             ),
             "completo": tiene_entrenamientos,
-            "url": reverse("inicio"),
+            "url": (
+                reverse("inicio")
+                + "?onboarding=1"
+            ),
             "boton": "Ir a carga diaria",
         },
     ]
@@ -811,4 +887,3 @@ def onboarding_club(request):
             "onboarding_completo": completados == total,
         },
     )
-
