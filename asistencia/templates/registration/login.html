@@ -6,30 +6,77 @@ Ingresar · TDM Coach
 
 {% block content %}
 
-<div class="row justify-content-center">
-    <div class="col-lg-5 col-md-7">
+<div class="row justify-content-center align-items-center py-4 py-md-5">
 
-        <div class="card shadow-sm border-0 mt-4">
+    <div class="col-xl-4 col-lg-5 col-md-7">
 
-            <div class="card-body p-4">
+        <div class="text-center mb-4">
 
-                <div class="text-center mb-4">
+            <div
+                class="
+                    d-inline-flex
+                    align-items-center
+                    justify-content-center
+                    rounded-4
+                    mb-3
+                "
+                style="
+                    width: 64px;
+                    height: 64px;
+                    background: var(--club-primary, #2563eb);
+                    color: white;
+                    font-size: 1.8rem;
+                    box-shadow: 0 10px 25px rgba(15, 23, 42, .12);
+                "
+            >
+                🏓
+            </div>
 
-                    <h1 class="h3 mb-1">
-                        TDM Coach
-                    </h1>
+            <h1 class="h2 mb-1">
+                TDM Coach
+            </h1>
 
-                    <p class="text-muted mb-0">
-                        Acceso al sistema de entrenamiento
+            <p class="text-muted mb-0">
+                Gestión de entrenamientos para clubes
+            </p>
+
+        </div>
+
+
+        <div class="card shadow-sm border-0">
+
+            <div class="card-body p-4 p-md-5">
+
+                <div class="mb-4">
+
+                    <h2 class="h4 mb-1">
+                        Iniciar sesión
+                    </h2>
+
+                    <p class="text-muted small mb-0">
+                        Ingresá con tu usuario para acceder al club.
                     </p>
 
                 </div>
 
 
                 {% if form.errors %}
-                    <div class="alert alert-danger">
-                        Usuario o contraseña incorrectos.
+
+                    <div
+                        class="alert alert-danger"
+                        role="alert"
+                    >
+
+                        <div class="fw-semibold mb-1">
+                            No pudimos iniciar sesión
+                        </div>
+
+                        <div class="small">
+                            Revisá tu usuario y contraseña e intentá nuevamente.
+                        </div>
+
                     </div>
+
                 {% endif %}
 
 
@@ -42,7 +89,7 @@ Ingresar · TDM Coach
 
                         <label
                             for="{{ form.username.id_for_label }}"
-                            class="form-label"
+                            class="form-label fw-semibold"
                         >
                             Usuario
                         </label>
@@ -53,19 +100,28 @@ Ingresar · TDM Coach
                             id="{{ form.username.id_for_label }}"
                             class="form-control"
                             autocomplete="username"
+                            autofocus
                             required
                         >
 
                     </div>
 
 
-                    <div class="mb-2">
+                    <div class="mb-3">
 
-                        <div class="d-flex justify-content-between align-items-center">
+                        <div
+                            class="
+                                d-flex
+                                justify-content-between
+                                align-items-center
+                                gap-3
+                                mb-2
+                            "
+                        >
 
                             <label
                                 for="{{ form.password.id_for_label }}"
-                                class="form-label mb-0"
+                                class="form-label fw-semibold mb-0"
                             >
                                 Contraseña
                             </label>
@@ -80,7 +136,7 @@ Ingresar · TDM Coach
                         </div>
 
 
-                        <div class="input-group mt-2">
+                        <div class="input-group">
 
                             <input
                                 type="password"
@@ -93,7 +149,7 @@ Ingresar · TDM Coach
 
                             <button
                                 type="button"
-                                class="btn btn-outline-secondary"
+                                class="btn btn-outline-secondary px-3"
                                 id="toggle-password"
                                 aria-label="Mostrar contraseña"
                                 title="Mostrar contraseña"
@@ -102,8 +158,8 @@ Ingresar · TDM Coach
                                 <svg
                                     class="icon-eye"
                                     xmlns="http://www.w3.org/2000/svg"
-                                    width="20"
-                                    height="20"
+                                    width="19"
+                                    height="19"
                                     viewBox="0 0 24 24"
                                     fill="none"
                                     stroke="currentColor"
@@ -118,8 +174,8 @@ Ingresar · TDM Coach
                                 <svg
                                     class="icon-eye-off d-none"
                                     xmlns="http://www.w3.org/2000/svg"
-                                    width="20"
-                                    height="20"
+                                    width="19"
+                                    height="19"
                                     viewBox="0 0 24 24"
                                     fill="none"
                                     stroke="currentColor"
@@ -142,100 +198,118 @@ Ingresar · TDM Coach
 
                     <button
                         type="submit"
-                        class="btn btn-primary w-100 mt-3"
+                        class="btn btn-primary w-100 py-2"
                     >
-                        Ingresar al sistema
+                        Ingresar
                     </button>
 
                 </form>
 
 
-                <p class="text-muted small text-center mb-0 mt-3">
-                    El acceso es exclusivo para usuarios de clubes habilitados.
-                </p>
+                <div class="text-center mt-4">
+
+                    <p class="text-muted small mb-1">
+                        Acceso exclusivo para clubes habilitados.
+                    </p>
+
+                    <p class="text-muted small mb-0">
+                        Si recibiste una invitación, utilizá el enlace enviado para registrar tu club.
+                    </p>
+
+                </div>
 
             </div>
 
         </div>
 
+
+        <div class="text-center mt-3">
+
+            <span class="text-muted small">
+                TDM Coach · Sistema de gestión de entrenamientos
+            </span>
+
+        </div>
+
     </div>
+
 </div>
 
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
 
-    const passwordInput = document.getElementById(
-        "{{ form.password.id_for_label }}"
-    );
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
 
-    const toggleButton = document.getElementById(
-        "toggle-password"
-    );
+        const passwordInput = document.getElementById(
+            "{{ form.password.id_for_label }}"
+        );
 
-    if (!passwordInput || !toggleButton) {
-        return;
-    }
+        const toggleButton = document.getElementById(
+            "toggle-password"
+        );
 
-    const iconoOjo = toggleButton.querySelector(
-        ".icon-eye"
-    );
-
-    const iconoOjoOff = toggleButton.querySelector(
-        ".icon-eye-off"
-    );
-
-    toggleButton.addEventListener("click", function () {
-
-        if (passwordInput.type === "password") {
-
-            passwordInput.type = "text";
-
-            iconoOjo.classList.add(
-                "d-none"
-            );
-
-            iconoOjoOff.classList.remove(
-                "d-none"
-            );
-
-            toggleButton.setAttribute(
-                "aria-label",
-                "Ocultar contraseña"
-            );
-
-            toggleButton.setAttribute(
-                "title",
-                "Ocultar contraseña"
-            );
-
-        } else {
-
-            passwordInput.type = "password";
-
-            iconoOjo.classList.remove(
-                "d-none"
-            );
-
-            iconoOjoOff.classList.add(
-                "d-none"
-            );
-
-            toggleButton.setAttribute(
-                "aria-label",
-                "Mostrar contraseña"
-            );
-
-            toggleButton.setAttribute(
-                "title",
-                "Mostrar contraseña"
-            );
-
+        if (
+            !passwordInput
+            || !toggleButton
+        ) {
+            return;
         }
 
-    });
+        const iconoOjo = toggleButton.querySelector(
+            ".icon-eye"
+        );
 
-});
+        const iconoOjoOff = toggleButton.querySelector(
+            ".icon-eye-off"
+        );
+
+
+        toggleButton.addEventListener(
+            "click",
+            function() {
+
+                const mostrar = (
+                    passwordInput.type === "password"
+                );
+
+                passwordInput.type = (
+                    mostrar
+                    ? "text"
+                    : "password"
+                );
+
+                iconoOjo.classList.toggle(
+                    "d-none",
+                    mostrar
+                );
+
+                iconoOjoOff.classList.toggle(
+                    "d-none",
+                    !mostrar
+                );
+
+                toggleButton.setAttribute(
+                    "aria-label",
+                    mostrar
+                        ? "Ocultar contraseña"
+                        : "Mostrar contraseña"
+                );
+
+                toggleButton.setAttribute(
+                    "title",
+                    mostrar
+                        ? "Ocultar contraseña"
+                        : "Mostrar contraseña"
+                );
+
+            }
+        );
+
+    }
+);
+
 </script>
 
 {% endblock %}

@@ -1,461 +1,863 @@
 {% extends "asistencia/base.html" %}
 
+{% block title %}Resumen del día · {{ club_actual.nombre|default:"TDM Coach" }}{% endblock %}
+
+
 {% block content %}
 
+
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+
     <div>
+
         <h1 class="h3 mb-1">
+
             Resumen del día
+
         </h1>
 
+
         <p class="text-muted mb-0">
+
             {{ fecha|date:"d/m/Y" }}
+
         </p>
+
     </div>
+
 
     <div class="d-flex gap-2 flex-wrap">
+
         <a
+
             href="{% url 'resumen_dia' %}?fecha={{ dia_anterior|date:'Y-m-d' }}"
-            class="btn btn-outline-secondary btn-sm"
+
+            class="btn btn-outline-secondary"
+
         >
+
             Día anterior
+
         </a>
 
+
         <a
+
             href="{% url 'resumen_dia' %}"
-            class="btn btn-outline-dark btn-sm"
+
+            class="btn btn-dark"
+
         >
+
             Hoy
+
         </a>
 
+
         <a
+
             href="{% url 'resumen_dia' %}?fecha={{ dia_siguiente|date:'Y-m-d' }}"
-            class="btn btn-outline-secondary btn-sm"
+
+            class="btn btn-outline-secondary"
+
         >
+
             Día siguiente
+
         </a>
+
     </div>
+
 </div>
+
 
 <form method="get" class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
+
+    <div class="card-body p-4">
+
         <label class="form-label">
+
             Elegir fecha
+
         </label>
 
+
         <div class="d-flex gap-2 flex-wrap">
+
             <input
+
                 type="date"
+
                 name="fecha"
+
                 value="{{ fecha|date:'Y-m-d' }}"
+
                 class="form-control"
+
                 style="max-width: 220px;"
+
             >
 
+
             <button class="btn btn-primary">
+
                 Ver resumen
+
             </button>
+
         </div>
+
     </div>
+
 </form>
 
+
 <div class="row g-3 mb-4">
+
     <div class="col-6 col-md-2">
+
         <div class="card shadow-sm border-0 h-100">
+
             <div class="card-body text-center">
+
                 <div class="text-muted small">
+
                     Presentes
+
                 </div>
 
+
                 <div class="h3 mb-0">
+
                     {{ total_presentes }}
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
 
+
     <div class="col-6 col-md-2">
+
         <div class="card shadow-sm border-0 h-100">
+
             <div class="card-body text-center">
+
                 <div class="text-muted small">
+
                     Tardes
+
                 </div>
 
+
                 <div class="h3 mb-0">
+
                     {{ total_tardes }}
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
 
+
     <div class="col-6 col-md-2">
+
         <div class="card shadow-sm border-0 h-100">
+
             <div class="card-body text-center">
+
                 <div class="text-muted small">
+
                     Ausentes
+
                 </div>
 
+
                 <div class="h3 mb-0">
+
                     {{ total_ausentes }}
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
 
+
     <div class="col-6 col-md-2">
+
         <div class="card shadow-sm border-0 h-100">
+
             <div class="card-body text-center">
+
                 <div class="text-muted small">
+
                     Ejercicios
+
                 </div>
 
+
                 <div class="h3 mb-0">
+
                     {{ total_ejercicios }}
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
 
+
     <div class="col-6 col-md-2">
+
         <div class="card shadow-sm border-0 h-100">
+
             <div class="card-body text-center">
+
                 <div class="text-muted small">
+
                     Cambios
+
                 </div>
 
+
                 <div class="h3 mb-0">
+
                     {{ total_trabajos }}
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
+
 
     <div class="col-6 col-md-2">
+
         <div class="card shadow-sm border-0 h-100">
+
             <div class="card-body text-center">
+
                 <div class="text-muted small">
+
                     Partidos
+
                 </div>
 
+
                 <div class="h3 mb-0">
+
                     {{ total_partidos }}
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
+
 </div>
 
+
 {% if turnos_resumen %}
+
     {% for turno in turnos_resumen %}
+
         <div class="card shadow-sm border-0 mb-4">
+
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+
                 <div>
+
                     <strong>
+
                         {% if turno.entrenamiento.turno_config %}
+
                             {{ turno.entrenamiento.turno_config.nombre }}
+
                             {% if turno.entrenamiento.turno_config.hora_inicio %}
+
                                 · {{ turno.entrenamiento.turno_config.hora_inicio|time:"H:i" }}
+
                             {% endif %}
+
                             {% if turno.entrenamiento.turno_config.hora_fin %}
+
                                 - {{ turno.entrenamiento.turno_config.hora_fin|time:"H:i" }}
+
                             {% endif %}
+
                         {% else %}
+
                             Turno {{ turno.entrenamiento.nombre_turno }}
+
                         {% endif %}
+
                     </strong>
 
+
                     <span class="ms-2">
+
                         Entrenador: {{ turno.entrenador_nombre }}
+
                     </span>
 
+
                     {% if turno.entrenamiento.no_se_entreno %}
-                        <span class="badge bg-warning text-dark ms-2">
+
+                        <span class="badge bg-warning text-dark ms-2 px-2 py-1">
+
                             No se entrenó
+
                         </span>
+
                     {% endif %}
+
 
                     {% if turno.entrenamiento.finalizado %}
-                        <span class="badge bg-success ms-2">
+
+                        <span class="badge bg-success ms-2 px-2 py-1">
+
                             Finalizado
+
                         </span>
+
                     {% endif %}
+
                 </div>
+
 
                 <a
+
                     href="{% url 'dia_turno' turno.entrenamiento.fecha|date:'Y-m-d' turno.entrenamiento.turno_config_id %}"
+
                     class="btn btn-light btn-sm"
+
                 >
+
                     Ver turno
+
                 </a>
+
             </div>
 
-            <div class="card-body">
+
+            <div class="card-body p-4">
+
                 {% if turno.entrenamiento.no_se_entreno %}
+
                     <div class="alert alert-warning">
+
                         <strong>No se entrenó.</strong>
 
+
                         {% if turno.entrenamiento.motivo_no_entrenamiento %}
+
                             Motivo: {{ turno.entrenamiento.get_motivo_no_entrenamiento_display }}.
+
                         {% endif %}
+
 
                         {% if turno.entrenamiento.detalle_no_entrenamiento %}
+
                             {{ turno.entrenamiento.detalle_no_entrenamiento }}
+
                         {% endif %}
+
                     </div>
+
                 {% endif %}
+
 
                 <div class="row g-3 mb-3">
+
                     <div class="col-4">
+
                         <div class="border rounded p-3 text-center">
+
                             <div class="small text-muted">
+
                                 Presentes
+
                             </div>
 
+
                             <div class="h4 mb-0">
+
                                 {{ turno.presentes }}
+
                             </div>
+
                         </div>
+
                     </div>
 
+
                     <div class="col-4">
+
                         <div class="border rounded p-3 text-center">
+
                             <div class="small text-muted">
+
                                 Tardes
+
                             </div>
 
+
                             <div class="h4 mb-0">
+
                                 {{ turno.tardes }}
+
                             </div>
+
                         </div>
+
                     </div>
+
 
                     <div class="col-4">
+
                         <div class="border rounded p-3 text-center">
+
                             <div class="small text-muted">
+
                                 Ausentes
+
                             </div>
 
+
                             <div class="h4 mb-0">
+
                                 {{ turno.ausentes }}
+
                             </div>
+
                         </div>
+
                     </div>
+
                 </div>
 
+
                 <h5 class="mt-4">
+
                     Ejercicios hechos
+
                 </h5>
+
 
                 {% if turno.ejercicios %}
+
                     <div class="d-flex flex-wrap gap-2">
+
                         {% for ejercicio in turno.ejercicios %}
+
                             <span class="badge bg-light text-dark border">
+
                                 {% if ejercicio.categoria %}
+
                                     {{ ejercicio.categoria }} —
+
                                 {% endif %}
+
                                 {{ ejercicio.nombre }}
+
                             </span>
+
                         {% endfor %}
+
                     </div>
+
                 {% else %}
+
                     <p class="text-muted">
+
                         No hay ejercicios cargados en este turno.
+
                     </p>
+
                 {% endif %}
 
+
                 <h5 class="mt-4">
+
                     Asistencia
+
                 </h5>
+
 
                 {% if turno.asistencias %}
+
                     <div class="table-responsive">
+
                         <table class="table table-sm align-middle">
+
                             <thead>
+
                                 <tr>
+
                                     <th>Jugador</th>
+
                                     <th>Estado</th>
+
                                     <th>Detalle</th>
+
                                 </tr>
+
                             </thead>
 
+
                             <tbody>
+
                                 {% for asistencia in turno.asistencias %}
+
                                     <tr>
+
                                         <td>
+
                                             {{ asistencia.jugador }}
+
                                         </td>
 
+
                                         <td>
+
                                             {% if asistencia.estado == "asistio" %}
+
                                                 <span class="badge bg-success">Asistió</span>
+
                                             {% elif asistencia.estado == "tarde" %}
+
                                                 <span class="badge bg-warning text-dark">Tarde</span>
+
                                             {% elif asistencia.estado == "ausente" %}
+
                                                 <span class="badge bg-danger">Ausente</span>
+
                                             {% else %}
+
                                                 <span class="badge bg-secondary">{{ asistencia.estado }}</span>
+
                                             {% endif %}
+
                                         </td>
 
+
                                         <td>
+
                                             {% if asistencia.observacion %}
+
                                                 {{ asistencia.observacion }}
+
                                             {% else %}
+
                                                 <span class="text-muted">Sin detalle</span>
+
                                             {% endif %}
+
                                         </td>
+
                                     </tr>
+
                                 {% endfor %}
+
                             </tbody>
+
                         </table>
+
                     </div>
+
                 {% else %}
+
                     <p class="text-muted">
+
                         No hay asistencia cargada en este turno.
+
                     </p>
+
                 {% endif %}
 
+
                 <h5 class="mt-4">
+
                     Trabajos / cambios
+
                 </h5>
+
 
                 {% if turno.trabajos %}
+
                     <div class="table-responsive">
+
                         <table class="table table-sm align-middle">
+
                             <thead>
+
                                 <tr>
+
                                     <th>Cambio</th>
+
                                     <th>Tipo</th>
+
                                     <th>Jugador 1</th>
+
                                     <th>Jugador 2</th>
+
                                     <th>Detalle</th>
+
                                 </tr>
+
                             </thead>
 
+
                             <tbody>
+
                                 {% for trabajo in turno.trabajos %}
+
                                     <tr>
+
                                         <td>
+
                                             {{ trabajo.cambio }}
+
                                         </td>
 
+
                                         <td>
+
                                             {{ trabajo.tipo|default:"-" }}
+
                                         </td>
 
+
                                         <td>
+
                                             {{ trabajo.jugador_1|default:"-" }}
+
                                         </td>
 
+
                                         <td>
+
                                             {{ trabajo.jugador_2|default:"-" }}
+
                                         </td>
 
+
                                         <td>
+
                                             {% if trabajo.detalle %}
+
                                                 {{ trabajo.detalle }}
+
                                             {% else %}
+
                                                 <span class="text-muted">Sin detalle</span>
+
                                             {% endif %}
+
                                         </td>
+
                                     </tr>
+
                                 {% endfor %}
+
                             </tbody>
+
                         </table>
+
                     </div>
+
                 {% else %}
+
                     <p class="text-muted">
+
                         No hay trabajos cargados en este turno.
+
                     </p>
+
                 {% endif %}
 
+
                 <h5 class="mt-4">
+
                     Partidos
+
                 </h5>
+
 
                 {% if turno.partidos %}
+
                     <div class="table-responsive">
+
                         <table class="table table-sm align-middle">
+
                             <thead>
+
                                 <tr>
+
                                     <th>Jugador 1</th>
+
                                     <th>Jugador 2</th>
+
                                     <th>Resultado</th>
+
                                     <th>Sets</th>
+
                                 </tr>
+
                             </thead>
 
+
                             <tbody>
+
                                 {% for partido in turno.partidos %}
+
                                     <tr>
+
                                         <td>
+
                                             {{ partido.jugador_1 }}
+
                                         </td>
 
+
                                         <td>
+
                                             {{ partido.jugador_2 }}
+
                                         </td>
 
+
                                         <td>
+
                                             {{ partido.marcador }}
+
                                         </td>
 
+
                                         <td>
+
                                             {% if partido.sets %}
+
                                                 {{ partido.sets }}
+
                                             {% else %}
+
                                                 <span class="text-muted">Sin detalle</span>
+
                                             {% endif %}
+
                                         </td>
+
                                     </tr>
+
                                 {% endfor %}
+
                             </tbody>
+
                         </table>
+
                     </div>
+
                 {% else %}
+
                     <p class="text-muted">
+
                         No hay partidos cargados en este turno.
+
                     </p>
+
                 {% endif %}
+
 
                 <h5 class="mt-4">
+
                     Observaciones
+
                 </h5>
 
+
                 {% if turno.observaciones %}
+
                     <div class="list-group">
+
                         {% for observacion in turno.observaciones %}
+
                             <div class="list-group-item">
+
                                 <strong>
+
                                     {{ observacion.jugador }}
+
                                 </strong>
 
+
                                 <div>
+
                                     {{ observacion.texto|default:"Sin detalle" }}
+
                                 </div>
+
                             </div>
+
                         {% endfor %}
+
                     </div>
+
                 {% else %}
+
                     <p class="text-muted">
+
                         No hay observaciones cargadas en este turno.
+
                     </p>
+
                 {% endif %}
+
             </div>
+
         </div>
+
     {% endfor %}
+
 {% else %}
+
     <div class="card shadow-sm border-0">
+
         <div class="card-body text-center py-5">
+
             <h5>
+
                 No hay turnos cargados para este día
+
             </h5>
 
+
             <p class="text-muted mb-0">
+
                 Cuando cargues asistencia o trabajos en algún turno, van a aparecer acá.
+
             </p>
+
         </div>
+
     </div>
+
 {% endif %}
+
 
 {% endblock %}

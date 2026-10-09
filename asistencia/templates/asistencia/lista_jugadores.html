@@ -1,19 +1,32 @@
 {% extends "asistencia/base.html" %}
 
+{% block title %}
+Jugadores · TDM Coach
+{% endblock %}
+
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+
     <div>
+
+        <div class="small text-uppercase fw-semibold text-primary mb-1">
+            Plantel
+        </div>
+
         <h1 class="mb-1">
             Jugadores
         </h1>
 
         <p class="text-muted mb-0">
-            Panel para ver estado, asistencia del mes y acceso rápido al historial.
+            Consultá el estado, la asistencia mensual y el historial de cada jugador.
         </p>
+
     </div>
 
+
     <div class="d-flex gap-2 flex-wrap">
+
         <a
             class="btn btn-outline-dark"
             href="{% url 'inicio' %}"
@@ -28,217 +41,917 @@
             Ver reportes
         </a>
 
+
+        {% if es_admin_club %}
+
+            <a
+                class="btn btn-outline-primary"
+                href="{% url 'resumen_cuotas' %}"
+            >
+                Resumen cuotas
+            </a>
+
+            <a
+                class="btn btn-outline-primary"
+                href="{% url 'lista_categorias_jugador' %}"
+            >
+                Categorías
+            </a>
+
+        {% endif %}
+
+
         <a
             class="btn btn-primary"
             href="{% url 'crear_jugador' %}"
         >
             + Agregar jugador
         </a>
+
     </div>
+
 </div>
 
+
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
+
+    <div class="col-12 col-md-4">
+
         <div class="card shadow-sm border-0 h-100">
+
             <div class="card-body">
-                <div class="text-muted small">
-                    Total cargados
+
+                <div class="small text-uppercase fw-semibold text-muted mb-1">
+                    Total
                 </div>
 
-                <div class="fs-3 fw-bold">
+                <div class="fs-2 fw-bold">
                     {{ total_jugadores }}
                 </div>
+
+                <div class="small text-muted mt-1">
+                    Jugadores cargados
+                </div>
+
             </div>
+
         </div>
+
     </div>
 
-    <div class="col-md-4">
+
+    <div class="col-6 col-md-4">
+
         <div class="card shadow-sm border-0 h-100">
+
             <div class="card-body">
-                <div class="text-muted small">
+
+                <div class="small text-uppercase fw-semibold text-muted mb-1">
                     Activos
                 </div>
 
-                <div class="fs-3 fw-bold text-success">
+                <div class="fs-2 fw-bold text-success">
                     {{ jugadores_activos }}
                 </div>
+
+                <div class="small text-muted mt-1">
+                    Disponibles para entrenamientos
+                </div>
+
             </div>
+
         </div>
+
     </div>
 
-    <div class="col-md-4">
+
+    <div class="col-6 col-md-4">
+
         <div class="card shadow-sm border-0 h-100">
+
             <div class="card-body">
-                <div class="text-muted small">
+
+                <div class="small text-uppercase fw-semibold text-muted mb-1">
                     Inactivos
                 </div>
 
-                <div class="fs-3 fw-bold text-secondary">
+                <div class="fs-2 fw-bold text-secondary">
                     {{ jugadores_inactivos }}
                 </div>
+
+                <div class="small text-muted mt-1">
+                    Fuera de la carga habitual
+                </div>
+
             </div>
+
         </div>
+
     </div>
+
 </div>
 
+
 <div class="card shadow-sm border-0">
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+
+    <div class="card-body p-4">
+
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+
             <div>
+
+                <div class="small text-uppercase fw-semibold text-primary mb-1">
+                    Listado
+                </div>
+
                 <h4 class="mb-1">
-                    Listado de jugadores
+                    Jugadores del club
                 </h4>
 
-                <p class="text-muted mb-0">
-                    La asistencia del mes no cuenta los turnos marcados como “No se entrenó”.
-                </p>
+
+                {% if es_admin_club %}
+
+                    <p class="text-muted mb-0">
+                        La asistencia corresponde al mes actual. La cuota puede consultarse por período.
+                    </p>
+
+                {% else %}
+
+                    <p class="text-muted mb-0">
+                        Consultá la asistencia, categoría, estado e historial de los jugadores.
+                    </p>
+
+                {% endif %}
+
             </div>
 
-            <span class="badge bg-dark fs-6">
+
+            <span class="badge bg-dark fs-6 px-3 py-2">
                 {{ total_jugadores }}
                 jugador{{ total_jugadores|pluralize:"es" }}
             </span>
+
         </div>
 
-        {% if jugadores_info %}
-            <div class="mb-3">
-                <label class="form-label small text-muted mb-1">
-                    Buscar jugador
-                </label>
 
-                <input
-                    type="text"
-                    id="buscar-jugador-listado"
-                    class="form-control"
-                    placeholder="Ejemplo: eit, mart, ale..."
-                    autocomplete="off"
+        {% if jugadores_info %}
+
+
+            {% if es_admin_club %}
+
+                <div class="border rounded-3 p-3 mb-4 bg-light">
+
+                    <form
+                        method="get"
+                        class="row g-3 align-items-end"
+                    >
+
+                        <div class="col-12 col-md-5">
+
+                            <label
+                                for="mes-cuota"
+                                class="form-label fw-semibold"
+                            >
+                                Mes de la cuota
+                            </label>
+
+                            <select
+                                id="mes-cuota"
+                                name="mes"
+                                class="form-select"
+                            >
+
+                                {% for mes in meses_disponibles %}
+
+                                    <option
+                                        value="{{ mes.numero }}"
+                                        {% if mes.numero == mes_cuota_numero %}selected{% endif %}
+                                    >
+                                        {{ mes.nombre }}
+                                    </option>
+
+                                {% endfor %}
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="col-12 col-md-4">
+
+                            <label
+                                for="anio-cuota"
+                                class="form-label fw-semibold"
+                            >
+                                Año
+                            </label>
+
+                            <select
+                                id="anio-cuota"
+                                name="anio"
+                                class="form-select"
+                            >
+
+                                {% for anio in anios_disponibles %}
+
+                                    <option
+                                        value="{{ anio }}"
+                                        {% if anio == anio_cuota %}selected{% endif %}
+                                    >
+                                        {{ anio }}
+                                    </option>
+
+                                {% endfor %}
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="col-12 col-md-3">
+
+                            <button
+                                type="submit"
+                                class="btn btn-dark w-100"
+                            >
+                                Ver período
+                            </button>
+
+                        </div>
+
+                    </form>
+
+
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
+
+                        <div class="small text-muted">
+
+                            Mostrando cuotas de
+                            <strong>
+                                {{ mes_cuota_nombre }} {{ anio_cuota }}
+                            </strong>.
+
+                        </div>
+
+
+                        <a
+                            href="{% url 'exportar_cuotas_excel' %}?mes={{ mes_cuota_numero }}&anio={{ anio_cuota }}"
+                            class="btn btn-sm btn-outline-success"
+                        >
+                            Exportar Excel
+                        </a>
+
+                    </div>
+
+                </div>
+
+
+                <div class="row g-3 mb-4">
+
+                    <div class="col-6 col-lg-3">
+
+                        <div class="card border-0 bg-light h-100">
+
+                            <div class="card-body">
+
+                                <div class="small text-uppercase fw-semibold text-muted mb-1">
+                                    Jugadores del período
+                                </div>
+
+                                <div
+                                    class="fs-3 fw-bold"
+                                    id="resumen-total-visible"
+                                >
+                                    {{ total_cuotas_periodo }}
+                                </div>
+
+                                <div class="small text-muted mt-1">
+                                    Con cuota para este período
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-6 col-lg-3">
+
+                        <div class="card border-0 bg-light h-100">
+
+                            <div class="card-body">
+
+                                <div class="small text-uppercase fw-semibold text-muted mb-1">
+                                    Pagados
+                                </div>
+
+                                <div
+                                    class="fs-3 fw-bold text-success"
+                                    id="resumen-pagados-visible"
+                                >
+                                    {{ cuotas_pagadas_periodo }}
+                                </div>
+
+                                <div class="small text-muted mt-1">
+                                    Cuotas registradas como pagadas
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-6 col-lg-3">
+
+                        <div class="card border-0 bg-light h-100">
+
+                            <div class="card-body">
+
+                                <div class="small text-uppercase fw-semibold text-muted mb-1">
+                                    Pendientes
+                                </div>
+
+                                <div
+                                    class="fs-3 fw-bold text-warning"
+                                    id="resumen-pendientes-visible"
+                                >
+                                    {{ cuotas_pendientes_periodo }}
+                                </div>
+
+                                <div class="small text-muted mt-1">
+                                    Cuotas todavía pendientes
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-6 col-lg-3">
+
+                        <div class="card border-0 bg-light h-100">
+
+                            <div class="card-body">
+
+                                <div class="small text-uppercase fw-semibold text-muted mb-1">
+                                    Cobranza
+                                </div>
+
+                                <div
+                                    class="fs-3 fw-bold"
+                                    id="resumen-cobranza-visible"
+                                >
+                                    {{ porcentaje_cobranza_periodo }}%
+                                </div>
+
+                                <div
+                                    class="progress mt-2"
+                                    style="height: 6px;"
+                                >
+
+                                    <div
+                                        id="barra-cobranza-visible"
+                                        class="progress-bar bg-success"
+                                        role="progressbar"
+                                        style="width: {{ porcentaje_cobranza_periodo }}%;"
+                                        aria-valuenow="{{ porcentaje_cobranza_periodo }}"
+                                        aria-valuemin="0"
+                                        aria-valuemax="100"
+                                    ></div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+
+            <div class="row g-3 mb-4">
+
+
+                {% if es_admin_club %}
+
+                    <div class="col-md-5">
+
+                {% else %}
+
+                    <div class="col-md-7">
+
+                {% endif %}
+
+                    <label
+                        for="buscar-jugador-listado"
+                        class="form-label fw-semibold"
+                    >
+                        Buscar jugador
+                    </label>
+
+                    <input
+                        type="text"
+                        id="buscar-jugador-listado"
+                        class="form-control"
+                        placeholder="Escribí nombre o apellido..."
+                        autocomplete="off"
+                    >
+
+                </div>
+
+
+                {% if es_admin_club %}
+
+                    <div class="col-md-4">
+
+                {% else %}
+
+                    <div class="col-md-5">
+
+                {% endif %}
+
+                    <label
+                        for="filtro-categoria-jugador"
+                        class="form-label fw-semibold"
+                    >
+                        Categoría
+                    </label>
+
+                    <select
+                        id="filtro-categoria-jugador"
+                        class="form-select"
+                    >
+
+                        <option value="">
+                            Todas las categorías
+                        </option>
+
+                        <option value="__sin_categoria__">
+                            Sin categoría
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                {% if es_admin_club %}
+
+                    <div class="col-md-3">
+
+                        <label
+                            for="filtro-cuota-jugador"
+                            class="form-label fw-semibold"
+                        >
+                            Cuota
+                        </label>
+
+                        <select
+                            id="filtro-cuota-jugador"
+                            class="form-select"
+                        >
+
+                            <option value="">
+                                Todas
+                            </option>
+
+                            <option value="pagado">
+                                Pagados
+                            </option>
+
+                            <option value="pendiente">
+                                Pendientes
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                {% endif %}
+
+
+                <div class="col-12">
+
+                    <div class="form-text">
+
+                        {% if es_admin_club %}
+
+                            Podés combinar búsqueda, categoría y estado de cuota.
+
+                        {% else %}
+
+                            Podés combinar búsqueda y categoría.
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="table-responsive">
+
+                <table
+                    class="table align-middle mb-0"
+                    {% if es_admin_club %}
+                        style="min-width: 1260px;"
+                    {% else %}
+                        style="min-width: 1000px;"
+                    {% endif %}
                 >
 
-                <div class="small text-muted mt-1">
-                    Escribí parte del nombre o apellido para encontrarlo rápido.
-                </div>
-            </div>
-            <div class="table-responsive">
-                <table class="table align-middle mb-0">
                     <thead>
+
                         <tr>
-                            <th>Jugador</th>
-                            <th>Estado</th>
-                            <th>Última asistencia</th>
-                            <th>Asistencia del mes</th>
-                            <th>Ausencias del mes</th>
-                            <th class="text-end">
+
+                            <th style="min-width: 160px;">
+                                Jugador
+                            </th>
+
+                            <th style="min-width: 120px;">
+                                Categoría
+                            </th>
+
+                            <th style="min-width: 90px;">
+                                Estado
+                            </th>
+
+                            <th style="min-width: 180px;">
+                                Última asistencia
+                            </th>
+
+                            <th style="min-width: 180px;">
+                                Asistencia del mes
+                            </th>
+
+                            <th style="min-width: 110px;">
+                                Ausencias
+                            </th>
+
+
+                            {% if es_admin_club %}
+
+                                <th style="min-width: 210px;">
+                                    Cuota
+                                    {{ mes_cuota_nombre }}
+                                    {{ anio_cuota }}
+                                </th>
+
+                            {% endif %}
+
+
+                            <th
+                                class="text-end"
+                                style="min-width: 160px;"
+                            >
                                 Acciones
                             </th>
+
                         </tr>
+
                     </thead>
 
+
                     <tbody>
+
                         {% for item in jugadores_info %}
+
                             <tr
                                 class="fila-jugador"
-                                data-nombre="{{ item.jugador|lower }}"
+                                data-nombre="{{ item.jugador.nombre|lower }} {{ item.jugador.apellido|lower }}"
+                                data-categoria="{% if item.jugador.categoria %}{{ item.jugador.categoria.nombre|lower }}{% else %}__sin_categoria__{% endif %}"
+                                data-categoria-label="{% if item.jugador.categoria %}{{ item.jugador.categoria.nombre }}{% endif %}"
+                                {% if es_admin_club %}
+                                    data-cuota="{% if item.cuota_pagada %}pagado{% else %}pendiente{% endif %}"
+                                {% endif %}
                             >
-                                <td>
+
+
+                                <td class="text-nowrap">
+
                                     <div class="fw-bold">
-                                        {{ item.jugador }}
+
+                                        {{ item.jugador.nombre }}
+
+                                        {% if item.jugador.apellido %}
+                                            {{ item.jugador.apellido }}
+                                        {% endif %}
+
                                     </div>
+
                                 </td>
 
-                                <td>
+
+                                <td class="text-nowrap">
+
+                                    {% if item.jugador.categoria %}
+
+                                        <span class="badge bg-light text-dark border">
+                                            {{ item.jugador.categoria.nombre }}
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="text-muted">
+                                            Sin categoría
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td class="text-nowrap">
+
                                     {% if item.jugador.activo %}
+
                                         <span class="badge bg-success">
                                             Activo
                                         </span>
+
                                     {% else %}
+
                                         <span class="badge bg-secondary">
                                             Inactivo
                                         </span>
+
                                     {% endif %}
+
                                 </td>
 
+
                                 <td>
+
                                     {% if item.ultima_asistencia %}
+
                                         <strong>
                                             {{ item.ultima_asistencia.entrenamiento.fecha|date:"d/m/Y" }}
                                         </strong>
 
+
                                         <div class="small text-muted">
+
                                             {% if item.ultima_asistencia.entrenamiento.turno_config %}
+
                                                 {{ item.ultima_asistencia.entrenamiento.turno_config.nombre }}
+
                                                 {% if item.ultima_asistencia.entrenamiento.turno_config.hora_inicio %}
                                                     · {{ item.ultima_asistencia.entrenamiento.turno_config.hora_inicio|time:"H:i" }}
                                                 {% endif %}
+
                                                 {% if item.ultima_asistencia.entrenamiento.turno_config.hora_fin %}
-                                                    - {{ item.ultima_asistencia.entrenamiento.turno_config.hora_fin|time:"H:i" }}
+                                                    -
+                                                    {{ item.ultima_asistencia.entrenamiento.turno_config.hora_fin|time:"H:i" }}
                                                 {% endif %}
+
                                             {% else %}
+
                                                 Turno {{ item.ultima_asistencia.entrenamiento.nombre_turno }}
+
                                             {% endif %}
-                                            ·
-                                            {% if item.ultima_asistencia.estado == "asistio" %}
-                                                Asistió
-                                            {% elif item.ultima_asistencia.estado == "tarde" %}
-                                                Tarde
-                                            {% elif item.ultima_asistencia.estado == "ausente" %}
-                                                Ausente
-                                            {% else %}
-                                                Pendiente
-                                            {% endif %}
+
                                         </div>
+
+
+                                        <div class="small mt-1">
+
+                                            {% if item.ultima_asistencia.estado == "asistio" %}
+
+                                                <span class="text-success fw-semibold">
+                                                    Asistió
+                                                </span>
+
+                                            {% elif item.ultima_asistencia.estado == "tarde" %}
+
+                                                <span class="text-warning fw-semibold">
+                                                    Tarde
+                                                </span>
+
+                                            {% elif item.ultima_asistencia.estado == "ausente" %}
+
+                                                <span class="text-danger fw-semibold">
+                                                    Ausente
+                                                </span>
+
+                                            {% else %}
+
+                                                <span class="text-muted">
+                                                    Pendiente
+                                                </span>
+
+                                            {% endif %}
+
+                                        </div>
+
+
                                     {% else %}
+
                                         <span class="text-muted">
                                             Sin asistencias
                                         </span>
+
                                     {% endif %}
+
                                 </td>
 
+
                                 <td>
+
                                     {% if item.mes_total > 0 %}
-                                        <div class="d-flex align-items-center gap-2">
+
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+
                                             <strong>
                                                 {{ item.mes_porcentaje }}%
                                             </strong>
 
+
                                             {% if item.mes_porcentaje >= 80 %}
+
                                                 <span class="badge bg-success">
-                                                    Bien
+                                                    Buena
                                                 </span>
+
                                             {% elif item.mes_porcentaje >= 50 %}
+
                                                 <span class="badge bg-warning text-dark">
                                                     Media
                                                 </span>
+
                                             {% else %}
+
                                                 <span class="badge bg-danger">
                                                     Baja
                                                 </span>
+
                                             {% endif %}
+
                                         </div>
 
-                                        <div class="small text-muted">
+
+                                        <div class="small text-muted mt-1">
                                             {{ item.mes_presentes }}/{{ item.mes_total }} presentes
                                         </div>
+
+
                                     {% else %}
+
                                         <span class="text-muted">
                                             Sin datos del mes
                                         </span>
+
                                     {% endif %}
+
                                 </td>
 
-                                <td>
+
+                                <td class="text-nowrap">
+
                                     {% if item.mes_ausentes > 0 %}
+
                                         <span class="badge bg-danger">
                                             {{ item.mes_ausentes }}
                                         </span>
+
                                     {% else %}
+
                                         <span class="text-muted">
                                             Sin ausencias
                                         </span>
+
                                     {% endif %}
+
                                 </td>
 
-                                <td class="text-end">
-                                    <div class="d-flex justify-content-end gap-2 flex-wrap">
+
+                                {% if es_admin_club %}
+
+                                    <td style="min-width: 210px;">
+
+
+                                        {% if item.cuota_pagada %}
+
+                                            <div class="mb-2">
+
+                                                <span class="badge bg-success">
+                                                    Pagado
+                                                </span>
+
+
+                                                {% if item.pago_mes.fecha_pago %}
+
+                                                    <div class="small text-muted mt-1">
+                                                        {{ item.pago_mes.fecha_pago|date:"d/m/Y" }}
+                                                    </div>
+
+                                                {% endif %}
+
+                                            </div>
+
+
+                                            <form
+                                                method="post"
+                                                action="{% url 'cambiar_estado_cuota' item.jugador.id %}"
+                                                class="d-inline"
+                                            >
+
+                                                {% csrf_token %}
+
+                                                <input
+                                                    type="hidden"
+                                                    name="mes"
+                                                    value="{{ mes_cuota_numero }}"
+                                                >
+
+                                                <input
+                                                    type="hidden"
+                                                    name="anio"
+                                                    value="{{ anio_cuota }}"
+                                                >
+
+                                                <input
+                                                    type="hidden"
+                                                    name="accion"
+                                                    value="pendiente"
+                                                >
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-sm btn-outline-secondary text-nowrap"
+                                                >
+                                                    Marcar pendiente
+                                                </button>
+
+                                            </form>
+
+
+                                        {% else %}
+
+                                            <div class="mb-2">
+
+                                                <span class="badge bg-warning text-dark">
+                                                    Pendiente
+                                                </span>
+
+                                            </div>
+
+
+                                            <form
+                                                method="post"
+                                                action="{% url 'cambiar_estado_cuota' item.jugador.id %}"
+                                                class="d-inline"
+                                            >
+
+                                                {% csrf_token %}
+
+                                                <input
+                                                    type="hidden"
+                                                    name="mes"
+                                                    value="{{ mes_cuota_numero }}"
+                                                >
+
+                                                <input
+                                                    type="hidden"
+                                                    name="anio"
+                                                    value="{{ anio_cuota }}"
+                                                >
+
+                                                <input
+                                                    type="hidden"
+                                                    name="accion"
+                                                    value="pagado"
+                                                >
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-sm btn-outline-success text-nowrap"
+                                                >
+                                                    Marcar pagado
+                                                </button>
+
+                                            </form>
+
+                                        {% endif %}
+
+                                    </td>
+
+                                {% endif %}
+
+
+                                <td class="text-end text-nowrap">
+
+                                    <div class="d-flex justify-content-end gap-2 flex-nowrap">
+
                                         <a
                                             class="btn btn-sm btn-primary"
                                             href="{% url 'historial_jugador' item.jugador.id %}"
@@ -252,23 +965,47 @@
                                         >
                                             Editar
                                         </a>
+
                                     </div>
+
                                 </td>
+
                             </tr>
+
                         {% endfor %}
+
                     </tbody>
+
                 </table>
+
             </div>
+
 
             <div
                 id="sin-resultados-listado"
-                class="text-center text-muted py-4 d-none"
+                class="text-center text-muted py-5 d-none"
             >
-                No hay jugadores que coincidan con esa búsqueda.
+
+                <div class="fs-2 mb-2">
+                    🔎
+                </div>
+
+                <div class="fw-semibold mb-1">
+                    Sin resultados
+                </div>
+
+                <div class="small">
+                    No hay jugadores que coincidan con los filtros seleccionados.
+                </div>
+
             </div>
+
+
         {% else %}
+
             <div class="text-center py-5 px-3">
-                <div class="fs-1 mb-3">
+
+                <div class="display-6 mb-3">
                     🏓
                 </div>
 
@@ -276,7 +1013,10 @@
                     Todavía no hay jugadores cargados
                 </h5>
 
-                <p class="text-muted mb-4 mx-auto" style="max-width: 520px;">
+                <p
+                    class="text-muted mb-4 mx-auto"
+                    style="max-width: 520px;"
+                >
                     Agregá el primer jugador para empezar a cargar asistencias,
                     registrar entrenamientos y consultar su historial.
                 </p>
@@ -288,74 +1028,406 @@
                     + Agregar primer jugador
                 </a>
 
-                <div class="mt-3">
-                    <a
-                        href="{% url 'onboarding_club' %}"
-                        class="small text-decoration-none"
-                    >
-                        Volver a primeros pasos
-                    </a>
-                </div>
+
+                {% if es_admin_club %}
+
+                    <div class="mt-3">
+
+                        <a
+                            href="{% url 'onboarding_club' %}"
+                            class="small text-decoration-none"
+                        >
+                            Volver a primeros pasos
+                        </a>
+
+                    </div>
+
+                {% endif %}
+
             </div>
+
         {% endif %}
+
     </div>
+
 </div>
 
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const buscador = document.getElementById("buscar-jugador-listado");
-    const filas = document.querySelectorAll(".fila-jugador");
-    const mensajeSinResultados = document.getElementById(
-        "sin-resultados-listado"
-    );
 
-    function normalizarTexto(texto) {
-        return texto
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .trim();
-    }
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
 
-    function filtrarJugadores() {
-        if (!buscador || !filas.length) {
-            return;
+        const buscador = document.getElementById(
+            "buscar-jugador-listado"
+        );
+
+        const filtroCategoria = document.getElementById(
+            "filtro-categoria-jugador"
+        );
+
+        const filtroCuota = document.getElementById(
+            "filtro-cuota-jugador"
+        );
+
+        const filas = document.querySelectorAll(
+            ".fila-jugador"
+        );
+
+        const mensajeSinResultados = document.getElementById(
+            "sin-resultados-listado"
+        );
+
+
+        const resumenTotal = document.getElementById(
+            "resumen-total-visible"
+        );
+
+        const resumenPagados = document.getElementById(
+            "resumen-pagados-visible"
+        );
+
+        const resumenPendientes = document.getElementById(
+            "resumen-pendientes-visible"
+        );
+
+        const resumenCobranza = document.getElementById(
+            "resumen-cobranza-visible"
+        );
+
+        const barraCobranza = document.getElementById(
+            "barra-cobranza-visible"
+        );
+
+
+        function normalizarTexto(texto) {
+
+            return (texto || "")
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .trim();
+
         }
 
-        const busqueda = normalizarTexto(buscador.value);
-        let visibles = 0;
 
-        filas.forEach(function (fila) {
-            const nombre = normalizarTexto(
-                fila.dataset.nombre || fila.textContent
-            );
+        function cargarCategorias() {
 
-            const coincide = (
-                busqueda === ""
-                || nombre.includes(busqueda)
-            );
-
-            fila.style.display = coincide ? "" : "none";
-
-            if (coincide) {
-                visibles += 1;
+            if (!filtroCategoria || !filas.length) {
+                return;
             }
-        });
 
-        if (mensajeSinResultados) {
-            mensajeSinResultados.classList.toggle(
-                "d-none",
-                visibles > 0
+
+            const categorias = new Map();
+
+
+            filas.forEach(
+                function(fila) {
+
+                    const valor =
+                        fila.dataset.categoria || "";
+
+                    const etiqueta =
+                        fila.dataset.categoriaLabel || "";
+
+
+                    if (
+                        valor
+                        && valor !== "__sin_categoria__"
+                        && etiqueta
+                    ) {
+
+                        categorias.set(
+                            normalizarTexto(valor),
+                            etiqueta
+                        );
+
+                    }
+
+                }
             );
-        }
-    }
 
-    if (buscador) {
-        buscador.addEventListener("input", filtrarJugadores);
+
+            Array.from(categorias.entries())
+                .sort(
+                    function(a, b) {
+
+                        return a[1].localeCompare(
+                            b[1],
+                            "es",
+                            {
+                                sensitivity: "base"
+                            }
+                        );
+
+                    }
+                )
+                .forEach(
+                    function([valor, etiqueta]) {
+
+                        const opcion =
+                            document.createElement(
+                                "option"
+                            );
+
+                        opcion.value = valor;
+                        opcion.textContent = etiqueta;
+
+                        filtroCategoria.appendChild(
+                            opcion
+                        );
+
+                    }
+                );
+
+        }
+
+
+        function actualizarResumen(
+            visibles,
+            pagadosVisibles,
+            pendientesVisibles
+        ) {
+
+            if (!resumenTotal) {
+                return;
+            }
+
+
+            const porcentajeCobranzaVisible = (
+                visibles > 0
+                    ? Math.round(
+                        (
+                            pagadosVisibles
+                            / visibles
+                        ) * 1000
+                    ) / 10
+                    : 0
+            );
+
+
+            resumenTotal.textContent =
+                visibles;
+
+
+            if (resumenPagados) {
+                resumenPagados.textContent =
+                    pagadosVisibles;
+            }
+
+
+            if (resumenPendientes) {
+                resumenPendientes.textContent =
+                    pendientesVisibles;
+            }
+
+
+            if (resumenCobranza) {
+
+                resumenCobranza.textContent =
+                    porcentajeCobranzaVisible
+                        .toLocaleString(
+                            "es-AR",
+                            {
+                                minimumFractionDigits: 1,
+                                maximumFractionDigits: 1,
+                            }
+                        )
+                    + "%";
+
+            }
+
+
+            if (barraCobranza) {
+
+                barraCobranza.style.width =
+                    porcentajeCobranzaVisible
+                    + "%";
+
+                barraCobranza.setAttribute(
+                    "aria-valuenow",
+                    porcentajeCobranzaVisible
+                );
+
+            }
+
+        }
+
+
+        function filtrarJugadores() {
+
+            if (!filas.length) {
+                return;
+            }
+
+
+            const busqueda = normalizarTexto(
+                buscador
+                    ? buscador.value
+                    : ""
+            );
+
+
+            const categoriaSeleccionada =
+                normalizarTexto(
+                    filtroCategoria
+                        ? filtroCategoria.value
+                        : ""
+                );
+
+
+            const cuotaSeleccionada =
+                normalizarTexto(
+                    filtroCuota
+                        ? filtroCuota.value
+                        : ""
+                );
+
+
+            let visibles = 0;
+            let pagadosVisibles = 0;
+            let pendientesVisibles = 0;
+
+
+            filas.forEach(
+                function(fila) {
+
+                    const nombre =
+                        normalizarTexto(
+                            fila.dataset.nombre
+                        );
+
+                    const categoria =
+                        normalizarTexto(
+                            fila.dataset.categoria
+                        );
+
+                    const cuota =
+                        normalizarTexto(
+                            fila.dataset.cuota
+                        );
+
+
+                    const coincideBusqueda = (
+                        busqueda === ""
+                        || nombre.includes(
+                            busqueda
+                        )
+                    );
+
+
+                    const coincideCategoria = (
+                        categoriaSeleccionada === ""
+                        || categoria ===
+                            categoriaSeleccionada
+                    );
+
+
+                    const coincideCuota = (
+                        cuotaSeleccionada === ""
+                        || cuota ===
+                            cuotaSeleccionada
+                    );
+
+
+                    const coincide = (
+                        coincideBusqueda
+                        && coincideCategoria
+                        && coincideCuota
+                    );
+
+
+                    fila.style.display = (
+                        coincide
+                            ? ""
+                            : "none"
+                    );
+
+
+                    if (coincide) {
+
+                        visibles += 1;
+
+
+                        if (cuota === "pagado") {
+                            pagadosVisibles += 1;
+                        }
+
+
+                        if (cuota === "pendiente") {
+                            pendientesVisibles += 1;
+                        }
+
+                    }
+
+                }
+            );
+
+
+            if (mensajeSinResultados) {
+
+                mensajeSinResultados
+                    .classList
+                    .toggle(
+                        "d-none",
+                        visibles > 0
+                    );
+
+            }
+
+
+            if (resumenTotal) {
+
+                actualizarResumen(
+                    visibles,
+                    pagadosVisibles,
+                    pendientesVisibles
+                );
+
+            }
+
+        }
+
+
+        cargarCategorias();
+
+
+        if (buscador) {
+
+            buscador.addEventListener(
+                "input",
+                filtrarJugadores
+            );
+
+        }
+
+
+        if (filtroCategoria) {
+
+            filtroCategoria.addEventListener(
+                "change",
+                filtrarJugadores
+            );
+
+        }
+
+
+        if (filtroCuota) {
+
+            filtroCuota.addEventListener(
+                "change",
+                filtrarJugadores
+            );
+
+        }
+
+
         filtrarJugadores();
+
     }
-});
+);
+
 </script>
 
 {% endblock %}

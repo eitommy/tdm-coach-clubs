@@ -1,0 +1,721 @@
+{% extends "asistencia/base.html" %}
+
+{% block title %}
+Resumen de cuotas · TDM Coach
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+
+    <div>
+
+        <div class="small text-uppercase fw-semibold text-primary mb-1">
+            Administración
+        </div>
+
+        <h1 class="mb-1">
+            Resumen de cuotas
+        </h1>
+
+        <p class="text-muted mb-0">
+            Seguimiento mensual de cobranza y cuotas pendientes del club.
+        </p>
+
+    </div>
+
+
+    <div class="d-flex gap-2 flex-wrap">
+
+        <a
+            href="{% url 'lista_jugadores' %}?mes={{ mes }}&anio={{ anio }}"
+            class="btn btn-outline-dark"
+        >
+            ← Jugadores
+        </a>
+
+        <a
+            href="{% url 'exportar_cuotas_excel' %}?mes={{ mes }}&anio={{ anio }}"
+            class="btn btn-outline-success"
+        >
+            Exportar Excel
+        </a>
+
+    </div>
+
+</div>
+
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-body p-4">
+
+        <form
+            method="get"
+            class="row g-3 align-items-end"
+        >
+
+            <div class="col-md-5">
+
+                <label
+                    for="mes-resumen-cuotas"
+                    class="form-label fw-semibold"
+                >
+                    Mes
+                </label>
+
+                <select
+                    id="mes-resumen-cuotas"
+                    name="mes"
+                    class="form-select"
+                >
+
+                    {% for item in meses_disponibles %}
+
+                        <option
+                            value="{{ item.numero }}"
+                            {% if item.numero == mes %}selected{% endif %}
+                        >
+                            {{ item.nombre }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <label
+                    for="anio-resumen-cuotas"
+                    class="form-label fw-semibold"
+                >
+                    Año
+                </label>
+
+                <select
+                    id="anio-resumen-cuotas"
+                    name="anio"
+                    class="form-select"
+                >
+
+                    {% for item in anios_disponibles %}
+
+                        <option
+                            value="{{ item }}"
+                            {% if item == anio %}selected{% endif %}
+                        >
+                            {{ item }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <button
+                    type="submit"
+                    class="btn btn-primary w-100"
+                >
+                    Ver período
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<div class="row g-3 mb-4">
+
+    <div class="col-6 col-lg-3">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body p-4">
+
+                <div class="text-muted small">
+                    Jugadores del período
+                </div>
+
+                <div class="fs-2 fw-bold">
+                    {{ total_periodo }}
+                </div>
+
+                <div class="small text-muted">
+                    {{ mes_nombre }} {{ anio }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-6 col-lg-3">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body p-4">
+
+                <div class="text-muted small">
+                    Pagados
+                </div>
+
+                <div class="fs-2 fw-bold text-success">
+                    {{ pagados_periodo }}
+                </div>
+
+                <div class="small text-muted">
+                    Cuotas registradas
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-6 col-lg-3">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body p-4">
+
+                <div class="text-muted small">
+                    Pendientes
+                </div>
+
+                <div class="fs-2 fw-bold text-warning">
+                    {{ pendientes_periodo }}
+                </div>
+
+                <div class="small text-muted">
+                    Del período seleccionado
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-6 col-lg-3">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body p-4">
+
+                <div class="text-muted small">
+                    Cobranza
+                </div>
+
+                <div class="fs-2 fw-bold">
+                    {{ porcentaje_periodo }}%
+                </div>
+
+                <div
+                    class="progress mt-2"
+                    style="height: 6px;"
+                >
+
+                    <div
+                        class="progress-bar bg-success"
+                        role="progressbar"
+                        style="width: {{ porcentaje_periodo }}%;"
+                        aria-valuenow="{{ porcentaje_periodo }}"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                    ></div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="row g-3 mb-4">
+
+    <div class="col-lg-4">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body p-4">
+
+                <div class="small text-uppercase fw-semibold text-primary mb-1">
+                    Deuda acumulada
+                </div>
+
+                <div class="fs-2 fw-bold">
+                    {{ jugadores_con_deuda }}
+                </div>
+
+                <div class="text-muted">
+                    jugadores con al menos una cuota pendiente
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-4">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body p-4">
+
+                <div class="small text-uppercase fw-semibold text-primary mb-1">
+                    Cuotas adeudadas
+                </div>
+
+                <div class="fs-2 fw-bold text-warning">
+                    {{ cuotas_pendientes_acumuladas }}
+                </div>
+
+                <div class="text-muted">
+                    cuotas pendientes acumuladas
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-4">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body p-4">
+
+                <div class="small text-uppercase fw-semibold text-primary mb-1">
+                    Deuda recurrente
+                </div>
+
+                <div class="fs-2 fw-bold text-danger">
+                    {{ jugadores_reincidentes }}
+                </div>
+
+                <div class="text-muted">
+                    jugadores con 2 o más cuotas pendientes
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="row g-3 mb-4">
+
+    <div class="col-lg-5">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body p-4">
+
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+
+                    <div>
+
+                        <h4 class="mb-1">
+                            Pendientes del mes
+                        </h4>
+
+                        <p class="text-muted mb-0">
+                            {{ mes_nombre }} {{ anio }}
+                        </p>
+
+                    </div>
+
+                    <span class="badge bg-warning text-dark fs-6">
+                        {{ pendientes_periodo }}
+                    </span>
+
+                </div>
+
+
+                {% if jugadores_pendientes_periodo %}
+
+                    <div class="d-flex flex-column gap-2">
+
+                        {% for item in jugadores_pendientes_periodo %}
+
+                            <div class="border rounded-3 p-3 d-flex justify-content-between align-items-center gap-3">
+
+                                <div>
+
+                                    <div class="fw-semibold">
+                                        {{ item.jugador }}
+                                    </div>
+
+                                    <div class="small text-muted">
+                                        {{ item.categoria }}
+                                    </div>
+
+                                </div>
+
+                                <a
+                                    href="{% url 'historial_jugador' item.jugador.id %}"
+                                    class="btn btn-sm btn-outline-dark"
+                                >
+                                    Ver jugador
+                                </a>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% else %}
+
+                    <div class="text-center py-4">
+
+                        <div class="fs-3 mb-2">
+                            ✓
+                        </div>
+
+                        <div class="fw-semibold text-success">
+                            Sin cuotas pendientes
+                        </div>
+
+                        <div class="small text-muted">
+                            Todos los jugadores del período están al día.
+                        </div>
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-7">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body p-4">
+
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+
+                    <div>
+
+                        <h4 class="mb-1">
+                            Evolución de cobranza
+                        </h4>
+
+                        <p class="text-muted mb-0">
+                            Últimos 6 períodos hasta {{ mes_nombre }} {{ anio }}.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="table-responsive">
+
+                    <table class="table align-middle mb-0">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    Período
+                                </th>
+
+                                <th>
+                                    Pagados
+                                </th>
+
+                                <th>
+                                    Pendientes
+                                </th>
+
+                                <th style="min-width: 170px;">
+                                    Cobranza
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                            {% for item in evolucion %}
+
+                                <tr>
+
+                                    <td>
+                                        <strong>
+                                            {{ item.mes_nombre }} {{ item.anio }}
+                                        </strong>
+                                    </td>
+
+                                    <td class="text-success fw-semibold">
+                                        {{ item.pagados }}/{{ item.total }}
+                                    </td>
+
+                                    <td>
+                                        {{ item.pendientes }}
+                                    </td>
+
+                                    <td>
+
+                                        <div class="d-flex align-items-center gap-2">
+
+                                            <strong>
+                                                {{ item.porcentaje }}%
+                                            </strong>
+
+                                            <div
+                                                class="progress flex-grow-1"
+                                                style="height: 6px;"
+                                            >
+
+                                                <div
+                                                    class="progress-bar bg-success"
+                                                    role="progressbar"
+                                                    style="width: {{ item.porcentaje }}%;"
+                                                ></div>
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-body p-4">
+
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+
+            <div>
+
+                <h4 class="mb-1">
+                    Jugadores con deuda acumulada
+                </h4>
+
+                <p class="text-muted mb-0">
+                    Cuotas pendientes hasta
+                    {{ corte_deuda|date:"m/Y" }}.
+                </p>
+
+            </div>
+
+            <span class="badge bg-dark fs-6 px-3 py-2">
+                {{ jugadores_con_deuda }}
+            </span>
+
+        </div>
+
+
+        {% if deuda_jugadores %}
+
+            <div class="table-responsive">
+
+                <table class="table align-middle mb-0">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Jugador
+                            </th>
+
+                            <th>
+                                Categoría
+                            </th>
+
+                            <th>
+                                Pagadas
+                            </th>
+
+                            <th>
+                                Pendientes
+                            </th>
+
+                            <th>
+                                Períodos adeudados
+                            </th>
+
+                            <th class="text-end">
+                                Acción
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for item in deuda_jugadores %}
+
+                            <tr>
+
+                                <td>
+
+                                    <strong>
+                                        {{ item.jugador }}
+                                    </strong>
+
+                                </td>
+
+
+                                <td>
+
+                                    <span class="badge bg-light text-dark border">
+                                        {{ item.categoria }}
+                                    </span>
+
+                                </td>
+
+
+                                <td class="text-success fw-semibold">
+                                    {{ item.meses_pagados }}/{{ item.meses_correspondientes }}
+                                </td>
+
+
+                                <td>
+
+                                    {% if item.meses_pendientes >= 2 %}
+
+                                        <span class="badge bg-danger">
+                                            {{ item.meses_pendientes }}
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="badge bg-warning text-dark">
+                                            {{ item.meses_pendientes }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    <div class="d-flex flex-wrap gap-1">
+
+                                        {% for periodo in item.detalle_pendientes|slice:":6" %}
+
+                                            <span class="badge bg-light text-dark border">
+                                                {{ periodo.mes_nombre }} {{ periodo.anio }}
+                                            </span>
+
+                                        {% endfor %}
+
+                                        {% if item.meses_pendientes > 6 %}
+
+                                            <span class="badge bg-secondary">
+                                                +{{ item.meses_pendientes|add:"-6" }}
+                                            </span>
+
+                                        {% endif %}
+
+                                    </div>
+
+                                </td>
+
+
+                                <td class="text-end">
+
+                                    <a
+                                        href="{% url 'historial_jugador' item.jugador.id %}"
+                                        class="btn btn-sm btn-outline-primary"
+                                    >
+                                        Historial
+                                    </a>
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="text-center py-5">
+
+                <div class="fs-2 mb-2">
+                    ✓
+                </div>
+
+                <h5 class="mb-1">
+                    No hay deuda acumulada
+                </h5>
+
+                <p class="text-muted mb-0">
+                    No hay cuotas pendientes hasta el período seleccionado.
+                </p>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

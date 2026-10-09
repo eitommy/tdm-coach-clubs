@@ -1,515 +1,975 @@
 {% extends "asistencia/base.html" %}
 
+{% block title %}Seguimiento semanal · {{ club_actual.nombre|default:"TDM Coach" }}{% endblock %}
+
+
 {% block content %}
 
+
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+
     <div>
+
         <h1 class="mb-1">Seguimiento semanal</h1>
+
         <p class="text-muted mb-0">
+
             Revisá asistencia, trabajos, partidos y ejercicios por jugador durante la semana.
+
         </p>
+
     </div>
+
 
     <a href="{% url 'inicio' %}" class="btn btn-outline-dark">
+
         ← Volver al panel
+
     </a>
+
 </div>
+
 
 {% if jugadores %}
+
 <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
+
+    <div class="card-body p-4">
+
+        <div class="small text-uppercase fw-semibold text-primary mb-1">Filtros</div>
+        <h5 class="mb-3">Elegí jugador y semana</h5>
+
         <form method="get" class="row g-3 align-items-end">
+
             <div class="col-md-5">
+
                 <label class="form-label fw-semibold">Jugador</label>
 
+
                 <select name="jugador" class="form-select" required>
+
                     <option value="">Seleccionar jugador</option>
 
+
                     {% for jugador in jugadores %}
+
                         <option
+
                             value="{{ jugador.id }}"
+
                             {% if jugador_seleccionado and jugador.id == jugador_seleccionado.id %}
+
                                 selected
+
                             {% endif %}
+
                         >
+
                             {{ jugador }}
+
                         </option>
+
                     {% endfor %}
+
                 </select>
+
             </div>
+
 
             <div class="col-md-4">
+
                 <label class="form-label fw-semibold">Fecha de referencia</label>
 
+
                 <input
+
                     type="date"
+
                     name="fecha"
+
                     class="form-control"
+
                     value="{{ fecha_base|date:'Y-m-d' }}"
+
                 >
+
             </div>
 
+
             <div class="col-md-3">
-                <button type="submit" class="btn btn-dark w-100">
+
+                <button type="submit" class="btn btn-primary w-100">
+
                     Ver semana
+
                 </button>
+
             </div>
+
         </form>
+
     </div>
+
 </div>
+
 {% endif %}
+
 
 {% if jugador_seleccionado %}
 
+
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+
     <div>
+
         <h4 class="mb-1">{{ jugador_seleccionado }}</h4>
 
+
         <p class="text-muted mb-0">
+
             Semana del {{ inicio_semana|date:"d/m/Y" }}
+
             al {{ fin_semana|date:"d/m/Y" }}
+
         </p>
+
     </div>
+
 
     <div class="d-flex gap-2 flex-wrap">
-        <a
-            href="{% url 'seguimiento_semanal' %}?jugador={{ jugador_seleccionado.id }}&fecha={{ semana_anterior|date:'Y-m-d' }}"
-            class="btn btn-outline-secondary"
-        >
-            ← Semana anterior
-        </a>
 
         <a
-            href="{% url 'seguimiento_semanal' %}?jugador={{ jugador_seleccionado.id }}&fecha={{ semana_siguiente|date:'Y-m-d' }}"
+
+            href="{% url 'seguimiento_semanal' %}?jugador={{ jugador_seleccionado.id }}&fecha={{ semana_anterior|date:'Y-m-d' }}"
+
             class="btn btn-outline-secondary"
+
         >
-            Semana siguiente →
+
+            ← Semana anterior
+
         </a>
+
+
+        <a
+
+            href="{% url 'seguimiento_semanal' %}?jugador={{ jugador_seleccionado.id }}&fecha={{ semana_siguiente|date:'Y-m-d' }}"
+
+            class="btn btn-outline-secondary"
+
+        >
+
+            Semana siguiente →
+
+        </a>
+
     </div>
+
 </div>
 
+
 {% if resumen %}
+
     <div class="row g-3 mb-4">
+
         <div class="col-lg-3 col-md-6">
+
             <div class="card shadow-sm border-0 h-100">
-                <div class="card-body text-center">
-                    <div class="text-muted small">Asistencia</div>
+
+                <div class="card-body text-center p-4">
+
+                    <div class="small text-uppercase fw-semibold text-muted mb-1">Asistencia</div>
+
                     <div class="fs-3 fw-bold">{{ resumen.porcentaje }}%</div>
+
                     <small class="text-muted">
+
                         {{ resumen.total_presentes }}/{{ resumen.total_dias_programados }} presentes
+
                     </small>
+
                 </div>
+
             </div>
+
         </div>
 
+
         <div class="col-lg-3 col-md-6">
+
             <div class="card shadow-sm border-0 h-100">
-                <div class="card-body text-center">
-                    <div class="text-muted small">Presentes</div>
+
+                <div class="card-body text-center p-4">
+
+                    <div class="small text-uppercase fw-semibold text-muted mb-1">Presentes</div>
+
                     <div class="fs-3 fw-bold text-success">{{ resumen.total_presentes }}</div>
+
                     <small class="text-muted">
+
                         Tardes: {{ resumen.total_tardes }}
+
                     </small>
+
                 </div>
+
             </div>
+
         </div>
 
+
         <div class="col-lg-3 col-md-6">
+
             <div class="card shadow-sm border-0 h-100">
-                <div class="card-body text-center">
-                    <div class="text-muted small">Ausencias</div>
+
+                <div class="card-body text-center p-4">
+
+                    <div class="small text-uppercase fw-semibold text-muted mb-1">Ausencias</div>
+
                     <div class="fs-3 fw-bold text-danger">{{ resumen.total_ausencias }}</div>
+
                     <small class="text-muted">
+
                         No cuentan días sin entrenamiento
+
                     </small>
+
                 </div>
+
             </div>
+
         </div>
 
+
         <div class="col-lg-3 col-md-6">
+
             <div class="card shadow-sm border-0 h-100">
-                <div class="card-body text-center">
-                    <div class="text-muted small">Días sin entrenamiento</div>
+
+                <div class="card-body text-center p-4">
+
+                    <div class="small text-uppercase fw-semibold text-muted mb-1">Días sin entrenamiento</div>
+
                     <div class="fs-3 fw-bold text-danger">{{ resumen.total_dias_no_entrenados }}</div>
+
                     <small class="text-muted">
+
                         No bajan el porcentaje
+
                     </small>
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
 
+
     <div class="row g-3 mb-4">
+
         <div class="col-lg-4">
+
             <div class="card shadow-sm border-0 h-100">
-                <div class="card-body text-center">
-                    <div class="text-muted small">Ejercicios</div>
+
+                <div class="card-body text-center p-4">
+
+                    <div class="small text-uppercase fw-semibold text-muted mb-1">Ejercicios</div>
+
                     <div class="fs-3 fw-bold">{{ resumen.total_ejercicios }}</div>
+
                 </div>
+
             </div>
+
         </div>
 
+
         <div class="col-lg-4">
+
             <div class="card shadow-sm border-0 h-100">
-                <div class="card-body text-center">
-                    <div class="text-muted small">Trabajos</div>
+
+                <div class="card-body text-center p-4">
+
+                    <div class="small text-uppercase fw-semibold text-muted mb-1">Trabajos</div>
+
                     <div class="fs-3 fw-bold text-primary">{{ resumen.total_trabajos }}</div>
+
                 </div>
+
             </div>
+
         </div>
 
+
         <div class="col-lg-4">
+
             <div class="card shadow-sm border-0 h-100">
-                <div class="card-body text-center">
-                    <div class="text-muted small">Partidos</div>
+
+                <div class="card-body text-center p-4">
+
+                    <div class="small text-uppercase fw-semibold text-muted mb-1">Partidos</div>
+
                     <div class="fs-3 fw-bold">{{ resumen.total_partidos }}</div>
 
+
                     <small class="text-muted">
+
                         {{ resumen.total_partidos_ganados }} ganados ·
+
                         {{ resumen.total_partidos_perdidos }} perdidos
+
                     </small>
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
+
 {% endif %}
 
+
 <div class="card shadow-sm border-0">
-    <div class="card-body">
+
+    <div class="card-body p-4">
+
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+
             <div>
+
                 <h4 class="mb-1">Detalle de la semana</h4>
 
+
                 <p class="text-muted mb-0">
+
                     Resumen día por día de asistencia, turnos, trabajos, partidos y ejercicios.
+
                 </p>
+
             </div>
 
-            <span class="badge bg-dark fs-6">
+
+            <span class="badge bg-dark fs-6 px-3 py-2">
+
                 {{ filas|length }} días
+
             </span>
+
         </div>
 
+
         <div class="table-responsive">
-            <table class="table align-middle">
+
+            <table class="table align-middle mb-0">
+
                 <thead>
+
                     <tr>
+
                         <th>Día</th>
+
                         <th class="text-center">Asistencia</th>
+
                         <th class="text-center">Turnos</th>
+
                         <th>Trabajo del turno</th>
+
                         <th>Partidos</th>
+
                         <th>Ejercicios</th>
+
                     </tr>
+
                 </thead>
 
+
                 <tbody>
+
                     {% for fila in filas %}
+
                         {% if fila.no_se_entreno and fila.asistencia_texto == "No se entrenó" %}
+
                             <tr class="table-danger">
+
                                 <td style="min-width: 120px;" class="py-3">
+
                                     <strong>{{ fila.dia|date:"l" }}</strong>
+
                                     <br>
+
                                     <small>{{ fila.dia|date:"d/m/Y" }}</small>
+
                                 </td>
+
 
                                 <td colspan="5" class="py-3">
+
                                     <div class="fw-bold mb-2">
+
                                         No se entrenó
+
                                     </div>
+
 
                                     <div class="d-flex flex-column gap-1">
+
                                         {% for motivo in fila.motivos_no_entrenamiento %}
+
                                             <div>
+
                                                 <span class="badge bg-danger">
+
                                                     {% if motivo.turno_config %}
+
                                                         {{ motivo.turno_config.nombre }}
+
                                                         {% if motivo.turno_config.hora_inicio %}
+
                                                             · {{ motivo.turno_config.hora_inicio|time:"H:i" }}
+
                                                         {% endif %}
+
                                                         {% if motivo.turno_config.hora_fin %}
+
                                                             - {{ motivo.turno_config.hora_fin|time:"H:i" }}
+
                                                         {% endif %}
+
                                                     {% else %}
+
                                                         Turno {{ motivo.turno }}
+
                                                     {% endif %}
+
                                                 </span>
+
 
                                                 <span class="ms-2">
+
                                                     {{ motivo.motivo }}
+
                                                 </span>
+
                                             </div>
+
                                         {% endfor %}
+
                                     </div>
 
+
                                     <small class="text-muted d-block mt-2">
+
                                         Este día no cuenta como ausencia.
+
                                     </small>
+
                                 </td>
+
                             </tr>
+
                         {% elif fila.asistencia_texto == "Sin actividad" %}
+
                             <tr class="table-light">
+
                                 <td style="min-width: 120px;" class="py-2">
+
                                     <strong>{{ fila.dia|date:"l" }}</strong>
+
                                     <br>
+
                                     <small class="text-muted">{{ fila.dia|date:"d/m/Y" }}</small>
+
                                 </td>
+
 
                                 <td colspan="5" class="py-2">
+
                                     <span class="text-muted small">
+
                                         Sin actividad registrada
+
                                     </span>
+
                                 </td>
+
                             </tr>
+
                         {% else %}
+
                             <tr>
+
                                 <td style="min-width: 120px;">
+
                                     <strong>{{ fila.dia|date:"l" }}</strong>
+
                                     <br>
+
                                     <small class="text-muted">{{ fila.dia|date:"d/m/Y" }}</small>
 
+
                                     {% if fila.no_se_entreno %}
+
                                         <div class="small text-danger fw-semibold mt-1">
+
                                             También hay turno sin entrenamiento
+
                                         </div>
+
                                     {% endif %}
+
                                 </td>
 
+
                                 <td class="text-center">
+
                                     {% if fila.asistencia_texto == "Sin marcar" %}
+
                                         <span class="badge bg-warning text-dark">
+
                                             Asistencia pendiente
+
                                         </span>
+
                                     {% else %}
+
                                         <span class="badge bg-{{ fila.asistencia_clase }}">
+
                                             {{ fila.asistencia_texto }}
+
                                         </span>
+
                                     {% endif %}
+
                                 </td>
+
 
                                 <td class="text-center">{{ fila.turnos }}</td>
 
+
                                 <td style="min-width: 260px;">
+
                                     {% if fila.trabajos_dia %}
+
                                         <div class="mb-2">
+
                                             <span class="badge bg-primary">
+
                                                 {{ fila.cantidad_trabajos }}
+
                                                 trabajo{{ fila.cantidad_trabajos|pluralize:"s" }}
+
                                             </span>
+
                                         </div>
 
+
                                         <div class="d-flex flex-column gap-2">
+
                                             {% for trabajo in fila.trabajos_dia %}
+
                                                 <div class="border rounded p-2 bg-light">
+
                                                     <div class="d-flex justify-content-between align-items-start gap-2">
+
                                                         <div>
+
                                                             <div class="fw-semibold">
+
                                                                 {{ trabajo.descripcion }}
+
                                                             </div>
 
+
                                                             <small class="text-muted">
+
                                                                 {% if trabajo.turno_config %}
+
                                                                     {{ trabajo.turno_config.nombre }}
+
                                                                     {% if trabajo.turno_config.hora_inicio %}
+
                                                                         · {{ trabajo.turno_config.hora_inicio|time:"H:i" }}
+
                                                                     {% endif %}
+
                                                                     {% if trabajo.turno_config.hora_fin %}
+
                                                                         - {{ trabajo.turno_config.hora_fin|time:"H:i" }}
+
                                                                     {% endif %}
+
                                                                 {% else %}
+
                                                                     Turno {{ trabajo.turno }}
+
                                                                 {% endif %}
+
                                                                 · Cambio {{ trabajo.cambio }}
+
                                                             </small>
+
                                                         </div>
+
 
                                                         <span class="badge bg-primary">
+
                                                             {{ trabajo.tipo_texto }}
+
                                                         </span>
+
                                                     </div>
+
 
                                                     {% if trabajo.detalle %}
+
                                                         <div class="small text-secondary mt-2">
+
                                                             {{ trabajo.detalle }}
+
                                                         </div>
+
                                                     {% endif %}
+
                                                 </div>
+
                                             {% endfor %}
+
                                         </div>
+
                                     {% else %}
+
                                         <span class="text-muted">Sin trabajos cargados</span>
+
                                     {% endif %}
+
                                 </td>
+
 
                                 <td style="min-width: 280px;">
+
                                     {% if fila.partidos_dia %}
+
                                         <div class="mb-2">
+
                                             <span class="badge bg-dark">
+
                                                 {{ fila.cantidad_partidos }}
+
                                                 partido{{ fila.cantidad_partidos|pluralize:"s" }}
+
                                             </span>
+
                                         </div>
 
+
                                         <div class="d-flex flex-column gap-2">
+
                                             {% for partido in fila.partidos_dia %}
+
                                                 <div class="border rounded p-2 bg-light">
+
                                                     <div class="d-flex justify-content-between align-items-start gap-2">
+
                                                         <div>
+
                                                             <div class="fw-semibold">
+
                                                                 vs {{ partido.rival }}
+
                                                             </div>
+
 
                                                             <small class="text-muted">
+
                                                                 {% if partido.turno_config %}
+
                                                                     {{ partido.turno_config.nombre }}
+
                                                                     {% if partido.turno_config.hora_inicio %}
+
                                                                         · {{ partido.turno_config.hora_inicio|time:"H:i" }}
+
                                                                     {% endif %}
+
                                                                     {% if partido.turno_config.hora_fin %}
+
                                                                         - {{ partido.turno_config.hora_fin|time:"H:i" }}
+
                                                                     {% endif %}
+
                                                                 {% else %}
+
                                                                     Turno {{ partido.turno }}
+
                                                                 {% endif %}
+
                                                             </small>
+
                                                         </div>
+
 
                                                         <span class="badge bg-{{ partido.resultado_clase }}">
+
                                                             {{ partido.resultado_texto }}
+
                                                         </span>
+
                                                     </div>
+
 
                                                     <div class="fw-bold mt-2">
+
                                                         {{ partido.resultado }}
+
                                                     </div>
+
 
                                                     {% if partido.sets %}
+
                                                         <div class="d-flex flex-wrap gap-1 mt-2">
+
                                                             {% for set_resultado in partido.sets %}
+
                                                                 <span class="badge bg-white text-dark border">
+
                                                                     {{ set_resultado }}
+
                                                                 </span>
+
                                                             {% endfor %}
+
                                                         </div>
+
                                                     {% endif %}
+
 
                                                     {% if partido.detalle %}
+
                                                         <div class="small text-secondary mt-2">
+
                                                             {{ partido.detalle }}
+
                                                         </div>
+
                                                     {% endif %}
+
                                                 </div>
+
                                             {% endfor %}
+
                                         </div>
+
                                     {% else %}
+
                                         <span class="text-muted">Sin partidos cargados</span>
+
                                     {% endif %}
+
                                 </td>
+
 
                                 <td style="min-width: 420px;">
+
                                     {% if fila.ejercicios_por_turno %}
+
                                         <div class="mb-2">
+
                                             <span class="badge bg-primary">
+
                                                 {{ fila.cantidad_ejercicios }}
+
                                                 ejercicio{{ fila.cantidad_ejercicios|pluralize:"s" }}
+
                                             </span>
+
                                         </div>
+
 
                                         <div class="d-flex flex-column gap-2">
+
                                             {% for bloque in fila.ejercicios_por_turno %}
+
                                                 <div class="border rounded p-2 bg-light">
+
                                                     <div class="fw-bold mb-2">
+
                                                         {% if bloque.turno_config %}
+
                                                             {{ bloque.turno_config.nombre }}
+
                                                             {% if bloque.turno_config.hora_inicio %}
+
                                                                 · {{ bloque.turno_config.hora_inicio|time:"H:i" }}
+
                                                             {% endif %}
+
                                                             {% if bloque.turno_config.hora_fin %}
+
                                                                 - {{ bloque.turno_config.hora_fin|time:"H:i" }}
+
                                                             {% endif %}
+
                                                         {% else %}
+
                                                             Turno {{ bloque.turno }}
+
                                                         {% endif %}
+
                                                     </div>
+
 
                                                     <div class="d-flex flex-column gap-2">
+
                                                         {% for categoria, ejercicios in bloque.categorias.items %}
+
                                                             <div class="d-flex align-items-start gap-2 flex-wrap">
+
                                                                 <span class="badge bg-secondary">
+
                                                                     {{ categoria }}
+
                                                                 </span>
 
+
                                                                 <div class="d-flex flex-wrap gap-1">
+
                                                                     {% for ejercicio in ejercicios %}
+
                                                                         <span class="badge bg-white text-dark border">
+
                                                                             {{ ejercicio }}
+
                                                                         </span>
+
                                                                     {% endfor %}
+
                                                                 </div>
+
                                                             </div>
+
                                                         {% endfor %}
+
                                                     </div>
+
                                                 </div>
+
                                             {% endfor %}
+
                                         </div>
+
                                     {% else %}
+
                                         <span class="text-muted">Sin ejercicios cargados</span>
+
                                     {% endif %}
+
                                 </td>
+
                             </tr>
+
                         {% endif %}
+
                     {% endfor %}
+
                 </tbody>
+
             </table>
+
         </div>
+
     </div>
+
 </div>
 
+
 {% else %}
+
 
 {% if jugadores %}
+
 <div class="card shadow-sm border-0">
+
     <div class="card-body text-center py-5">
+
         <h4 class="mb-2">Seleccioná un jugador</h4>
 
+
         <p class="text-muted mb-0">
+
             Elegí un jugador y una fecha para ver su seguimiento semanal.
+
         </p>
+
     </div>
+
 </div>
+
 {% else %}
+
 <div class="card shadow-sm border-0">
+
     <div class="card-body text-center py-5">
-        <div class="fs-1 mb-2">👤</div>
+
+        <div class="fs-1 mb-3">👤</div>
+
 
         <h4 class="mb-2">
+
             Todavía no hay jugadores disponibles
+
         </h4>
 
+
         <p class="text-muted mb-3">
+
             Para usar el seguimiento semanal, primero cargá al menos
+
             un jugador activo en el club.
+
         </p>
 
+
         {% if es_admin_club %}
+
             <a
+
                 href="{% url 'crear_jugador' %}"
+
                 class="btn btn-primary"
+
             >
+
                 Agregar primer jugador
+
             </a>
+
         {% else %}
+
             <a
+
                 href="{% url 'lista_jugadores' %}"
+
                 class="btn btn-outline-primary"
+
             >
+
                 Ver jugadores
+
             </a>
+
         {% endif %}
+
     </div>
+
 </div>
-{% endif %}
 
 {% endif %}
+
+
+{% endif %}
+
 
 {% endblock %}

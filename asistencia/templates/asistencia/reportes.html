@@ -3,399 +3,678 @@
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+
     <div>
-        <h1 class="mb-1">Reportes</h1>
+
+        <h1 class="mb-1">
+            Reportes
+        </h1>
+
         <p class="text-muted mb-0">
             Revisá asistencia, continuidad, días sin entrenamiento y exportá el mes.
         </p>
+
     </div>
 
+
     <div class="d-flex gap-2 flex-wrap">
-        <a href="{% url 'inicio' %}?fecha={{ fecha_base|date:'Y-m-d' }}" class="btn btn-outline-dark">
+
+        <a
+            href="{% url 'inicio' %}?fecha={{ fecha_base|date:'Y-m-d' }}"
+            class="btn btn-outline-dark"
+        >
             ← Volver al panel
         </a>
 
-        <a href="{% url 'exportar_reporte_mensual' %}?fecha={{ fecha_base|date:'Y-m-d' }}" class="btn btn-success">
-            Exportar Excel del mes
+        <a
+            href="{% url 'exportar_asistencia_excel' %}?fecha={{ fecha_base|date:'Y-m-d' }}"
+            class="btn btn-outline-success"
+        >
+            Exportar asistencia
         </a>
+
+        <a
+            href="{% url 'exportar_reporte_mensual' %}?fecha={{ fecha_base|date:'Y-m-d' }}"
+            class="btn btn-success"
+        >
+            Exportar Excel completo
+        </a>
+
     </div>
+
 </div>
 
+
 <div class="card shadow-sm border-0 mb-4">
+
     <div class="card-body">
+
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+
             <div>
-                <h5 class="mb-1">Mes de referencia</h5>
-                <p class="text-muted mb-0">Elegí un día del mes que querés revisar.</p>
+
+                <h5 class="mb-1">
+                    Mes de referencia
+                </h5>
+
+                <p class="text-muted mb-0">
+                    Elegí un día del mes que querés revisar.
+                </p>
+
             </div>
 
+
             <div class="d-flex gap-2 flex-wrap">
-                <a href="{% url 'reportes' %}?fecha={{ mes_anterior|date:'Y-m-d' }}" class="btn btn-outline-secondary">
+
+                <a
+                    href="{% url 'reportes' %}?fecha={{ mes_anterior|date:'Y-m-d' }}"
+                    class="btn btn-outline-secondary"
+                >
                     ← Mes anterior
                 </a>
 
-                <a href="{% url 'reportes' %}?fecha={{ hoy|date:'Y-m-d' }}" class="btn btn-dark">
+                <a
+                    href="{% url 'reportes' %}?fecha={{ hoy|date:'Y-m-d' }}"
+                    class="btn btn-dark"
+                >
                     Mes actual
                 </a>
 
-                <a href="{% url 'reportes' %}?fecha={{ mes_siguiente|date:'Y-m-d' }}" class="btn btn-outline-secondary">
+                <a
+                    href="{% url 'reportes' %}?fecha={{ mes_siguiente|date:'Y-m-d' }}"
+                    class="btn btn-outline-secondary"
+                >
                     Mes siguiente →
                 </a>
+
             </div>
+
         </div>
 
-        <form method="get" class="row g-2 align-items-end">
+
+        <form
+            method="get"
+            class="row g-2 align-items-end"
+        >
+
             <div class="col-md-9">
-                <label class="form-label">Seleccionar fecha</label>
-                <input type="date" name="fecha" class="form-control" value="{{ fecha_base|date:'Y-m-d' }}" required>
+
+                <label class="form-label">
+                    Seleccionar fecha
+                </label>
+
+                <input
+                    type="date"
+                    name="fecha"
+                    class="form-control"
+                    value="{{ fecha_base|date:'Y-m-d' }}"
+                    required
+                >
+
             </div>
+
 
             <div class="col-md-3">
-                <button type="submit" class="btn btn-outline-primary w-100">
+
+                <button
+                    type="submit"
+                    class="btn btn-outline-primary w-100"
+                >
                     Ver reportes
                 </button>
+
             </div>
+
         </form>
+
     </div>
+
 </div>
 
+
 <div class="card shadow-sm border-0 mb-4">
+
     <div class="card-body">
+
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
             <div>
-                <div class="text-muted small">Mes seleccionado</div>
 
-                <h3 class="mb-1">{{ inicio_mes|date:"F Y" }}</h3>
-
-                <p class="text-muted mb-0">
-                    Del {{ inicio_mes|date:"d/m/Y" }} al {{ fin_mes|date:"d/m/Y" }}
-                </p>
-            </div>
-
-            <span class="badge bg-dark fs-6">
-                {{ resumen_general.total_jugadores }}
-                jugador{{ resumen_general.total_jugadores|pluralize:"es" }} activo{{ resumen_general.total_jugadores|pluralize:"s" }}
-            </span>
-        </div>
-    </div>
-</div>
-
-{% if resumen_general.total_jugadores == 0 %}
-<div class="card shadow-sm border-0 mb-4">
-    <div class="card-body text-center py-5">
-        <div class="fs-1 mb-2">📊</div>
-
-        <h4 class="mb-2">
-            Todavía no hay datos para reportar
-        </h4>
-
-        <p class="text-muted mb-3">
-            Este club todavía no tiene jugadores activos.
-            Cargá al menos un jugador para empezar a generar reportes de asistencia.
-        </p>
-
-        {% if es_admin_club %}
-            <a
-                href="{% url 'crear_jugador' %}"
-                class="btn btn-primary"
-            >
-                Agregar primer jugador
-            </a>
-        {% else %}
-            <a
-                href="{% url 'lista_jugadores' %}"
-                class="btn btn-outline-primary"
-            >
-                Ver jugadores
-            </a>
-        {% endif %}
-    </div>
-</div>
-{% elif not resumen_general.tiene_actividad_mes %}
-<div class="alert alert-info shadow-sm mb-4">
-    <div class="fw-bold mb-1">
-        Todavía no hay actividad registrada en este mes
-    </div>
-
-    <div>
-        Hay {{ resumen_general.total_jugadores }}
-        jugador{{ resumen_general.total_jugadores|pluralize:"es" }}
-        activo{{ resumen_general.total_jugadores|pluralize:"s" }},
-        pero todavía no se cargaron asistencias ni turnos sin entrenamiento
-        dentro del período seleccionado.
-    </div>
-</div>
-{% endif %}
-
-<div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm border-0 h-100">
-            <div class="card-body">
-                <div class="text-muted small">Presentes del mes</div>
-                <div class="fs-3 fw-bold text-success">{{ resumen_general.total_mes_presentes }}</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm border-0 h-100">
-            <div class="card-body">
-                <div class="text-muted small">Ausencias del mes</div>
-                <div class="fs-3 fw-bold text-danger">{{ resumen_general.total_mes_ausentes }}</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm border-0 h-100">
-            <div class="card-body">
-                <div class="text-muted small">Días sin entrenamiento</div>
-                <div class="fs-3 fw-bold">{{ resumen_general.dias_no_entrenados_mes }}</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm border-0 h-100">
-            <div class="card-body">
-                <div class="text-muted small">Turnos sin entrenamiento</div>
-                <div class="fs-3 fw-bold text-warning">{{ resumen_general.total_turnos_no_entrenados_mes }}</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <a href="{% url 'dashboard_mensual' %}?fecha={{ fecha_base|date:'Y-m-d' }}" class="card h-100 shadow-sm border-0 text-decoration-none text-dark">
-            <div class="card-body">
-                <h5 class="mb-2">Resumen mensual</h5>
-                <p class="text-muted mb-0">Vista rápida con rankings, actividad y partidos del mes.</p>
-            </div>
-        </a>
-    </div>
-
-    <div class="col-md-4">
-        <a href="{% url 'seguimiento_semanal' %}?fecha={{ fecha_base|date:'Y-m-d' }}" class="card h-100 shadow-sm border-0 text-decoration-none text-dark">
-            <div class="card-body">
-                <h5 class="mb-2">Seguimiento semanal</h5>
-                <p class="text-muted mb-0">Revisá el detalle semanal de un jugador.</p>
-            </div>
-        </a>
-    </div>
-
-    <div class="col-md-4">
-        <a href="{% url 'exportar_reporte_mensual' %}?fecha={{ fecha_base|date:'Y-m-d' }}" class="card h-100 shadow-sm border-0 text-decoration-none text-dark">
-            <div class="card-body">
-                <h5 class="mb-2">Exportar Excel</h5>
-                <p class="text-muted mb-0">Descargá el informe mensual completo.</p>
-            </div>
-        </a>
-    </div>
-</div>
-
-{% if turnos_no_entrenados_mes %}
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
-                <div>
-                    <h4 class="mb-1">Días sin entrenamiento</h4>
-                    <p class="text-muted mb-0">Estos turnos no cuentan como ausencia para los jugadores.</p>
+                <div class="text-muted small">
+                    Mes seleccionado
                 </div>
 
-                <span class="badge bg-danger fs-6">
-                    {{ resumen_general.total_turnos_no_entrenados_mes }}
-                    turno{{ resumen_general.total_turnos_no_entrenados_mes|pluralize:"s" }}
-                </span>
+                <h3 class="mb-1">
+                    {{ inicio_mes|date:"F Y" }}
+                </h3>
+
+                <p class="text-muted mb-0">
+                    Del {{ inicio_mes|date:"d/m/Y" }}
+                    al {{ fin_mes|date:"d/m/Y" }}
+                </p>
+
             </div>
 
+
+            <span class="badge bg-dark fs-6">
+
+                {{ resumen_general.total_jugadores }}
+
+                jugador{{ resumen_general.total_jugadores|pluralize:"es" }}
+                activo{{ resumen_general.total_jugadores|pluralize:"s" }}
+
+            </span>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+{% if resumen_general.total_jugadores == 0 %}
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-body text-center py-5">
+
+            <div class="fs-1 mb-2">
+                📊
+            </div>
+
+            <h4 class="mb-2">
+                Todavía no hay datos para reportar
+            </h4>
+
+            <p class="text-muted mb-3">
+                Este club todavía no tiene jugadores activos.
+                Cargá al menos un jugador para empezar a generar reportes de asistencia.
+            </p>
+
+
+            {% if es_admin_club %}
+
+                <a
+                    href="{% url 'crear_jugador' %}"
+                    class="btn btn-primary"
+                >
+                    Agregar primer jugador
+                </a>
+
+            {% else %}
+
+                <a
+                    href="{% url 'lista_jugadores' %}"
+                    class="btn btn-outline-primary"
+                >
+                    Ver jugadores
+                </a>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+{% elif not resumen_general.tiene_actividad_mes %}
+
+    <div class="alert alert-info shadow-sm mb-4">
+
+        <div class="fw-bold mb-1">
+            Todavía no hay actividad registrada en este mes
+        </div>
+
+        <div>
+
+            Hay {{ resumen_general.total_jugadores }}
+
+            jugador{{ resumen_general.total_jugadores|pluralize:"es" }}
+
+            activo{{ resumen_general.total_jugadores|pluralize:"s" }},
+
+            pero todavía no se cargaron asistencias ni turnos sin entrenamiento
+            dentro del período seleccionado.
+
+        </div>
+
+    </div>
+
+{% endif %}
+
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-3">
+
+        <div class="card text-center shadow-sm border-0 h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small">
+                    Presentes del mes
+                </div>
+
+                <div class="fs-3 fw-bold text-success">
+                    {{ resumen_general.total_mes_presentes }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-3">
+
+        <div class="card text-center shadow-sm border-0 h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small">
+                    Ausencias del mes
+                </div>
+
+                <div class="fs-3 fw-bold text-danger">
+                    {{ resumen_general.total_mes_ausentes }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-3">
+
+        <div class="card text-center shadow-sm border-0 h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small">
+                    Días sin entrenamiento
+                </div>
+
+                <div class="fs-3 fw-bold">
+                    {{ resumen_general.dias_no_entrenados_mes }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-md-3">
+
+        <div class="card text-center shadow-sm border-0 h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small">
+                    Turnos sin entrenamiento
+                </div>
+
+                <div class="fs-3 fw-bold text-warning">
+                    {{ resumen_general.total_turnos_no_entrenados_mes }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-6 col-xl-3">
+
+        <a
+            href="{% url 'dashboard_mensual' %}?fecha={{ fecha_base|date:'Y-m-d' }}"
+            class="card h-100 shadow-sm border-0 text-decoration-none text-dark"
+        >
+
+            <div class="card-body">
+
+                <h5 class="mb-2">
+                    Resumen mensual
+                </h5>
+
+                <p class="text-muted mb-0">
+                    Vista rápida con rankings, actividad y partidos del mes.
+                </p>
+
+            </div>
+
+        </a>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <a
+            href="{% url 'seguimiento_semanal' %}?fecha={{ fecha_base|date:'Y-m-d' }}"
+            class="card h-100 shadow-sm border-0 text-decoration-none text-dark"
+        >
+
+            <div class="card-body">
+
+                <h5 class="mb-2">
+                    Seguimiento semanal
+                </h5>
+
+                <p class="text-muted mb-0">
+                    Revisá el detalle semanal de un jugador.
+                </p>
+
+            </div>
+
+        </a>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <a
+            href="{% url 'exportar_asistencia_excel' %}?fecha={{ fecha_base|date:'Y-m-d' }}"
+            class="card h-100 shadow-sm border-0 text-decoration-none text-dark"
+        >
+
+            <div class="card-body">
+
+                <h5 class="mb-2">
+                    Exportar asistencia
+                </h5>
+
+                <p class="text-muted mb-0">
+                    Descargá un Excel específico con resumen y detalle de asistencias.
+                </p>
+
+            </div>
+
+        </a>
+
+    </div>
+
+
+    <div class="col-md-6 col-xl-3">
+
+        <a
+            href="{% url 'exportar_reporte_mensual' %}?fecha={{ fecha_base|date:'Y-m-d' }}"
+            class="card h-100 shadow-sm border-0 text-decoration-none text-dark"
+        >
+
+            <div class="card-body">
+
+                <h5 class="mb-2">
+                    Excel completo
+                </h5>
+
+                <p class="text-muted mb-0">
+                    Descargá el informe mensual con toda la información.
+                </p>
+
+            </div>
+
+        </a>
+
+    </div>
+
+</div>
+
+
+{% if turnos_no_entrenados_mes %}
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-body">
+
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+
+                <div>
+
+                    <h4 class="mb-1">
+                        Días sin entrenamiento
+                    </h4>
+
+                    <p class="text-muted mb-0">
+                        Estos turnos no cuentan como ausencia para los jugadores.
+                    </p>
+
+                </div>
+
+
+                <span class="badge bg-danger fs-6">
+
+                    {{ resumen_general.total_turnos_no_entrenados_mes }}
+
+                    turno{{ resumen_general.total_turnos_no_entrenados_mes|pluralize:"s" }}
+
+                </span>
+
+            </div>
+
+
             {% if motivos_no_entrenamiento %}
+
                 <div class="mb-3">
-                    <div class="fw-bold mb-2">Motivos del mes</div>
+
+                    <div class="fw-bold mb-2">
+                        Motivos del mes
+                    </div>
 
                     <div class="d-flex gap-2 flex-wrap">
+
                         {% for item in motivos_no_entrenamiento %}
+
                             <span class="badge bg-light text-dark border">
                                 {{ item.motivo }}: {{ item.total }}
                             </span>
+
                         {% endfor %}
+
                     </div>
+
                 </div>
+
             {% endif %}
 
+
             <div class="table-responsive">
+
                 <table class="table align-middle mb-0">
+
                     <thead>
+
                         <tr>
-                            <th>Fecha</th>
-                            <th>Turno</th>
-                            <th>Motivo</th>
-                            <th>Detalle</th>
+
+                            <th>
+                                Fecha
+                            </th>
+
+                            <th>
+                                Turno
+                            </th>
+
+                            <th>
+                                Motivo
+                            </th>
+
+                            <th>
+                                Detalle
+                            </th>
+
                         </tr>
+
                     </thead>
 
+
                     <tbody>
+
                         {% for entrenamiento in turnos_no_entrenados_mes %}
+
                             <tr>
-                                <td><strong>{{ entrenamiento.fecha|date:"d/m/Y" }}</strong></td>
 
                                 <td>
-                                    <span class="badge bg-danger">
-                                        {% if entrenamiento.turno_config %}
-                                            {{ entrenamiento.turno_config.nombre }}
-                                            {% if entrenamiento.turno_config.hora_inicio %}
-                                                · {{ entrenamiento.turno_config.hora_inicio|time:"H:i" }}
-                                            {% endif %}
-                                            {% if entrenamiento.turno_config.hora_fin %}
-                                                - {{ entrenamiento.turno_config.hora_fin|time:"H:i" }}
-                                            {% endif %}
-                                        {% else %}
-                                            Turno {{ entrenamiento.nombre_turno }}
-                                        {% endif %}
-                                    </span>
+                                    {{ entrenamiento.fecha|date:"d/m/Y" }}
                                 </td>
 
-                                <td>{{ entrenamiento.get_motivo_no_entrenamiento_display }}</td>
-                                <td>{{ entrenamiento.detalle_no_entrenamiento|default:"-" }}</td>
+                                <td>
+                                    {{ entrenamiento.nombre_turno }}
+                                </td>
+
+                                <td>
+                                    {{ entrenamiento.get_motivo_no_entrenamiento_display }}
+                                </td>
+
+                                <td>
+
+                                    {% if entrenamiento.detalle_no_entrenamiento %}
+
+                                        {{ entrenamiento.detalle_no_entrenamiento }}
+
+                                    {% else %}
+
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
                             </tr>
+
                         {% endfor %}
+
                     </tbody>
+
                 </table>
+
             </div>
+
         </div>
+
     </div>
+
 {% endif %}
 
-<div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
-            <div>
-                <h4 class="mb-1">Asistencia por jugador</h4>
-                <p class="text-muted mb-0">
-                    Se toma como presente “Asistió” y “Tarde”. Los turnos marcados como “No se entrenó” no bajan el porcentaje.
-                </p>
+
+{% if datos %}
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-body">
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+
+                <div>
+
+                    <h4 class="mb-1">
+                        Asistencia por jugador
+                    </h4>
+
+                    <p class="text-muted mb-0">
+                        Resumen del período seleccionado.
+                    </p>
+
+                </div>
+
             </div>
 
-            <span class="badge bg-dark fs-6">
-                {{ datos|length }}
-                jugador{{ datos|length|pluralize:"es" }}
-            </span>
-        </div>
 
-        {% if datos %}
-        <div class="table-responsive">
-            <table class="table align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th>Jugador</th>
-                        <th>Semana</th>
-                        <th>Mes</th>
-                        <th>Ausencias</th>
-                        <th>Pendientes</th>
-                        <th>Motivo frecuente</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
+            <div class="table-responsive">
 
-                <tbody>
-                    {% for item in datos %}
+                <table class="table align-middle mb-0">
+
+                    <thead>
+
                         <tr>
-                            <td><strong>{{ item.jugador }}</strong></td>
 
-                            <td>
-                                <strong>{{ item.semana_porcentaje }}%</strong>
-                                <div class="small text-muted">
-                                    {{ item.semana_presentes }}/{{ item.semana_total }} presentes
-                                </div>
-                            </td>
+                            <th>
+                                Jugador
+                            </th>
 
-                            <td>
-                                <strong>{{ item.mes_porcentaje }}%</strong>
-                                <div class="small text-muted">
-                                    {{ item.mes_presentes }}/{{ item.mes_total }} presentes
-                                </div>
-                            </td>
+                            <th>
+                                Semana
+                            </th>
 
-                            <td>
-                                {% if item.mes_ausentes > 0 %}
-                                    <span class="badge bg-danger">{{ item.mes_ausentes }}</span>
-                                {% else %}
-                                    <span class="text-muted">Sin ausencias</span>
-                                {% endif %}
-                            </td>
+                            <th>
+                                Mes
+                            </th>
 
-                            <td>
-                                {% if item.semana_pendientes or item.mes_pendientes %}
-                                    <div class="d-flex flex-column gap-1">
-                                        {% if item.semana_pendientes %}
-                                            <span class="badge bg-warning text-dark">
-                                                Semana: {{ item.semana_pendientes }}
-                                            </span>
-                                        {% endif %}
-
-                                        {% if item.mes_pendientes %}
-                                            <span class="badge bg-warning text-dark">
-                                                Mes: {{ item.mes_pendientes }}
-                                            </span>
-                                        {% endif %}
-                                    </div>
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-
-                            <td>{{ item.motivo_mas_frecuente }}</td>
-
-                            <td>
-                                <span class="badge bg-{{ item.estado_clase }}">
-                                    {{ item.estado_texto }}
-                                </span>
-                            </td>
-
-                            <td>
-                                <div class="d-flex gap-2 flex-wrap">
-                                    <a href="{% url 'historial_jugador' item.jugador.id %}" class="btn btn-sm btn-outline-primary">
-                                        Historial
-                                    </a>
-
-                                    <a href="{% url 'seguimiento_semanal' %}?jugador={{ item.jugador.id }}&fecha={{ fecha_base|date:'Y-m-d' }}" class="btn btn-sm btn-outline-dark">
-                                        Semana
-                                    </a>
-                                </div>
-                            </td>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-            <div class="text-center py-4 border rounded-3 bg-light">
-                <div class="fw-semibold mb-1">
-                    Sin jugadores para mostrar
-                </div>
 
-                <div class="text-muted small">
-                    Cuando el club tenga jugadores activos, acá vas a ver
-                    el seguimiento de asistencia de cada uno.
-                </div>
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for item in datos %}
+
+                            <tr>
+
+                                <td>
+
+                                    <div class="fw-semibold">
+                                        {{ item.jugador }}
+                                    </div>
+
+                                </td>
+
+
+                                <td>
+
+                                    <div>
+                                        {{ item.semana_presentes }}
+                                        presentes
+                                    </div>
+
+                                    <div class="small text-muted">
+                                        {{ item.semana_ausentes }}
+                                        ausencias
+                                    </div>
+
+                                </td>
+
+
+                                <td>
+
+                                    <div>
+                                        {{ item.mes_presentes }}
+                                        presentes
+                                    </div>
+
+                                    <div class="small text-muted">
+                                        {{ item.mes_ausentes }}
+                                        ausencias
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
             </div>
-        {% endif %}
-    </div>
-</div>
 
-<div class="card shadow-sm border-0">
-    <div class="card-body">
-        <h5 class="mb-3">Referencia</h5>
-
-        <div class="d-flex flex-wrap gap-2">
-            <span class="badge bg-success">80% o más: buena asistencia</span>
-            <span class="badge bg-warning text-dark">50% a 79%: asistencia media</span>
-            <span class="badge bg-danger">Menos de 50%: baja asistencia</span>
-            <span class="badge bg-secondary">Sin datos: no tiene asistencias cargadas</span>
-            <span class="badge bg-light text-dark border">No se entrenó: no cuenta como ausencia</span>
         </div>
+
     </div>
-</div>
+
+{% endif %}
+
 
 {% endblock %}

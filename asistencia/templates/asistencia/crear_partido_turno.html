@@ -7,25 +7,42 @@ Cargar partido · {{ club_actual.nombre|default:"TDM Coach" }}
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+
     <div>
-        <h1 class="mb-1">Cargar partido</h1>
+
+        <div class="small text-uppercase fw-semibold text-primary mb-1">
+            Competencia
+        </div>
+
+        <h1 class="mb-1">
+            Cargar partido
+        </h1>
 
         <p class="text-muted mb-0">
             {{ entrenamiento.fecha|date:"l j F Y" }}
             ·
+
             {% if entrenamiento.turno_config %}
+
                 {{ entrenamiento.turno_config.nombre }}
+
                 {% if entrenamiento.turno_config.hora_inicio %}
                     · {{ entrenamiento.turno_config.hora_inicio|time:"H:i" }}
                 {% endif %}
+
                 {% if entrenamiento.turno_config.hora_fin %}
                     - {{ entrenamiento.turno_config.hora_fin|time:"H:i" }}
                 {% endif %}
+
             {% else %}
+
                 Turno {{ entrenamiento.nombre_turno }}
+
             {% endif %}
         </p>
+
     </div>
+
 
     <a
         href="{% url 'dia_turno' entrenamiento.fecha|date:'Y-m-d' entrenamiento.turno_config_id %}#partidos-turno"
@@ -33,28 +50,66 @@ Cargar partido · {{ club_actual.nombre|default:"TDM Coach" }}
     >
         ← Volver al turno
     </a>
+
 </div>
 
+
 <div class="card shadow-sm border-0">
-    <div class="card-body">
+
+    <div class="card-body p-4 p-md-5">
 
         <form method="post">
+
             {% csrf_token %}
 
+
             {% if partido_form.non_field_errors %}
+
                 <div class="alert alert-danger">
-                    {{ partido_form.non_field_errors }}
+
+                    {% for error in partido_form.non_field_errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+
                 </div>
+
             {% endif %}
+
 
             {% if sets_formset.non_form_errors %}
+
                 <div class="alert alert-danger">
-                    {{ sets_formset.non_form_errors }}
+
+                    {% for error in sets_formset.non_form_errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+
                 </div>
+
             {% endif %}
 
+
+            <div class="mb-4">
+
+                <div class="small text-uppercase fw-semibold text-primary mb-1">
+                    Jugadores
+                </div>
+
+                <h4 class="mb-1">
+                    Participantes del partido
+                </h4>
+
+                <p class="text-muted mb-0">
+                    Seleccioná los dos jugadores que disputaron el partido.
+                </p>
+
+            </div>
+
+
             <div class="row g-3 mb-4">
+
                 <div class="col-md-6">
+
                     <label
                         for="{{ partido_form.jugador_1.id_for_label }}"
                         class="form-label fw-semibold"
@@ -64,14 +119,20 @@ Cargar partido · {{ club_actual.nombre|default:"TDM Coach" }}
 
                     {{ partido_form.jugador_1 }}
 
-                    {% if partido_form.jugador_1.errors %}
+
+                    {% for error in partido_form.jugador_1.errors %}
+
                         <div class="text-danger small mt-1">
-                            {{ partido_form.jugador_1.errors }}
+                            {{ error }}
                         </div>
-                    {% endif %}
+
+                    {% endfor %}
+
                 </div>
 
+
                 <div class="col-md-6">
+
                     <label
                         for="{{ partido_form.jugador_2.id_for_label }}"
                         class="form-label fw-semibold"
@@ -81,14 +142,20 @@ Cargar partido · {{ club_actual.nombre|default:"TDM Coach" }}
 
                     {{ partido_form.jugador_2 }}
 
-                    {% if partido_form.jugador_2.errors %}
+
+                    {% for error in partido_form.jugador_2.errors %}
+
                         <div class="text-danger small mt-1">
-                            {{ partido_form.jugador_2.errors }}
+                            {{ error }}
                         </div>
-                    {% endif %}
+
+                    {% endfor %}
+
                 </div>
 
+
                 <div class="col-12">
+
                     <label
                         for="{{ partido_form.detalle.id_for_label }}"
                         class="form-label fw-semibold"
@@ -98,131 +165,234 @@ Cargar partido · {{ club_actual.nombre|default:"TDM Coach" }}
 
                     {{ partido_form.detalle }}
 
-                    {% if partido_form.detalle.errors %}
+
+                    {% for error in partido_form.detalle.errors %}
+
                         <div class="text-danger small mt-1">
-                            {{ partido_form.detalle.errors }}
+                            {{ error }}
                         </div>
-                    {% endif %}
+
+                    {% endfor %}
+
                 </div>
+
             </div>
+
 
             <hr class="my-4">
 
-            <div class="mb-3">
-                <h4 class="mb-1">Resultado por sets</h4>
+
+            <div class="mb-4">
+
+                <div class="small text-uppercase fw-semibold text-primary mb-1">
+                    Marcador
+                </div>
+
+                <h4 class="mb-1">
+                    Resultado por sets
+                </h4>
+
                 <p class="text-muted mb-0">
-                    Cargá solamente los sets que se jugaron.
+                    Cargá únicamente los sets que realmente se jugaron.
                 </p>
+
             </div>
+
 
             {{ sets_formset.management_form }}
 
+
             <div class="d-flex flex-column gap-3">
+
                 {% for set_form in sets_formset %}
-                    <div class="border rounded-3 p-3">
+
+                    <div class="border rounded-3 p-3 p-md-4 bg-light">
+
                         {% for hidden in set_form.hidden_fields %}
                             {{ hidden }}
                         {% endfor %}
 
+
                         <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
-                            <h6 class="mb-0">
-                                Set {{ forloop.counter }}
-                            </h6>
+
+                            <div>
+
+                                <div class="small text-muted">
+                                    Resultado
+                                </div>
+
+                                <h6 class="mb-0">
+                                    Set {{ forloop.counter }}
+                                </h6>
+
+                            </div>
+
 
                             {% if set_form.DELETE %}
+
                                 <div class="form-check">
+
                                     {{ set_form.DELETE }}
+
                                     <label
                                         class="form-check-label"
                                         for="{{ set_form.DELETE.id_for_label }}"
                                     >
                                         No usar este set
                                     </label>
+
                                 </div>
+
                             {% endif %}
+
                         </div>
 
+
                         {% if set_form.non_field_errors %}
+
                             <div class="alert alert-danger py-2">
-                                {{ set_form.non_field_errors }}
+
+                                {% for error in set_form.non_field_errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+
                             </div>
+
                         {% endif %}
 
+
                         <div class="row g-3">
+
                             <div class="col-md-6">
+
                                 <label
                                     for="{{ set_form.puntos_jugador_1.id_for_label }}"
-                                    class="form-label"
+                                    class="form-label fw-semibold"
                                 >
                                     {{ set_form.puntos_jugador_1.label }}
                                 </label>
 
                                 {{ set_form.puntos_jugador_1 }}
 
-                                {% if set_form.puntos_jugador_1.errors %}
+
+                                {% for error in set_form.puntos_jugador_1.errors %}
+
                                     <div class="text-danger small mt-1">
-                                        {{ set_form.puntos_jugador_1.errors }}
+                                        {{ error }}
                                     </div>
-                                {% endif %}
+
+                                {% endfor %}
+
                             </div>
 
+
                             <div class="col-md-6">
+
                                 <label
                                     for="{{ set_form.puntos_jugador_2.id_for_label }}"
-                                    class="form-label"
+                                    class="form-label fw-semibold"
                                 >
                                     {{ set_form.puntos_jugador_2.label }}
                                 </label>
 
                                 {{ set_form.puntos_jugador_2 }}
 
-                                {% if set_form.puntos_jugador_2.errors %}
+
+                                {% for error in set_form.puntos_jugador_2.errors %}
+
                                     <div class="text-danger small mt-1">
-                                        {{ set_form.puntos_jugador_2.errors }}
+                                        {{ error }}
                                     </div>
-                                {% endif %}
+
+                                {% endfor %}
+
                             </div>
+
                         </div>
+
                     </div>
+
                 {% endfor %}
+
             </div>
 
-            <div class="d-flex gap-2 flex-wrap mt-4">
-                <button type="submit" class="btn btn-primary">
-                    Guardar partido
-                </button>
 
-                <a
-                    href="{% url 'dia_turno' entrenamiento.fecha|date:'Y-m-d' entrenamiento.turno_config_id %}#partidos-turno"
-                    class="btn btn-outline-dark"
-                >
-                    Cancelar
-                </a>
+            <div class="card border-0 bg-light mt-4">
+
+                <div class="card-body p-3">
+
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+                        <div>
+
+                            <div class="fw-semibold">
+                                Guardar partido
+                            </div>
+
+                            <div class="small text-muted">
+                                Revisá jugadores y sets antes de confirmar.
+                            </div>
+
+                        </div>
+
+
+                        <div class="d-flex gap-2 flex-wrap">
+
+                            <a
+                                href="{% url 'dia_turno' entrenamiento.fecha|date:'Y-m-d' entrenamiento.turno_config_id %}#partidos-turno"
+                                class="btn btn-outline-dark"
+                            >
+                                Cancelar
+                            </a>
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary"
+                            >
+                                Guardar partido
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
             </div>
+
         </form>
 
     </div>
+
 </div>
+
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+
     const jugador1 = document.getElementById("id_jugador_1");
     const jugador2 = document.getElementById("id_jugador_2");
 
+
     function actualizarOpciones() {
+
         if (!jugador1 || !jugador2) {
             return;
         }
+
 
         Array.from(jugador1.options).forEach(function (opcion) {
             opcion.disabled = false;
         });
 
+
         Array.from(jugador2.options).forEach(function (opcion) {
             opcion.disabled = false;
         });
 
+
         if (jugador1.value) {
+
             const opcion = jugador2.querySelector(
                 'option[value="' + jugador1.value + '"]'
             );
@@ -230,9 +400,12 @@ document.addEventListener("DOMContentLoaded", function () {
             if (opcion) {
                 opcion.disabled = true;
             }
+
         }
 
+
         if (jugador2.value) {
+
             const opcion = jugador1.querySelector(
                 'option[value="' + jugador2.value + '"]'
             );
@@ -240,18 +413,24 @@ document.addEventListener("DOMContentLoaded", function () {
             if (opcion) {
                 opcion.disabled = true;
             }
+
         }
+
     }
+
 
     if (jugador1) {
         jugador1.addEventListener("change", actualizarOpciones);
     }
 
+
     if (jugador2) {
         jugador2.addEventListener("change", actualizarOpciones);
     }
 
+
     actualizarOpciones();
+
 });
 </script>
 

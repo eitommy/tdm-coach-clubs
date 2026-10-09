@@ -1,89 +1,318 @@
 {% extends "asistencia/base.html" %}
 
+{% block title %}
+Acerca de TDM Coach
+{% endblock %}
+
 {% block content %}
 
 <div class="mb-4">
-    <h1 class="mb-2">Acerca de TDM Coach</h1>
+
+    <div class="small text-uppercase fw-semibold text-primary mb-1">
+        Información
+    </div>
+
+    <h1 class="mb-2">
+        Acerca de TDM Coach
+    </h1>
+
     <p class="text-secondary mb-0">
-        Una herramienta simple para organizar turnos, asistencias y ejercicios de entrenamiento.
+        Una herramienta para organizar entrenamientos, asistencia,
+        jugadores y seguimiento dentro de un club.
     </p>
+
 </div>
 
+
 <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-        <h4 class="mb-3">¿Para qué sirve?</h4>
+
+    <div class="card-body p-4">
+
+        <div class="small text-uppercase fw-semibold text-primary mb-1">
+            Plataforma
+        </div>
+
+        <h4 class="mb-3">
+            ¿Para qué sirve?
+        </h4>
 
         <p>
-            TDM Coach está pensada para que los entrenadores puedan llevar un control claro
-            de cada jornada de entrenamiento.
+            TDM Coach permite centralizar la gestión diaria de los entrenamientos
+            para evitar depender de planillas, mensajes o anotaciones separadas.
         </p>
 
         <p class="mb-0">
-            Desde la app se puede tomar un turno, cargar qué jugadores asistieron,
-            marcar ausencias o llegadas tarde, registrar los ejercicios realizados
-            y revisar el seguimiento semanal de cada jugador.
+            Desde la app se pueden organizar turnos, cargar jugadores,
+            registrar asistencias, trabajos, ejercicios y partidos,
+            agregar observaciones y consultar el historial de cada jugador.
         </p>
+
     </div>
+
 </div>
+
 
 <div class="row g-3 mb-4">
-    <div class="col-md-6">
+
+    <div class="col-lg-6">
+
         <div class="card h-100 shadow-sm border-0">
-            <div class="card-body">
-                <h5 class="mb-3">Qué puede hacer el entrenador</h5>
+
+            <div class="card-body p-4">
+
+                <div class="small text-uppercase fw-semibold text-primary mb-1">
+                    Entrenadores
+                </div>
+
+                <h5 class="mb-3">
+                    Trabajo diario
+                </h5>
 
                 <ul class="mb-0">
-                    <li>Iniciar sesión con su usuario.</li>
-                    <li>Tomar el turno que le corresponde.</li>
-                    <li>Agregar jugadores al turno.</li>
-                    <li>Marcar asistencia, ausencia o llegada tarde.</li>
-                    <li>Cargar los ejercicios realizados por cada jugador.</li>
-                    <li>Ver cuántos ejercicios tiene cargado cada jugador.</li>
-                    <li>Consultar el seguimiento semanal.</li>
+
+                    <li class="mb-2">
+                        Consultar los turnos del día.
+                    </li>
+
+                    <li class="mb-2">
+                        Seleccionar al responsable del entrenamiento.
+                    </li>
+
+                    <li class="mb-2">
+                        Agregar jugadores al turno.
+                    </li>
+
+                    <li class="mb-2">
+                        Marcar asistencia, ausencia o llegada tarde.
+                    </li>
+
+                    <li class="mb-2">
+                        Registrar trabajos y parejas por cambio.
+                    </li>
+
+                    <li class="mb-2">
+                        Cargar ejercicios realizados durante el entrenamiento.
+                    </li>
+
+                    <li class="mb-2">
+                        Registrar partidos y resultados.
+                    </li>
+
+                    <li>
+                        Agregar observaciones individuales de los jugadores.
+                    </li>
+
                 </ul>
+
             </div>
+
         </div>
+
     </div>
 
-    <div class="col-md-6">
+
+    <div class="col-lg-6">
+
         <div class="card h-100 shadow-sm border-0">
-            <div class="card-body">
-                <h5 class="mb-3">Cómo se usa en el día a día</h5>
 
-                <ol class="mb-0">
-                    <li>El entrenador entra con su cuenta.</li>
-                    <li>Selecciona la fecha y el turno.</li>
-                    <li>Toma el turno si todavía no tiene entrenador asignado.</li>
-                    <li>Carga los jugadores presentes en ese turno.</li>
-                    <li>Marca la asistencia de cada jugador.</li>
-                    <li>Entra a “Ejercicios” para registrar lo trabajado.</li>
-                </ol>
+            <div class="card-body p-4">
+
+                <div class="small text-uppercase fw-semibold text-primary mb-1">
+                    Seguimiento
+                </div>
+
+                <h5 class="mb-3">
+                    Información disponible
+                </h5>
+
+                <ul class="mb-0">
+
+                    <li class="mb-2">
+                        Historial individual de cada jugador.
+                    </li>
+
+                    <li class="mb-2">
+                        Porcentaje de asistencia mensual.
+                    </li>
+
+                    <li class="mb-2">
+                        Seguimiento semanal.
+                    </li>
+
+                    <li class="mb-2">
+                        Resumen diario de todos los turnos.
+                    </li>
+
+                    <li class="mb-2">
+                        Resumen mensual del club.
+                    </li>
+
+                    <li class="mb-2">
+                        Rankings de asistencia y partidos.
+                    </li>
+
+                    <li>
+                        Reportes y exportación mensual a Excel.
+                    </li>
+
+                </ul>
+
             </div>
+
         </div>
+
     </div>
+
 </div>
+
 
 <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-        <h5 class="mb-3">Objetivo de la app</h5>
 
-        <p class="mb-0">
-            El objetivo es reemplazar planillas o anotaciones sueltas por un sistema más ordenado,
-            rápido y fácil de consultar. Así cada entrenador puede saber qué jugadores asistieron,
-            qué ejercicios hicieron y cómo viene su continuidad durante la semana.
-        </p>
+    <div class="card-body p-4">
+
+        <div class="small text-uppercase fw-semibold text-primary mb-1">
+            Flujo de trabajo
+        </div>
+
+        <h4 class="mb-3">
+            Cómo usar TDM Coach durante un entrenamiento
+        </h4>
+
+        <div class="row g-3">
+
+            <div class="col-md-6 col-lg-3">
+
+                <div class="border rounded-3 p-3 h-100">
+
+                    <div class="fw-bold mb-1">
+                        1. Abrir el turno
+                    </div>
+
+                    <div class="small text-muted">
+                        Elegí la fecha y el turno que vas a cargar.
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-6 col-lg-3">
+
+                <div class="border rounded-3 p-3 h-100">
+
+                    <div class="fw-bold mb-1">
+                        2. Cargar jugadores
+                    </div>
+
+                    <div class="small text-muted">
+                        Agregá los jugadores y marcá la asistencia.
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-6 col-lg-3">
+
+                <div class="border rounded-3 p-3 h-100">
+
+                    <div class="fw-bold mb-1">
+                        3. Registrar actividad
+                    </div>
+
+                    <div class="small text-muted">
+                        Cargá ejercicios, trabajos, partidos y observaciones.
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-6 col-lg-3">
+
+                <div class="border rounded-3 p-3 h-100">
+
+                    <div class="fw-bold mb-1">
+                        4. Finalizar
+                    </div>
+
+                    <div class="small text-muted">
+                        Revisá que esté todo completo y cerrá el turno.
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
+
 </div>
 
-<div class="card shadow-sm border-0">
-    <div class="card-body">
-        <h5 class="mb-3">Información útil</h5>
 
-        <p class="mb-0">
-            Si un jugador no aparece disponible para agregarlo a un turno, puede que ya esté cargado
-            en ese mismo turno o que figure como inactivo en la lista de jugadores.
-        </p>
+<div class="row g-3">
+
+    <div class="col-lg-6">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body p-4">
+
+                <div class="small text-uppercase fw-semibold text-primary mb-1">
+                    Objetivo
+                </div>
+
+                <h5 class="mb-3">
+                    Toda la información en un mismo lugar
+                </h5>
+
+                <p class="mb-0">
+                    El objetivo de TDM Coach es simplificar el trabajo del entrenador
+                    y permitir que el club tenga un registro claro de lo que sucede
+                    en cada entrenamiento y de la evolución de sus jugadores.
+                </p>
+
+            </div>
+
+        </div>
+
     </div>
+
+
+    <div class="col-lg-6">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body p-4">
+
+                <div class="small text-uppercase fw-semibold text-primary mb-1">
+                    Información útil
+                </div>
+
+                <h5 class="mb-3">
+                    Si algo no aparece
+                </h5>
+
+                <p class="mb-2">
+                    Si un jugador no aparece disponible para agregarlo a un turno,
+                    revisá si ya está cargado en ese entrenamiento o si figura como inactivo.
+                </p>
+
+                <p class="mb-0 text-muted small">
+                    Los turnos marcados como “No se entrenó” no cuentan como ausencia
+                    en los porcentajes de asistencia.
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
 </div>
 
 {% endblock %}

@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
+from calendar import monthrange
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q
+from django.db.models import Count, Q, F
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -20,6 +21,7 @@ from clubs.utils import (
 )
 
 from .forms import (
+    CategoriaJugadorForm,
     CategoriaEjercicioForm,
     EjercicioForm,
     EntrenamientoInfoForm,
@@ -35,6 +37,7 @@ from .forms import (
 
 from .models import (
     Asistencia,
+    CategoriaJugador,
     CategoriaEjercicio,
     Ejercicio,
     EjercicioRealizado,
@@ -44,6 +47,7 @@ from .models import (
     TrabajoTurno,
     ObservacionJugador,
     PartidoTurno,
+    PagoJugador,
 )
 def _viene_de_onboarding(request):
     return (
@@ -2348,13 +2352,141 @@ def lista_jugadores(request):
     hoy = timezone.localdate()
     inicio_mes = hoy.replace(day=1)
 
+    nombres_meses = {
+        1: "Enero",
+        2: "Febrero",
+        3: "Marzo",
+        4: "Abril",
+        5: "Mayo",
+        6: "Junio",
+        7: "Julio",
+        8: "Agosto",
+        9: "Septiembre",
+        10: "Octubre",
+        11: "Noviembre",
+        12: "Diciembre",
+    }
+
+    try:
+        mes_cuota = int(
+            request.GET.get(
+                "mes",
+                hoy.month,
+            )
+        )
+    except (TypeError, ValueError):
+        mes_cuota = hoy.month
+
+    if mes_cuota not in nombres_meses:
+        mes_cuota = hoy.month
+
+    try:
+        anio_cuota = int(
+            request.GET.get(
+                "anio",
+                hoy.year,
+            )
+        )
+    except (TypeError, ValueError):
+        anio_cuota = hoy.year
+
+    if anio_cuota < 2000 or anio_cuota > 2100:
+        anio_cuota = hoy.year
+
+    inicio_periodo_cuota = datetime(
+        anio_cuota,
+        mes_cuota,
+        1,
+    ).date()
+
+    fin_periodo_cuota = datetime(
+        anio_cuota,
+        mes_cuota,
+        monthrange(
+            anio_cuota,
+            mes_cuota,
+        )[1],
+    ).date()
+
+    anios_disponibles = list(
+        range(
+            hoy.year + 1,
+            hoy.year - 5,
+            -1,
+        )
+    )
+
+    if anio_cuota not in anios_disponibles:
+        anios_disponibles.append(anio_cuota)
+        anios_disponibles.sort(reverse=True)
+
+    meses_disponibles = [
+        {
+            "numero": numero,
+            "nombre": nombre,
+        }
+        for numero, nombre in nombres_meses.items()
+    ]
+
     jugadores = (
         Jugador.objects
-        .filter(club=club)
+        .filter(
+            club=club,
+            fecha_alta__lte=fin_periodo_cuota,
+        )
+        .filter(
+            Q(fecha_baja__isnull=True)
+            | Q(fecha_baja__gte=inicio_periodo_cuota)
+        )
+        .select_related("categoria")
         .order_by(
             "apellido",
             "nombre",
         )
+    )
+
+    pagos_mes = {
+        pago.jugador_id: pago
+        for pago in (
+            PagoJugador.objects
+            .filter(
+                jugador__club=club,
+                anio=anio_cuota,
+                mes=mes_cuota,
+            )
+            .select_related("jugador")
+        )
+    }
+
+    total_cuotas_periodo = jugadores.count()
+
+    cuotas_pagadas_periodo = sum(
+        1
+        for jugador_id in jugadores.values_list(
+            "id",
+            flat=True,
+        )
+        if (
+            pagos_mes.get(jugador_id)
+            and pagos_mes[jugador_id].pagado
+        )
+    )
+
+    cuotas_pendientes_periodo = (
+        total_cuotas_periodo
+        - cuotas_pagadas_periodo
+    )
+
+    porcentaje_cobranza_periodo = (
+        round(
+            (
+                cuotas_pagadas_periodo
+                / total_cuotas_periodo
+            ) * 100,
+            1,
+        )
+        if total_cuotas_periodo
+        else 0
     )
 
     jugadores_info = []
@@ -2414,6 +2546,10 @@ def lista_jugadores(request):
             else 0
         )
 
+        pago_mes = pagos_mes.get(
+            jugador.id
+        )
+
         jugadores_info.append({
             "jugador": jugador,
             "ultima_asistencia": ultima_asistencia,
@@ -2421,21 +2557,948 @@ def lista_jugadores(request):
             "mes_presentes": mes_presentes,
             "mes_ausentes": mes_ausentes,
             "mes_porcentaje": mes_porcentaje,
+            "pago_mes": pago_mes,
+            "cuota_pagada": bool(
+                pago_mes
+                and pago_mes.pagado
+            ),
         })
 
     contexto = {
         "jugadores_info": jugadores_info,
         "total_jugadores": jugadores.count(),
-        "jugadores_activos": jugadores.filter(activo=True).count(),
-        "jugadores_inactivos": jugadores.filter(activo=False).count(),
+        "jugadores_activos": jugadores.filter(
+            activo=True,
+        ).count(),
+        "jugadores_inactivos": jugadores.filter(
+            activo=False,
+        ).count(),
         "hoy": hoy,
         "inicio_mes": inicio_mes,
+        "mes_cuota_nombre": nombres_meses[mes_cuota],
+        "mes_cuota_numero": mes_cuota,
+        "anio_cuota": anio_cuota,
+        "meses_disponibles": meses_disponibles,
+        "anios_disponibles": anios_disponibles,
+        "inicio_periodo_cuota": inicio_periodo_cuota,
+        "fin_periodo_cuota": fin_periodo_cuota,
+        "total_cuotas_periodo": total_cuotas_periodo,
+        "cuotas_pagadas_periodo": cuotas_pagadas_periodo,
+        "cuotas_pendientes_periodo": cuotas_pendientes_periodo,
+        "porcentaje_cobranza_periodo": porcentaje_cobranza_periodo,
     }
 
     return render(
         request,
         "asistencia/lista_jugadores.html",
         contexto,
+    )
+
+
+@requerir_admin_club
+def resumen_cuotas(request):
+    club = obtener_club_usuario(request.user)
+    hoy = timezone.localdate()
+
+    nombres_meses = {
+        1: "Enero",
+        2: "Febrero",
+        3: "Marzo",
+        4: "Abril",
+        5: "Mayo",
+        6: "Junio",
+        7: "Julio",
+        8: "Agosto",
+        9: "Septiembre",
+        10: "Octubre",
+        11: "Noviembre",
+        12: "Diciembre",
+    }
+
+    try:
+        mes = int(
+            request.GET.get(
+                "mes",
+                hoy.month,
+            )
+        )
+    except (TypeError, ValueError):
+        mes = hoy.month
+
+    if mes not in nombres_meses:
+        mes = hoy.month
+
+    try:
+        anio = int(
+            request.GET.get(
+                "anio",
+                hoy.year,
+            )
+        )
+    except (TypeError, ValueError):
+        anio = hoy.year
+
+    if anio < 2000 or anio > 2100:
+        anio = hoy.year
+
+    inicio_periodo = datetime(
+        anio,
+        mes,
+        1,
+    ).date()
+
+    fin_periodo = datetime(
+        anio,
+        mes,
+        monthrange(
+            anio,
+            mes,
+        )[1],
+    ).date()
+
+    jugadores_periodo = (
+        Jugador.objects
+        .filter(
+            club=club,
+            fecha_alta__lte=fin_periodo,
+        )
+        .filter(
+            Q(fecha_baja__isnull=True)
+            | Q(fecha_baja__gte=inicio_periodo)
+        )
+        .select_related("categoria")
+        .order_by(
+            "apellido",
+            "nombre",
+        )
+    )
+
+    pagos_periodo = {
+        pago.jugador_id: pago
+        for pago in (
+            PagoJugador.objects
+            .filter(
+                jugador__club=club,
+                anio=anio,
+                mes=mes,
+            )
+        )
+    }
+
+    total_periodo = jugadores_periodo.count()
+
+    pagados_periodo = sum(
+        1
+        for jugador in jugadores_periodo
+        if (
+            pagos_periodo.get(jugador.id)
+            and pagos_periodo[jugador.id].pagado
+        )
+    )
+
+    pendientes_periodo = (
+        total_periodo
+        - pagados_periodo
+    )
+
+    porcentaje_periodo = (
+        round(
+            (
+                pagados_periodo
+                / total_periodo
+            ) * 100,
+            1,
+        )
+        if total_periodo
+        else 0
+    )
+
+    jugadores_pendientes_periodo = []
+
+    for jugador in jugadores_periodo:
+        pago = pagos_periodo.get(
+            jugador.id
+        )
+
+        if not (
+            pago
+            and pago.pagado
+        ):
+            jugadores_pendientes_periodo.append({
+                "jugador": jugador,
+                "categoria": (
+                    jugador.categoria.nombre
+                    if jugador.categoria
+                    else "Sin categoría"
+                ),
+            })
+
+    def inicio_mes(fecha):
+        return fecha.replace(day=1)
+
+    def sumar_meses(fecha, cantidad):
+        indice = (
+            fecha.year * 12
+            + fecha.month
+            - 1
+            + cantidad
+        )
+
+        nuevo_anio = indice // 12
+        nuevo_mes = indice % 12 + 1
+
+        return datetime(
+            nuevo_anio,
+            nuevo_mes,
+            1,
+        ).date()
+
+    corte_seleccionado = inicio_periodo
+
+    corte_hoy = hoy.replace(
+        day=1,
+    )
+
+    corte_deuda = min(
+        corte_seleccionado,
+        corte_hoy,
+    )
+
+    jugadores_para_deuda = (
+        Jugador.objects
+        .filter(
+            club=club,
+            fecha_alta__lte=(
+                corte_deuda.replace(
+                    day=monthrange(
+                        corte_deuda.year,
+                        corte_deuda.month,
+                    )[1]
+                )
+            ),
+        )
+        .select_related("categoria")
+        .order_by(
+            "apellido",
+            "nombre",
+        )
+    )
+
+    pagos_hasta_corte = (
+        PagoJugador.objects
+        .filter(
+            jugador__club=club,
+        )
+        .filter(
+            Q(anio__lt=corte_deuda.year)
+            | Q(
+                anio=corte_deuda.year,
+                mes__lte=corte_deuda.month,
+            )
+        )
+    )
+
+    pagos_por_jugador = {}
+
+    for pago in pagos_hasta_corte:
+        pagos_por_jugador.setdefault(
+            pago.jugador_id,
+            {},
+        )[
+            (pago.anio, pago.mes)
+        ] = pago
+
+    deuda_jugadores = []
+
+    for jugador in jugadores_para_deuda:
+        inicio = inicio_mes(
+            jugador.fecha_alta
+        )
+
+        fin = corte_deuda
+
+        if jugador.fecha_baja:
+            fin = min(
+                fin,
+                inicio_mes(
+                    jugador.fecha_baja
+                ),
+            )
+
+        if inicio > fin:
+            continue
+
+        fecha_cursor = inicio
+
+        meses_correspondientes = 0
+        meses_pagados = 0
+        meses_pendientes = []
+
+        while fecha_cursor <= fin:
+            meses_correspondientes += 1
+
+            pago = pagos_por_jugador.get(
+                jugador.id,
+                {},
+            ).get(
+                (
+                    fecha_cursor.year,
+                    fecha_cursor.month,
+                )
+            )
+
+            if pago and pago.pagado:
+                meses_pagados += 1
+            else:
+                meses_pendientes.append({
+                    "anio": fecha_cursor.year,
+                    "mes": fecha_cursor.month,
+                    "mes_nombre": nombres_meses[
+                        fecha_cursor.month
+                    ],
+                })
+
+            fecha_cursor = sumar_meses(
+                fecha_cursor,
+                1,
+            )
+
+        if meses_pendientes:
+            deuda_jugadores.append({
+                "jugador": jugador,
+                "categoria": (
+                    jugador.categoria.nombre
+                    if jugador.categoria
+                    else "Sin categoría"
+                ),
+                "meses_correspondientes": (
+                    meses_correspondientes
+                ),
+                "meses_pagados": (
+                    meses_pagados
+                ),
+                "meses_pendientes": len(
+                    meses_pendientes
+                ),
+                "detalle_pendientes": list(
+                    reversed(
+                        meses_pendientes
+                    )
+                ),
+            })
+
+    deuda_jugadores.sort(
+        key=lambda item: (
+            -item["meses_pendientes"],
+            item["jugador"].apellido.lower(),
+            item["jugador"].nombre.lower(),
+        )
+    )
+
+    jugadores_con_deuda = len(
+        deuda_jugadores
+    )
+
+    cuotas_pendientes_acumuladas = sum(
+        item["meses_pendientes"]
+        for item in deuda_jugadores
+    )
+
+    jugadores_reincidentes = sum(
+        1
+        for item in deuda_jugadores
+        if item["meses_pendientes"] >= 2
+    )
+
+    evolucion = []
+
+    for desplazamiento in range(-5, 1):
+        fecha_mes = sumar_meses(
+            inicio_periodo,
+            desplazamiento,
+        )
+
+        inicio_mes_evolucion = fecha_mes
+
+        fin_mes_evolucion = datetime(
+            fecha_mes.year,
+            fecha_mes.month,
+            monthrange(
+                fecha_mes.year,
+                fecha_mes.month,
+            )[1],
+        ).date()
+
+        jugadores_mes = (
+            Jugador.objects
+            .filter(
+                club=club,
+                fecha_alta__lte=fin_mes_evolucion,
+            )
+            .filter(
+                Q(fecha_baja__isnull=True)
+                | Q(
+                    fecha_baja__gte=(
+                        inicio_mes_evolucion
+                    )
+                )
+            )
+        )
+
+        total_mes = jugadores_mes.count()
+
+        ids_jugadores_mes = list(
+            jugadores_mes.values_list(
+                "id",
+                flat=True,
+            )
+        )
+
+        pagados_mes = (
+            PagoJugador.objects
+            .filter(
+                jugador_id__in=ids_jugadores_mes,
+                anio=fecha_mes.year,
+                mes=fecha_mes.month,
+                pagado=True,
+            )
+            .count()
+        )
+
+        porcentaje_mes = (
+            round(
+                (
+                    pagados_mes
+                    / total_mes
+                ) * 100,
+                1,
+            )
+            if total_mes
+            else 0
+        )
+
+        evolucion.append({
+            "anio": fecha_mes.year,
+            "mes": fecha_mes.month,
+            "mes_nombre": nombres_meses[
+                fecha_mes.month
+            ],
+            "total": total_mes,
+            "pagados": pagados_mes,
+            "pendientes": (
+                total_mes
+                - pagados_mes
+            ),
+            "porcentaje": porcentaje_mes,
+        })
+
+    meses_disponibles = [
+        {
+            "numero": numero,
+            "nombre": nombre,
+        }
+        for numero, nombre
+        in nombres_meses.items()
+    ]
+
+    anios_disponibles = list(
+        range(
+            hoy.year + 1,
+            hoy.year - 5,
+            -1,
+        )
+    )
+
+    if anio not in anios_disponibles:
+        anios_disponibles.append(
+            anio
+        )
+        anios_disponibles.sort(
+            reverse=True
+        )
+
+    contexto = {
+        "mes": mes,
+        "anio": anio,
+        "mes_nombre": nombres_meses[mes],
+        "meses_disponibles": meses_disponibles,
+        "anios_disponibles": anios_disponibles,
+
+        "total_periodo": total_periodo,
+        "pagados_periodo": pagados_periodo,
+        "pendientes_periodo": pendientes_periodo,
+        "porcentaje_periodo": porcentaje_periodo,
+        "jugadores_pendientes_periodo": (
+            jugadores_pendientes_periodo
+        ),
+
+        "jugadores_con_deuda": jugadores_con_deuda,
+        "cuotas_pendientes_acumuladas": (
+            cuotas_pendientes_acumuladas
+        ),
+        "jugadores_reincidentes": (
+            jugadores_reincidentes
+        ),
+        "deuda_jugadores": deuda_jugadores,
+
+        "evolucion": evolucion,
+        "corte_deuda": corte_deuda,
+    }
+
+    return render(
+        request,
+        "asistencia/resumen_cuotas.html",
+        contexto,
+    )
+
+
+@requerir_admin_club
+def exportar_cuotas_excel(request):
+    club = obtener_club_usuario(request.user)
+
+    hoy = timezone.localdate()
+
+    nombres_meses = {
+        1: "Enero",
+        2: "Febrero",
+        3: "Marzo",
+        4: "Abril",
+        5: "Mayo",
+        6: "Junio",
+        7: "Julio",
+        8: "Agosto",
+        9: "Septiembre",
+        10: "Octubre",
+        11: "Noviembre",
+        12: "Diciembre",
+    }
+
+    try:
+        mes_cuota = int(
+            request.GET.get(
+                "mes",
+                hoy.month,
+            )
+        )
+    except (TypeError, ValueError):
+        mes_cuota = hoy.month
+
+    if mes_cuota not in nombres_meses:
+        mes_cuota = hoy.month
+
+    try:
+        anio_cuota = int(
+            request.GET.get(
+                "anio",
+                hoy.year,
+            )
+        )
+    except (TypeError, ValueError):
+        anio_cuota = hoy.year
+
+    if anio_cuota < 2000 or anio_cuota > 2100:
+        anio_cuota = hoy.year
+
+    inicio_periodo = datetime(
+        anio_cuota,
+        mes_cuota,
+        1,
+    ).date()
+
+    fin_periodo = datetime(
+        anio_cuota,
+        mes_cuota,
+        monthrange(
+            anio_cuota,
+            mes_cuota,
+        )[1],
+    ).date()
+
+    jugadores = (
+        Jugador.objects
+        .filter(
+            club=club,
+            fecha_alta__lte=fin_periodo,
+        )
+        .filter(
+            Q(fecha_baja__isnull=True)
+            | Q(fecha_baja__gte=inicio_periodo)
+        )
+        .select_related("categoria")
+        .order_by(
+            "apellido",
+            "nombre",
+        )
+    )
+
+    pagos = {
+        pago.jugador_id: pago
+        for pago in (
+            PagoJugador.objects
+            .filter(
+                jugador__club=club,
+                anio=anio_cuota,
+                mes=mes_cuota,
+            )
+            .select_related("jugador")
+        )
+    }
+
+    workbook = Workbook()
+    hoja = workbook.active
+    hoja.title = "Cuotas"
+
+    hoja.merge_cells(
+        start_row=1,
+        start_column=1,
+        end_row=1,
+        end_column=7,
+    )
+
+    celda_titulo = hoja.cell(
+        row=1,
+        column=1,
+        value=(
+            f"Cuotas · {club.nombre} · "
+            f"{nombres_meses[mes_cuota]} {anio_cuota}"
+        ),
+    )
+    celda_titulo.font = Font(
+        bold=True,
+        size=14,
+    )
+    celda_titulo.alignment = Alignment(
+        horizontal="center",
+    )
+
+    encabezados = [
+        "Jugador",
+        "Categoría",
+        "Estado jugador",
+        "Fecha de alta",
+        "Fecha de baja",
+        "Estado cuota",
+        "Fecha de pago",
+    ]
+
+    fila_encabezado = 3
+
+    for columna, encabezado in enumerate(
+        encabezados,
+        start=1,
+    ):
+        celda = hoja.cell(
+            row=fila_encabezado,
+            column=columna,
+            value=encabezado,
+        )
+        celda.font = Font(
+            bold=True,
+        )
+        celda.alignment = Alignment(
+            horizontal="center",
+            vertical="center",
+        )
+
+    fila = fila_encabezado + 1
+
+    total = 0
+    pagados = 0
+    pendientes = 0
+
+    for jugador in jugadores:
+        pago = pagos.get(
+            jugador.id
+        )
+
+        cuota_pagada = bool(
+            pago
+            and pago.pagado
+        )
+
+        if cuota_pagada:
+            estado_cuota = "Pagado"
+            pagados += 1
+        else:
+            estado_cuota = "Pendiente"
+            pendientes += 1
+
+        total += 1
+
+        valores = [
+            str(jugador),
+            (
+                jugador.categoria.nombre
+                if jugador.categoria
+                else "Sin categoría"
+            ),
+            (
+                "Activo"
+                if jugador.activo
+                else "Inactivo"
+            ),
+            jugador.fecha_alta,
+            jugador.fecha_baja,
+            estado_cuota,
+            (
+                pago.fecha_pago
+                if pago
+                else None
+            ),
+        ]
+
+        for columna, valor in enumerate(
+            valores,
+            start=1,
+        ):
+            celda = hoja.cell(
+                row=fila,
+                column=columna,
+                value=valor,
+            )
+
+            if columna in [4, 5, 7] and valor:
+                celda.number_format = "DD/MM/YYYY"
+
+        fila += 1
+
+    fila_resumen = fila + 2
+
+    hoja.cell(
+        row=fila_resumen,
+        column=1,
+        value="Resumen",
+    ).font = Font(
+        bold=True,
+        size=12,
+    )
+
+    hoja.cell(
+        row=fila_resumen + 1,
+        column=1,
+        value="Jugadores del período",
+    )
+    hoja.cell(
+        row=fila_resumen + 1,
+        column=2,
+        value=total,
+    )
+
+    hoja.cell(
+        row=fila_resumen + 2,
+        column=1,
+        value="Pagados",
+    )
+    hoja.cell(
+        row=fila_resumen + 2,
+        column=2,
+        value=pagados,
+    )
+
+    hoja.cell(
+        row=fila_resumen + 3,
+        column=1,
+        value="Pendientes",
+    )
+    hoja.cell(
+        row=fila_resumen + 3,
+        column=2,
+        value=pendientes,
+    )
+
+    porcentaje = (
+        round(
+            (
+                pagados
+                / total
+            ) * 100,
+            1,
+        )
+        if total
+        else 0
+    )
+
+    hoja.cell(
+        row=fila_resumen + 4,
+        column=1,
+        value="Cobranza",
+    )
+    hoja.cell(
+        row=fila_resumen + 4,
+        column=2,
+        value=porcentaje / 100,
+    ).number_format = "0.0%"
+
+    anchos = {
+        1: 28,
+        2: 20,
+        3: 18,
+        4: 16,
+        5: 16,
+        6: 16,
+        7: 16,
+    }
+
+    for numero_columna, ancho in anchos.items():
+        hoja.column_dimensions[
+            get_column_letter(
+                numero_columna
+            )
+        ].width = ancho
+
+    hoja.freeze_panes = "A4"
+    hoja.auto_filter.ref = (
+        f"A3:G{max(fila - 1, 3)}"
+    )
+
+    response = HttpResponse(
+        content_type=(
+            "application/"
+            "vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
+        )
+    )
+
+    nombre_archivo = (
+        "cuotas_"
+        f"{anio_cuota}_"
+        f"{mes_cuota:02d}.xlsx"
+    )
+
+    response[
+        "Content-Disposition"
+    ] = (
+        f'attachment; filename="{nombre_archivo}"'
+    )
+
+    workbook.save(response)
+
+    return response
+
+
+@requerir_admin_club
+@require_POST
+def cambiar_estado_cuota(request, jugador_id):
+    club = obtener_club_usuario(request.user)
+
+    jugador = get_object_or_404(
+        Jugador,
+        id=jugador_id,
+        club=club,
+    )
+
+    hoy = timezone.localdate()
+
+    try:
+        mes_cuota = int(
+            request.POST.get(
+                "mes",
+                hoy.month,
+            )
+        )
+    except (TypeError, ValueError):
+        mes_cuota = hoy.month
+
+    if mes_cuota < 1 or mes_cuota > 12:
+        mes_cuota = hoy.month
+
+    try:
+        anio_cuota = int(
+            request.POST.get(
+                "anio",
+                hoy.year,
+            )
+        )
+    except (TypeError, ValueError):
+        anio_cuota = hoy.year
+
+    if anio_cuota < 2000 or anio_cuota > 2100:
+        anio_cuota = hoy.year
+
+    inicio_periodo_cuota = datetime(
+        anio_cuota,
+        mes_cuota,
+        1,
+    ).date()
+
+    fin_periodo_cuota = datetime(
+        anio_cuota,
+        mes_cuota,
+        monthrange(
+            anio_cuota,
+            mes_cuota,
+        )[1],
+    ).date()
+
+    jugador_pertenecia_al_club = (
+        jugador.fecha_alta <= fin_periodo_cuota
+        and (
+            jugador.fecha_baja is None
+            or jugador.fecha_baja >= inicio_periodo_cuota
+        )
+    )
+
+    if not jugador_pertenecia_al_club:
+        messages.error(
+            request,
+            (
+                "No podés modificar la cuota de ese período "
+                "porque el jugador no pertenecía al club."
+            ),
+        )
+
+        return redirect(
+            f"{reverse('lista_jugadores')}"
+            f"?mes={mes_cuota}&anio={anio_cuota}"
+        )
+
+    pago, _ = PagoJugador.objects.get_or_create(
+        jugador=jugador,
+        anio=anio_cuota,
+        mes=mes_cuota,
+    )
+
+    accion = request.POST.get("accion")
+
+    if accion == "pagado":
+        pago.pagado = True
+        pago.fecha_pago = hoy
+
+        messages.success(
+            request,
+            f"Cuota de {jugador} marcada como pagada.",
+        )
+
+    elif accion == "pendiente":
+        pago.pagado = False
+        pago.fecha_pago = None
+
+        messages.info(
+            request,
+            f"Cuota de {jugador} marcada como pendiente.",
+        )
+
+    else:
+        messages.error(
+            request,
+            "Estado de cuota inválido.",
+        )
+
+        return redirect(
+            f"{reverse('lista_jugadores')}"
+            f"?mes={mes_cuota}&anio={anio_cuota}"
+        )
+
+    pago.save(
+        update_fields=[
+            "pagado",
+            "fecha_pago",
+        ]
+    )
+
+    return redirect(
+        f"{reverse('lista_jugadores')}"
+        f"?mes={mes_cuota}&anio={anio_cuota}"
     )
 
 
@@ -2540,6 +3603,248 @@ def editar_jugador(request, pk):
         {
             "form": form,
             "titulo": "Editar jugador",
+        },
+    )
+
+
+@requerir_admin_club
+def lista_categorias_jugador(request):
+    club = obtener_club_usuario(request.user)
+
+    categorias = list(
+        CategoriaJugador.objects
+        .filter(club=club)
+        .annotate(
+            cantidad_jugadores=Count("jugadores")
+        )
+        .order_by(
+            "orden",
+            "nombre",
+            "id",
+        )
+    )
+
+    total_categorias = len(categorias)
+
+    categorias_activas = sum(
+        1
+        for categoria in categorias
+        if categoria.activo
+    )
+
+    categorias_inactivas = (
+        total_categorias
+        - categorias_activas
+    )
+
+    jugadores_asignados = sum(
+        categoria.cantidad_jugadores
+        for categoria in categorias
+    )
+
+    for indice, categoria in enumerate(categorias):
+        categoria.puede_subir = indice > 0
+        categoria.puede_bajar = (
+            indice < total_categorias - 1
+        )
+
+    return render(
+        request,
+        "asistencia/lista_categorias_jugador.html",
+        {
+            "categorias": categorias,
+            "total_categorias": total_categorias,
+            "categorias_activas": categorias_activas,
+            "categorias_inactivas": categorias_inactivas,
+            "jugadores_asignados": jugadores_asignados,
+        },
+    )
+
+
+@requerir_admin_club
+@require_POST
+def mover_categoria_jugador(
+    request,
+    pk,
+    direccion,
+):
+    club = obtener_club_usuario(request.user)
+
+    if direccion not in {
+        "subir",
+        "bajar",
+    }:
+        messages.error(
+            request,
+            "Movimiento de categoría inválido.",
+        )
+        return redirect(
+            "lista_categorias_jugador"
+        )
+
+    with transaction.atomic():
+        categorias = list(
+            CategoriaJugador.objects
+            .select_for_update()
+            .filter(club=club)
+            .order_by(
+                "orden",
+                "nombre",
+                "id",
+            )
+        )
+
+        categoria_actual = None
+        indice_actual = None
+
+        for indice, categoria in enumerate(categorias):
+            if categoria.pk == pk:
+                categoria_actual = categoria
+                indice_actual = indice
+                break
+
+        if categoria_actual is None:
+            messages.error(
+                request,
+                "La categoría no existe.",
+            )
+            return redirect(
+                "lista_categorias_jugador"
+            )
+
+        for indice, categoria in enumerate(
+            categorias,
+            start=1,
+        ):
+            if categoria.orden != indice:
+                CategoriaJugador.objects.filter(
+                    pk=categoria.pk,
+                    club=club,
+                ).update(
+                    orden=indice
+                )
+                categoria.orden = indice
+
+        if direccion == "subir":
+            indice_destino = indice_actual - 1
+        else:
+            indice_destino = indice_actual + 1
+
+        if (
+            indice_destino < 0
+            or indice_destino >= len(categorias)
+        ):
+            return redirect(
+                "lista_categorias_jugador"
+            )
+
+        categoria_destino = categorias[indice_destino]
+
+        orden_actual = categoria_actual.orden
+        orden_destino = categoria_destino.orden
+
+        CategoriaJugador.objects.filter(
+            pk=categoria_actual.pk,
+            club=club,
+        ).update(
+            orden=orden_destino
+        )
+
+        CategoriaJugador.objects.filter(
+            pk=categoria_destino.pk,
+            club=club,
+        ).update(
+            orden=orden_actual
+        )
+
+    return redirect(
+        "lista_categorias_jugador"
+    )
+
+
+@requerir_admin_club
+def crear_categoria_jugador(request):
+    club = obtener_club_usuario(request.user)
+
+    if request.method == "POST":
+        form = CategoriaJugadorForm(
+            request.POST,
+            club=club,
+        )
+
+        if form.is_valid():
+            categoria = form.save(commit=False)
+            categoria.club = club
+            categoria.save()
+
+            messages.success(
+                request,
+                "Categoría de jugadores creada correctamente.",
+            )
+
+            return redirect(
+                "lista_categorias_jugador"
+            )
+
+    else:
+        form = CategoriaJugadorForm(
+            club=club,
+        )
+
+    return render(
+        request,
+        "asistencia/form_categoria_jugador.html",
+        {
+            "form": form,
+            "titulo": "Agregar categoría de jugadores",
+        },
+    )
+
+
+@requerir_admin_club
+def editar_categoria_jugador(request, pk):
+    club = obtener_club_usuario(request.user)
+
+    categoria = get_object_or_404(
+        CategoriaJugador,
+        pk=pk,
+        club=club,
+    )
+
+    if request.method == "POST":
+        form = CategoriaJugadorForm(
+            request.POST,
+            instance=categoria,
+            club=club,
+        )
+
+        if form.is_valid():
+            categoria_editada = form.save(commit=False)
+            categoria_editada.club = club
+            categoria_editada.save()
+
+            messages.success(
+                request,
+                "Categoría de jugadores editada correctamente.",
+            )
+
+            return redirect(
+                "lista_categorias_jugador"
+            )
+
+    else:
+        form = CategoriaJugadorForm(
+            instance=categoria,
+            club=club,
+        )
+
+    return render(
+        request,
+        "asistencia/form_categoria_jugador.html",
+        {
+            "form": form,
+            "titulo": "Editar categoría de jugadores",
+            "categoria": categoria,
         },
     )
 
@@ -3802,6 +5107,113 @@ def historial_jugador(request, jugador_id):
         )
     )
 
+    # Historial mensual de cuotas del jugador.
+    nombres_meses = {
+        1: "Enero",
+        2: "Febrero",
+        3: "Marzo",
+        4: "Abril",
+        5: "Mayo",
+        6: "Junio",
+        7: "Julio",
+        8: "Agosto",
+        9: "Septiembre",
+        10: "Octubre",
+        11: "Noviembre",
+        12: "Diciembre",
+    }
+
+    fecha_inicio_cuotas = jugador.fecha_alta.replace(day=1)
+
+    fecha_fin_membresia = (
+        jugador.fecha_baja
+        if jugador.fecha_baja
+        else hoy
+    )
+
+    fecha_fin_cuotas = min(
+        fecha_fin_membresia,
+        hoy,
+    ).replace(day=1)
+
+    pagos_jugador = {
+        (pago.anio, pago.mes): pago
+        for pago in PagoJugador.objects.filter(
+            jugador=jugador,
+        )
+    }
+
+    historial_cuotas = []
+
+    if fecha_inicio_cuotas <= fecha_fin_cuotas:
+        anio = fecha_inicio_cuotas.year
+        mes = fecha_inicio_cuotas.month
+
+        while (
+            anio < fecha_fin_cuotas.year
+            or (
+                anio == fecha_fin_cuotas.year
+                and mes <= fecha_fin_cuotas.month
+            )
+        ):
+            pago = pagos_jugador.get(
+                (anio, mes)
+            )
+
+            historial_cuotas.append({
+                "anio": anio,
+                "mes": mes,
+                "mes_nombre": nombres_meses[mes],
+                "pago": pago,
+                "pagado": bool(
+                    pago
+                    and pago.pagado
+                ),
+                "fecha_pago": (
+                    pago.fecha_pago
+                    if pago
+                    else None
+                ),
+                "observacion": (
+                    pago.observacion
+                    if pago
+                    else ""
+                ),
+            })
+
+            if mes == 12:
+                mes = 1
+                anio += 1
+            else:
+                mes += 1
+
+    historial_cuotas.reverse()
+
+    total_cuotas = len(historial_cuotas)
+
+    cuotas_pagadas = sum(
+        1
+        for cuota in historial_cuotas
+        if cuota["pagado"]
+    )
+
+    cuotas_pendientes = (
+        total_cuotas
+        - cuotas_pagadas
+    )
+
+    porcentaje_cuotas_pagadas = (
+        round(
+            (
+                cuotas_pagadas
+                / total_cuotas
+            ) * 100,
+            1,
+        )
+        if total_cuotas
+        else 0
+    )
+
     resumen = {
         "total_asistencias": total_asistencias,
         "total_presentes": total_presentes,
@@ -3828,6 +5240,11 @@ def historial_jugador(request, jugador_id):
         "total_ejercicios": len(ejercicios),
         "total_observaciones": observaciones.count(),
         "turnos_no_entrenados": turnos_no_entrenados.count(),
+
+        "total_cuotas": total_cuotas,
+        "cuotas_pagadas": cuotas_pagadas,
+        "cuotas_pendientes": cuotas_pendientes,
+        "porcentaje_cuotas_pagadas": porcentaje_cuotas_pagadas,
     }
 
     contexto = {
@@ -3842,6 +5259,7 @@ def historial_jugador(request, jugador_id):
         "ejercicios_frecuentes": ejercicios_frecuentes,
         "observaciones": observaciones,
         "turnos_no_entrenados": turnos_no_entrenados,
+        "historial_cuotas": historial_cuotas,
         "resumen": resumen,
 
         # Compatibilidad con el template viejo, por si alguna parte todavía los usa.
@@ -4540,6 +5958,1432 @@ def resumen_dia(request):
 
     return render(request, "asistencia/resumen_dia.html", contexto)
     
+
+
+@requerir_club
+def exportar_historial_jugador_excel(request, jugador_id):
+    club = obtener_club_usuario(request.user)
+
+    jugador = get_object_or_404(
+        Jugador,
+        id=jugador_id,
+        club=club,
+    )
+
+    hoy = timezone.localdate()
+
+    fecha_desde_str = request.GET.get("desde")
+    fecha_hasta_str = request.GET.get("hasta")
+
+    if fecha_desde_str:
+        try:
+            fecha_desde = datetime.strptime(
+                fecha_desde_str,
+                "%Y-%m-%d",
+            ).date()
+        except ValueError:
+            fecha_desde = hoy - timedelta(days=30)
+    else:
+        fecha_desde = hoy - timedelta(days=30)
+
+    if fecha_hasta_str:
+        try:
+            fecha_hasta = datetime.strptime(
+                fecha_hasta_str,
+                "%Y-%m-%d",
+            ).date()
+        except ValueError:
+            fecha_hasta = hoy
+    else:
+        fecha_hasta = hoy
+
+    if fecha_desde > fecha_hasta:
+        fecha_desde, fecha_hasta = (
+            fecha_hasta,
+            fecha_desde,
+        )
+
+    es_admin = PerfilUsuario.objects.filter(
+        usuario=request.user,
+        club=club,
+        activo=True,
+        rol=PerfilUsuario.Rol.ADMIN,
+    ).exists()
+
+    asistencias = (
+        Asistencia.objects
+        .filter(
+            jugador=jugador,
+            entrenamiento__club=club,
+            entrenamiento__fecha__range=[
+                fecha_desde,
+                fecha_hasta,
+            ],
+            entrenamiento__no_se_entreno=False,
+        )
+        .select_related(
+            "entrenamiento",
+            "entrenamiento__turno_config",
+        )
+        .order_by(
+            "-entrenamiento__fecha",
+            "entrenamiento__turno_config__orden",
+        )
+    )
+
+    partidos = (
+        PartidoTurno.objects
+        .filter(
+            entrenamiento__club=club,
+            entrenamiento__fecha__range=[
+                fecha_desde,
+                fecha_hasta,
+            ],
+        )
+        .filter(
+            Q(jugador_1=jugador)
+            | Q(jugador_2=jugador)
+        )
+        .select_related(
+            "entrenamiento",
+            "entrenamiento__turno_config",
+            "jugador_1",
+            "jugador_2",
+        )
+        .prefetch_related("sets")
+        .order_by(
+            "-entrenamiento__fecha",
+            "entrenamiento__turno_config__orden",
+            "-id",
+        )
+    )
+
+    trabajos = (
+        TrabajoTurno.objects
+        .filter(
+            entrenamiento__club=club,
+            entrenamiento__fecha__range=[
+                fecha_desde,
+                fecha_hasta,
+            ],
+        )
+        .filter(
+            Q(jugador_1=jugador)
+            | Q(jugador_2=jugador)
+        )
+        .select_related(
+            "entrenamiento",
+            "entrenamiento__turno_config",
+            "jugador_1",
+            "jugador_2",
+        )
+        .order_by(
+            "-entrenamiento__fecha",
+            "entrenamiento__turno_config__orden",
+            "cambio",
+        )
+    )
+
+    observaciones = (
+        ObservacionJugador.objects
+        .filter(
+            jugador=jugador,
+            entrenamiento__club=club,
+            entrenamiento__fecha__range=[
+                fecha_desde,
+                fecha_hasta,
+            ],
+        )
+        .select_related(
+            "entrenamiento",
+            "entrenamiento__turno_config",
+            "creada_por",
+        )
+        .order_by(
+            "-entrenamiento__fecha",
+            "-creada_el",
+        )
+    )
+
+    entrenamientos_ids = list(
+        asistencias.values_list(
+            "entrenamiento_id",
+            flat=True,
+        )
+    )
+
+    ejercicios = (
+        EjercicioTurno.objects
+        .filter(
+            entrenamiento_id__in=entrenamientos_ids,
+            entrenamiento__club=club,
+        )
+        .select_related(
+            "entrenamiento",
+            "entrenamiento__turno_config",
+            "ejercicio",
+            "ejercicio__categoria_config",
+        )
+        .order_by(
+            "-entrenamiento__fecha",
+            "entrenamiento__turno_config__orden",
+            "ejercicio__categoria_config__orden",
+            "ejercicio__nombre",
+        )
+    )
+
+    total_registros = asistencias.count()
+
+    total_presentes = asistencias.filter(
+        Q(estado="asistio")
+        | Q(estado="tarde")
+    ).count()
+
+    total_tardes = asistencias.filter(
+        estado="tarde",
+    ).count()
+
+    total_ausencias = asistencias.filter(
+        estado="ausente",
+    ).count()
+
+    total_pendientes = asistencias.filter(
+        estado="pendiente",
+    ).count()
+
+    porcentaje_asistencia = (
+        round(
+            (
+                total_presentes
+                / total_registros
+            ) * 100,
+            1,
+        )
+        if total_registros
+        else 0
+    )
+
+    total_partidos = partidos.count()
+    ganados = 0
+    perdidos = 0
+    empatados = 0
+
+    for partido in partidos:
+        sets_1 = partido.sets_jugador_1
+        sets_2 = partido.sets_jugador_2
+
+        if sets_1 == sets_2:
+            empatados += 1
+        elif partido.jugador_1_id == jugador.id:
+            if sets_1 > sets_2:
+                ganados += 1
+            else:
+                perdidos += 1
+        else:
+            if sets_2 > sets_1:
+                ganados += 1
+            else:
+                perdidos += 1
+
+    wb = Workbook()
+
+    titulo_font = Font(
+        bold=True,
+        size=14,
+        color="FFFFFF",
+    )
+
+    header_font = Font(
+        bold=True,
+        color="FFFFFF",
+    )
+
+    seccion_font = Font(
+        bold=True,
+        color="FFFFFF",
+    )
+
+    titulo_fill = PatternFill(
+        start_color="111827",
+        end_color="111827",
+        fill_type="solid",
+    )
+
+    header_fill = PatternFill(
+        start_color="374151",
+        end_color="374151",
+        fill_type="solid",
+    )
+
+    seccion_fill = PatternFill(
+        start_color="1F2937",
+        end_color="1F2937",
+        fill_type="solid",
+    )
+
+    center = Alignment(
+        horizontal="center",
+        vertical="center",
+    )
+
+    left = Alignment(
+        horizontal="left",
+        vertical="center",
+        wrap_text=True,
+    )
+
+    def turno_texto(entrenamiento):
+        if entrenamiento.turno_config:
+            texto = entrenamiento.turno_config.nombre
+
+            if entrenamiento.turno_config.hora_inicio:
+                texto += (
+                    " · "
+                    + entrenamiento.turno_config.hora_inicio.strftime(
+                        "%H:%M"
+                    )
+                )
+
+            if entrenamiento.turno_config.hora_fin:
+                texto += (
+                    "-"
+                    + entrenamiento.turno_config.hora_fin.strftime(
+                        "%H:%M"
+                    )
+                )
+
+            return texto
+
+        return entrenamiento.nombre_turno
+
+    def aplicar_titulo(
+        ws,
+        texto,
+        columnas,
+    ):
+        ws.merge_cells(
+            start_row=1,
+            start_column=1,
+            end_row=1,
+            end_column=columnas,
+        )
+
+        celda = ws.cell(
+            row=1,
+            column=1,
+            value=texto,
+        )
+
+        celda.font = titulo_font
+        celda.fill = titulo_fill
+        celda.alignment = center
+
+    def aplicar_header(
+        ws,
+        fila,
+    ):
+        for celda in ws[fila]:
+            celda.font = header_font
+            celda.fill = header_fill
+            celda.alignment = center
+
+    def aplicar_seccion(
+        ws,
+        fila,
+        texto,
+        columnas,
+    ):
+        ws.merge_cells(
+            start_row=fila,
+            start_column=1,
+            end_row=fila,
+            end_column=columnas,
+        )
+
+        celda = ws.cell(
+            row=fila,
+            column=1,
+            value=texto,
+        )
+
+        celda.font = seccion_font
+        celda.fill = seccion_fill
+        celda.alignment = left
+
+    def ajustar_columnas(ws):
+        for fila in ws.iter_rows():
+            for celda in fila:
+                if celda.row != 1:
+                    celda.alignment = left
+
+        for numero_columna in range(
+            1,
+            ws.max_column + 1,
+        ):
+            letra = get_column_letter(
+                numero_columna
+            )
+
+            ancho_maximo = 0
+
+            for numero_fila in range(
+                1,
+                ws.max_row + 1,
+            ):
+                valor = ws.cell(
+                    row=numero_fila,
+                    column=numero_columna,
+                ).value
+
+                if valor is not None:
+                    ancho_maximo = max(
+                        ancho_maximo,
+                        len(str(valor)),
+                    )
+
+            ws.column_dimensions[
+                letra
+            ].width = min(
+                ancho_maximo + 3,
+                45,
+            )
+
+    nombre_jugador = str(jugador)
+
+    titulo_base = (
+        f"HISTORIAL - {nombre_jugador}"
+    )
+
+    # =========================
+    # HOJA 1: RESUMEN
+    # =========================
+    ws = wb.active
+    ws.title = "Resumen"
+
+    aplicar_titulo(
+        ws,
+        titulo_base,
+        4,
+    )
+
+    aplicar_seccion(
+        ws,
+        3,
+        "DATOS DEL JUGADOR",
+        4,
+    )
+
+    ws.append([
+        "Campo",
+        "Valor",
+        "",
+        "",
+    ])
+    aplicar_header(ws, 4)
+
+    ws.append([
+        "Jugador",
+        nombre_jugador,
+        "",
+        "",
+    ])
+
+    ws.append([
+        "Categoría",
+        (
+            jugador.categoria.nombre
+            if jugador.categoria
+            else "Sin categoría"
+        ),
+        "",
+        "",
+    ])
+
+    ws.append([
+        "Estado",
+        (
+            "Activo"
+            if jugador.activo
+            else "Inactivo"
+        ),
+        "",
+        "",
+    ])
+
+    ws.append([
+        "Fecha de alta",
+        jugador.fecha_alta.strftime("%d/%m/%Y"),
+        "",
+        "",
+    ])
+
+    ws.append([
+        "Fecha de baja",
+        (
+            jugador.fecha_baja.strftime("%d/%m/%Y")
+            if jugador.fecha_baja
+            else "-"
+        ),
+        "",
+        "",
+    ])
+
+    ws.append([
+        "Período exportado",
+        (
+            f"{fecha_desde.strftime('%d/%m/%Y')} "
+            f"al {fecha_hasta.strftime('%d/%m/%Y')}"
+        ),
+        "",
+        "",
+    ])
+
+    aplicar_seccion(
+        ws,
+        12,
+        "RESUMEN DEL PERÍODO",
+        4,
+    )
+
+    ws.append([
+        "Indicador",
+        "Valor",
+        "",
+        "",
+    ])
+    aplicar_header(ws, 13)
+
+    resumen_filas = [
+        ["Registros de asistencia", total_registros],
+        ["Presentes", total_presentes],
+        ["Tardes", total_tardes],
+        ["Ausencias", total_ausencias],
+        ["Pendientes", total_pendientes],
+        ["% asistencia", porcentaje_asistencia / 100],
+        ["Partidos", total_partidos],
+        ["Partidos ganados", ganados],
+        ["Partidos perdidos", perdidos],
+        ["Partidos empatados", empatados],
+        ["Trabajos", trabajos.count()],
+        ["Observaciones", observaciones.count()],
+    ]
+
+    for etiqueta, valor in resumen_filas:
+        ws.append([
+            etiqueta,
+            valor,
+            "",
+            "",
+        ])
+
+    ws.cell(
+        row=19,
+        column=2,
+    ).number_format = "0.0%"
+
+    ajustar_columnas(ws)
+
+    # =========================
+    # HOJA 2: ASISTENCIAS
+    # =========================
+    ws = wb.create_sheet("Asistencias")
+
+    aplicar_titulo(
+        ws,
+        titulo_base,
+        6,
+    )
+
+    ws.append([])
+    ws.append([
+        "Fecha",
+        "Turno",
+        "Estado",
+        "Motivo ausencia",
+        "Detalle ausencia",
+        "Entrenador",
+    ])
+    aplicar_header(ws, 3)
+
+    for asistencia in asistencias:
+        entrenamiento = asistencia.entrenamiento
+
+        if asistencia.estado == "asistio":
+            estado = "Asistió"
+        elif asistencia.estado == "tarde":
+            estado = "Tarde"
+        elif asistencia.estado == "ausente":
+            estado = "Ausente"
+        else:
+            estado = "Pendiente"
+
+        motivo = (
+            asistencia.get_motivo_ausencia_display()
+            if asistencia.motivo_ausencia
+            else "-"
+        )
+
+        ws.append([
+            entrenamiento.fecha,
+            turno_texto(entrenamiento),
+            estado,
+            motivo,
+            asistencia.detalle_ausencia or "-",
+            entrenamiento.nombre_entrenador,
+        ])
+
+        ws.cell(
+            row=ws.max_row,
+            column=1,
+        ).number_format = "DD/MM/YYYY"
+
+    ws.freeze_panes = "A4"
+
+    if ws.max_row >= 4:
+        ws.auto_filter.ref = (
+            f"A3:F{ws.max_row}"
+        )
+
+    ajustar_columnas(ws)
+
+    # =========================
+    # HOJA 3: PARTIDOS
+    # =========================
+    ws = wb.create_sheet("Partidos")
+
+    aplicar_titulo(
+        ws,
+        titulo_base,
+        7,
+    )
+
+    ws.append([])
+    ws.append([
+        "Fecha",
+        "Turno",
+        "Rival",
+        "Resultado",
+        "Condición",
+        "Sets",
+        "Detalle",
+    ])
+    aplicar_header(ws, 3)
+
+    for partido in partidos:
+        sets_1 = partido.sets_jugador_1
+        sets_2 = partido.sets_jugador_2
+
+        if partido.jugador_1_id == jugador.id:
+            rival = partido.jugador_2
+            sets_jugador = sets_1
+            sets_rival = sets_2
+        else:
+            rival = partido.jugador_1
+            sets_jugador = sets_2
+            sets_rival = sets_1
+
+        if sets_jugador > sets_rival:
+            condicion = "Ganado"
+        elif sets_jugador < sets_rival:
+            condicion = "Perdido"
+        else:
+            condicion = "Empatado"
+
+        sets_texto = []
+
+        for set_partido in partido.sets.all():
+            if partido.jugador_1_id == jugador.id:
+                puntos_jugador = (
+                    set_partido.puntos_jugador_1
+                )
+                puntos_rival = (
+                    set_partido.puntos_jugador_2
+                )
+            else:
+                puntos_jugador = (
+                    set_partido.puntos_jugador_2
+                )
+                puntos_rival = (
+                    set_partido.puntos_jugador_1
+                )
+
+            sets_texto.append(
+                f"{puntos_jugador}-{puntos_rival}"
+            )
+
+        ws.append([
+            partido.entrenamiento.fecha,
+            turno_texto(
+                partido.entrenamiento
+            ),
+            str(rival),
+            f"{sets_jugador}-{sets_rival}",
+            condicion,
+            (
+                " / ".join(sets_texto)
+                if sets_texto
+                else "-"
+            ),
+            partido.detalle or "-",
+        ])
+
+        ws.cell(
+            row=ws.max_row,
+            column=1,
+        ).number_format = "DD/MM/YYYY"
+
+    ws.freeze_panes = "A4"
+
+    if ws.max_row >= 4:
+        ws.auto_filter.ref = (
+            f"A3:G{ws.max_row}"
+        )
+
+    ajustar_columnas(ws)
+
+    # =========================
+    # HOJA 4: TRABAJOS
+    # =========================
+    ws = wb.create_sheet("Trabajos")
+
+    aplicar_titulo(
+        ws,
+        titulo_base,
+        7,
+    )
+
+    ws.append([])
+    ws.append([
+        "Fecha",
+        "Turno",
+        "Cambio",
+        "Tipo",
+        "Compañero",
+        "Detalle",
+        "Jugador",
+    ])
+    aplicar_header(ws, 3)
+
+    for trabajo in trabajos:
+        if trabajo.jugador_1_id == jugador.id:
+            companero = trabajo.jugador_2
+        else:
+            companero = trabajo.jugador_1
+
+        ws.append([
+            trabajo.entrenamiento.fecha,
+            turno_texto(
+                trabajo.entrenamiento
+            ),
+            trabajo.cambio,
+            trabajo.get_tipo_display(),
+            (
+                str(companero)
+                if companero
+                else "-"
+            ),
+            trabajo.detalle or "-",
+            nombre_jugador,
+        ])
+
+        ws.cell(
+            row=ws.max_row,
+            column=1,
+        ).number_format = "DD/MM/YYYY"
+
+    ws.freeze_panes = "A4"
+
+    if ws.max_row >= 4:
+        ws.auto_filter.ref = (
+            f"A3:G{ws.max_row}"
+        )
+
+    ajustar_columnas(ws)
+
+    # =========================
+    # HOJA 5: OBSERVACIONES
+    # =========================
+    ws = wb.create_sheet("Observaciones")
+
+    aplicar_titulo(
+        ws,
+        titulo_base,
+        5,
+    )
+
+    ws.append([])
+    ws.append([
+        "Fecha",
+        "Turno",
+        "Observación",
+        "Creada por",
+        "Fecha de carga",
+    ])
+    aplicar_header(ws, 3)
+
+    for observacion in observaciones:
+        ws.append([
+            observacion.entrenamiento.fecha,
+            turno_texto(
+                observacion.entrenamiento
+            ),
+            observacion.texto,
+            (
+                observacion.creada_por.get_full_name()
+                or observacion.creada_por.username
+                if observacion.creada_por
+                else "-"
+            ),
+            observacion.creada_el.replace(
+                tzinfo=None
+            ),
+        ])
+
+        ws.cell(
+            row=ws.max_row,
+            column=1,
+        ).number_format = "DD/MM/YYYY"
+
+        ws.cell(
+            row=ws.max_row,
+            column=5,
+        ).number_format = "DD/MM/YYYY HH:MM"
+
+    ws.freeze_panes = "A4"
+
+    if ws.max_row >= 4:
+        ws.auto_filter.ref = (
+            f"A3:E{ws.max_row}"
+        )
+
+    ajustar_columnas(ws)
+
+    # =========================
+    # HOJA 6: EJERCICIOS
+    # =========================
+    ws = wb.create_sheet("Ejercicios")
+
+    aplicar_titulo(
+        ws,
+        titulo_base,
+        4,
+    )
+
+    ws.append([])
+    ws.append([
+        "Fecha",
+        "Turno",
+        "Categoría",
+        "Ejercicio",
+    ])
+    aplicar_header(ws, 3)
+
+    for item in ejercicios:
+        ws.append([
+            item.entrenamiento.fecha,
+            turno_texto(
+                item.entrenamiento
+            ),
+            (
+                item.ejercicio.categoria_config.nombre
+                if item.ejercicio.categoria_config
+                else "Sin categoría"
+            ),
+            item.ejercicio.nombre,
+        ])
+
+        ws.cell(
+            row=ws.max_row,
+            column=1,
+        ).number_format = "DD/MM/YYYY"
+
+    ws.freeze_panes = "A4"
+
+    if ws.max_row >= 4:
+        ws.auto_filter.ref = (
+            f"A3:D{ws.max_row}"
+        )
+
+    ajustar_columnas(ws)
+
+    # =========================
+    # HOJA 7: CUOTAS
+    # SOLO ADMIN
+    # =========================
+    if es_admin:
+        ws = wb.create_sheet("Cuotas")
+
+        aplicar_titulo(
+            ws,
+            titulo_base,
+            5,
+        )
+
+        ws.append([])
+        ws.append([
+            "Período",
+            "Estado",
+            "Fecha de pago",
+            "Observación",
+            "Jugador",
+        ])
+        aplicar_header(ws, 3)
+
+        fecha_inicio = jugador.fecha_alta.replace(
+            day=1
+        )
+
+        fecha_fin_membresia = (
+            jugador.fecha_baja
+            if jugador.fecha_baja
+            else hoy
+        )
+
+        fecha_fin = min(
+            fecha_fin_membresia,
+            hoy,
+        ).replace(day=1)
+
+        pagos = {
+            (pago.anio, pago.mes): pago
+            for pago in PagoJugador.objects.filter(
+                jugador=jugador,
+            )
+        }
+
+        cursor = fecha_inicio
+
+        while cursor <= fecha_fin:
+            pago = pagos.get(
+                (
+                    cursor.year,
+                    cursor.month,
+                )
+            )
+
+            pagado = (
+                pago.pagado
+                if pago
+                else False
+            )
+
+            ws.append([
+                cursor,
+                (
+                    "Pagado"
+                    if pagado
+                    else "Pendiente"
+                ),
+                (
+                    pago.fecha_pago
+                    if (
+                        pago
+                        and pago.fecha_pago
+                    )
+                    else "-"
+                ),
+                (
+                    pago.observacion
+                    if (
+                        pago
+                        and pago.observacion
+                    )
+                    else "-"
+                ),
+                nombre_jugador,
+            ])
+
+            ws.cell(
+                row=ws.max_row,
+                column=1,
+            ).number_format = "MM/YYYY"
+
+            if (
+                pago
+                and pago.fecha_pago
+            ):
+                ws.cell(
+                    row=ws.max_row,
+                    column=3,
+                ).number_format = "DD/MM/YYYY"
+
+            if cursor.month == 12:
+                cursor = cursor.replace(
+                    year=cursor.year + 1,
+                    month=1,
+                )
+            else:
+                cursor = cursor.replace(
+                    month=cursor.month + 1,
+                )
+
+        ws.freeze_panes = "A4"
+
+        if ws.max_row >= 4:
+            ws.auto_filter.ref = (
+                f"A3:E{ws.max_row}"
+            )
+
+        ajustar_columnas(ws)
+
+    response = HttpResponse(
+        content_type=(
+            "application/"
+            "vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
+        )
+    )
+
+    nombre_archivo = (
+        f"historial_jugador_{jugador.id}_"
+        f"{fecha_desde.strftime('%Y%m%d')}_"
+        f"{fecha_hasta.strftime('%Y%m%d')}.xlsx"
+    )
+
+    response[
+        "Content-Disposition"
+    ] = (
+        f'attachment; filename="{nombre_archivo}"'
+    )
+
+    wb.save(response)
+
+    return response
+
+
+@requerir_club
+def exportar_asistencia_excel(request):
+    club = obtener_club_usuario(request.user)
+    hoy = timezone.localdate()
+
+    fecha_str = request.GET.get("fecha")
+
+    if fecha_str:
+        try:
+            fecha_base = datetime.strptime(
+                fecha_str,
+                "%Y-%m-%d",
+            ).date()
+        except ValueError:
+            fecha_base = hoy
+    else:
+        fecha_base = hoy
+
+    inicio_mes = fecha_base.replace(day=1)
+
+    if inicio_mes.month == 12:
+        inicio_mes_siguiente = inicio_mes.replace(
+            year=inicio_mes.year + 1,
+            month=1,
+        )
+    else:
+        inicio_mes_siguiente = inicio_mes.replace(
+            month=inicio_mes.month + 1,
+        )
+
+    fin_mes = inicio_mes_siguiente - timedelta(days=1)
+
+    asistencias = (
+        Asistencia.objects
+        .filter(
+            entrenamiento__club=club,
+            entrenamiento__fecha__range=[
+                inicio_mes,
+                fin_mes,
+            ],
+            entrenamiento__no_se_entreno=False,
+        )
+        .select_related(
+            "jugador",
+            "jugador__categoria",
+            "entrenamiento",
+            "entrenamiento__turno_config",
+            "entrenamiento__responsable_usuario",
+        )
+        .order_by(
+            F("jugador__categoria__orden").asc(
+                nulls_last=True
+            ),
+            F("jugador__categoria__nombre").asc(
+                nulls_last=True
+            ),
+            "jugador__apellido",
+            "jugador__nombre",
+            "entrenamiento__fecha",
+            "entrenamiento__turno_config__orden",
+        )
+    )
+
+    jugadores = (
+        Jugador.objects
+        .filter(
+            club=club,
+            fecha_alta__lte=fin_mes,
+        )
+        .filter(
+            Q(fecha_baja__isnull=True)
+            | Q(fecha_baja__gte=inicio_mes)
+        )
+        .select_related("categoria")
+        .order_by(
+            F("categoria__orden").asc(
+                nulls_last=True
+            ),
+            F("categoria__nombre").asc(
+                nulls_last=True
+            ),
+            "apellido",
+            "nombre",
+        )
+    )
+
+    workbook = Workbook()
+
+    hoja_resumen = workbook.active
+    hoja_resumen.title = "Resumen"
+
+    titulo_font = Font(
+        bold=True,
+        size=14,
+        color="FFFFFF",
+    )
+
+    header_font = Font(
+        bold=True,
+        color="FFFFFF",
+    )
+
+    titulo_fill = PatternFill(
+        start_color="111827",
+        end_color="111827",
+        fill_type="solid",
+    )
+
+    header_fill = PatternFill(
+        start_color="374151",
+        end_color="374151",
+        fill_type="solid",
+    )
+
+    center = Alignment(
+        horizontal="center",
+        vertical="center",
+    )
+
+    left = Alignment(
+        horizontal="left",
+        vertical="center",
+        wrap_text=True,
+    )
+
+    def aplicar_titulo(
+        hoja,
+        texto,
+        columnas,
+    ):
+        hoja.merge_cells(
+            start_row=1,
+            start_column=1,
+            end_row=1,
+            end_column=columnas,
+        )
+
+        celda = hoja.cell(
+            row=1,
+            column=1,
+            value=texto,
+        )
+
+        celda.font = titulo_font
+        celda.fill = titulo_fill
+        celda.alignment = center
+
+    def aplicar_encabezados(
+        hoja,
+        fila,
+    ):
+        for celda in hoja[fila]:
+            celda.font = header_font
+            celda.fill = header_fill
+            celda.alignment = center
+
+    def ajustar_columnas(hoja):
+        for fila in hoja.iter_rows():
+            for celda in fila:
+                if celda.row != 1:
+                    celda.alignment = left
+
+        for numero_columna in range(
+            1,
+            hoja.max_column + 1,
+        ):
+            letra = get_column_letter(
+                numero_columna
+            )
+
+            ancho_maximo = 0
+
+            for numero_fila in range(
+                1,
+                hoja.max_row + 1,
+            ):
+                valor = hoja.cell(
+                    row=numero_fila,
+                    column=numero_columna,
+                ).value
+
+                if valor is not None:
+                    ancho_maximo = max(
+                        ancho_maximo,
+                        len(str(valor)),
+                    )
+
+            hoja.column_dimensions[
+                letra
+            ].width = min(
+                ancho_maximo + 3,
+                40,
+            )
+
+    nombre_club = getattr(
+        club,
+        "nombre",
+        str(club),
+    )
+
+    titulo = (
+        f"ASISTENCIA - {nombre_club} - "
+        f"{inicio_mes.strftime('%m/%Y')}"
+    )
+
+    aplicar_titulo(
+        hoja_resumen,
+        titulo,
+        8,
+    )
+
+    hoja_resumen.append([])
+    hoja_resumen.append([
+        "Jugador",
+        "Categoría",
+        "Registros",
+        "Presentes",
+        "Tardes",
+        "Ausencias",
+        "Pendientes",
+        "% asistencia",
+    ])
+
+    aplicar_encabezados(
+        hoja_resumen,
+        3,
+    )
+
+    for jugador in jugadores:
+        registros = asistencias.filter(
+            jugador=jugador,
+        )
+
+        total = registros.count()
+
+        presentes = registros.filter(
+            Q(estado="asistio")
+            | Q(estado="tarde")
+        ).count()
+
+        tardes = registros.filter(
+            estado="tarde",
+        ).count()
+
+        ausencias = registros.filter(
+            estado="ausente",
+        ).count()
+
+        pendientes = registros.filter(
+            estado="pendiente",
+        ).count()
+
+        porcentaje = (
+            round(
+                (
+                    presentes
+                    / total
+                ) * 100,
+                1,
+            )
+            if total
+            else 0
+        )
+
+        hoja_resumen.append([
+            str(jugador),
+            (
+                jugador.categoria.nombre
+                if jugador.categoria
+                else "Sin categoría"
+            ),
+            total,
+            presentes,
+            tardes,
+            ausencias,
+            pendientes,
+            porcentaje / 100,
+        ])
+
+        hoja_resumen.cell(
+            row=hoja_resumen.max_row,
+            column=8,
+        ).number_format = "0.0%"
+
+    hoja_resumen.freeze_panes = "A4"
+
+    if hoja_resumen.max_row >= 4:
+        hoja_resumen.auto_filter.ref = (
+            f"A3:H{hoja_resumen.max_row}"
+        )
+
+    ajustar_columnas(
+        hoja_resumen
+    )
+
+    hoja_detalle = workbook.create_sheet(
+        "Asistencia detallada"
+    )
+
+    aplicar_titulo(
+        hoja_detalle,
+        titulo,
+        8,
+    )
+
+    hoja_detalle.append([])
+    hoja_detalle.append([
+        "Fecha",
+        "Turno",
+        "Jugador",
+        "Categoría",
+        "Estado",
+        "Motivo ausencia",
+        "Detalle ausencia",
+        "Entrenador",
+    ])
+
+    aplicar_encabezados(
+        hoja_detalle,
+        3,
+    )
+
+    for asistencia in asistencias:
+        entrenamiento = asistencia.entrenamiento
+
+        if entrenamiento.turno_config:
+            turno = entrenamiento.turno_config.nombre
+
+            if entrenamiento.turno_config.hora_inicio:
+                turno += (
+                    " · "
+                    + entrenamiento.turno_config.hora_inicio.strftime(
+                        "%H:%M"
+                    )
+                )
+
+            if entrenamiento.turno_config.hora_fin:
+                turno += (
+                    "-"
+                    + entrenamiento.turno_config.hora_fin.strftime(
+                        "%H:%M"
+                    )
+                )
+        else:
+            turno = entrenamiento.nombre_turno
+
+        if asistencia.estado == "asistio":
+            estado = "Asistió"
+        elif asistencia.estado == "tarde":
+            estado = "Tarde"
+        elif asistencia.estado == "ausente":
+            estado = "Ausente"
+        else:
+            estado = "Pendiente"
+
+        if (
+            asistencia.estado == "ausente"
+            and asistencia.motivo_ausencia
+        ):
+            motivo = (
+                asistencia.get_motivo_ausencia_display()
+            )
+        else:
+            motivo = "-"
+
+        detalle = (
+            asistencia.detalle_ausencia
+            if asistencia.detalle_ausencia
+            else "-"
+        )
+
+        entrenador = (
+            entrenamiento.nombre_entrenador
+        )
+
+        hoja_detalle.append([
+            entrenamiento.fecha,
+            turno,
+            str(asistencia.jugador),
+            (
+                asistencia.jugador.categoria.nombre
+                if asistencia.jugador.categoria
+                else "Sin categoría"
+            ),
+            estado,
+            motivo,
+            detalle,
+            entrenador,
+        ])
+
+        hoja_detalle.cell(
+            row=hoja_detalle.max_row,
+            column=1,
+        ).number_format = "DD/MM/YYYY"
+
+    hoja_detalle.freeze_panes = "A4"
+
+    if hoja_detalle.max_row >= 4:
+        hoja_detalle.auto_filter.ref = (
+            f"A3:H{hoja_detalle.max_row}"
+        )
+
+    ajustar_columnas(
+        hoja_detalle
+    )
+
+    response = HttpResponse(
+        content_type=(
+            "application/"
+            "vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
+        )
+    )
+
+    nombre_archivo = (
+        "asistencia_"
+        f"{inicio_mes.year}_"
+        f"{inicio_mes.month:02d}.xlsx"
+    )
+
+    response[
+        "Content-Disposition"
+    ] = (
+        f'attachment; filename="{nombre_archivo}"'
+    )
+
+    workbook.save(
+        response
+    )
+
+    return response
+
+
 @login_required
 def exportar_reporte_mensual(request):
     club = obtener_club_usuario(request.user)

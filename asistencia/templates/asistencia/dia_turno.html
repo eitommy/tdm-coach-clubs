@@ -8,6 +8,7 @@
 
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
     <div>
+        <div class="small text-uppercase fw-semibold text-primary mb-1">Operación diaria</div>
         <h1 class="mb-1">Carga del turno</h1>
 
         <p class="text-muted mb-1">
@@ -80,7 +81,7 @@
 {% endif %}
 
 <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
+    <div class="card-body p-4">
         <div class="row g-3 align-items-end">
             <div class="col-md-5">
                 <label class="form-label fw-semibold">Cambiar fecha</label>
@@ -157,9 +158,10 @@
 </div>
 
 <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
+    <div class="card-body p-4">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
             <div>
+                <div class="small text-uppercase fw-semibold text-primary mb-1">Estado del turno</div>
                 <h4 class="mb-1">Resumen rápido</h4>
                 <p class="text-muted mb-0">
                     Estado general de
@@ -172,19 +174,19 @@
             </div>
 
             {% if entrenamiento.no_se_entreno %}
-                <span class="badge bg-danger fs-6">
+                <span class="badge bg-danger fs-6 px-3 py-2">
                     No se entrenó
                 </span>
             {% elif entrenamiento.finalizado %}
-                <span class="badge bg-success fs-6">
+                <span class="badge bg-success fs-6 px-3 py-2">
                     Turno finalizado
                 </span>
             {% elif resumen_turno.listo_para_finalizar %}
-                <span class="badge bg-primary fs-6">
+                <span class="badge bg-primary fs-6 px-3 py-2">
                     Listo para finalizar
                 </span>
             {% else %}
-                <span class="badge bg-warning text-dark fs-6">
+                <span class="badge bg-warning text-dark fs-6 px-3 py-2">
                     Datos pendientes
                 </span>
             {% endif %}
@@ -193,28 +195,28 @@
         <div class="row g-3">
             <div class="col-6 col-md-3">
                 <div class="border rounded p-3 h-100">
-                    <div class="small text-muted">Jugadores</div>
+                    <div class="small text-uppercase fw-semibold text-muted mb-1">Jugadores</div>
                     <div class="fs-3 fw-bold">{{ resumen_turno.total_jugadores }}</div>
                 </div>
             </div>
 
             <div class="col-6 col-md-3">
                 <div class="border rounded p-3 h-100">
-                    <div class="small text-muted">Presentes</div>
+                    <div class="small text-uppercase fw-semibold text-muted mb-1">Presentes</div>
                     <div class="fs-3 fw-bold text-success">{{ resumen_turno.presentes }}</div>
                 </div>
             </div>
 
             <div class="col-6 col-md-3">
                 <div class="border rounded p-3 h-100">
-                    <div class="small text-muted">Ausentes</div>
+                    <div class="small text-uppercase fw-semibold text-muted mb-1">Ausentes</div>
                     <div class="fs-3 fw-bold text-danger">{{ resumen_turno.ausentes }}</div>
                 </div>
             </div>
 
             <div class="col-6 col-md-3">
                 <div class="border rounded p-3 h-100">
-                    <div class="small text-muted">Pendientes</div>
+                    <div class="small text-uppercase fw-semibold text-muted mb-1">Pendientes</div>
                     <div class="fs-3 fw-bold {% if resumen_turno.pendientes > 0 %}text-danger{% else %}text-success{% endif %}">
                         {{ resumen_turno.pendientes }}
                     </div>
@@ -223,28 +225,28 @@
 
             <div class="col-6 col-md-3">
                 <div class="border rounded p-3 h-100">
-                    <div class="small text-muted">Tardes</div>
+                    <div class="small text-uppercase fw-semibold text-muted mb-1">Tardes</div>
                     <div class="fs-3 fw-bold text-warning">{{ resumen_turno.tardes }}</div>
                 </div>
             </div>
 
             <div class="col-6 col-md-3">
                 <div class="border rounded p-3 h-100">
-                    <div class="small text-muted">Ejercicios</div>
+                    <div class="small text-uppercase fw-semibold text-muted mb-1">Ejercicios</div>
                     <div class="fs-3 fw-bold">{{ resumen_turno.total_ejercicios }}</div>
                 </div>
             </div>
 
             <div class="col-6 col-md-3">
                 <div class="border rounded p-3 h-100">
-                    <div class="small text-muted">Trabajos</div>
+                    <div class="small text-uppercase fw-semibold text-muted mb-1">Trabajos</div>
                     <div class="fs-3 fw-bold">{{ resumen_turno.total_trabajos }}</div>
                 </div>
             </div>
 
             <div class="col-6 col-md-3">
                 <div class="border rounded p-3 h-100">
-                    <div class="small text-muted">Partidos</div>
+                    <div class="small text-uppercase fw-semibold text-muted mb-1">Partidos</div>
                     <div class="fs-3 fw-bold">{{ resumen_turno.total_partidos }}</div>
                 </div>
             </div>
@@ -268,7 +270,7 @@
 
 {% if entrenamiento.no_se_entreno %}
     <div id="estado-entrenamiento" class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
+        <div class="card-body p-4">
             <div class="alert alert-danger mb-3">
                 <div class="fw-bold">
                     Este turno fue marcado como no entrenado.
@@ -307,7 +309,8 @@
     <div class="row g-3 mb-4">
         <div class="col-md-6">
             <div id="info-turno" class="card h-100 shadow-sm border-0">
-                <div class="card-body">
+                <div class="card-body p-4">
+                    <div class="small text-uppercase fw-semibold text-primary mb-1">Configuración</div>
                     <h5 class="mb-3">Responsable del turno</h5>
 
                     <form method="post"
@@ -319,7 +322,7 @@
 
                         <div class="mb-3">
                             <label for="{{ entrenamiento_form.responsable_usuario.id_for_label }}"
-                                   class="form-label">
+                                   class="form-label fw-semibold">
                                 Entrenador responsable
                             </label>
 
@@ -337,7 +340,7 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">
+                            <label class="form-label fw-semibold">
                                 Observaciones generales
                             </label>
 
@@ -356,9 +359,10 @@
 
         <div class="col-md-6">
             <div id="agregar-jugadores" class="card h-100 shadow-sm border-0">
-                <div class="card-body">
+                <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
                         <div>
+                            <div class="small text-uppercase fw-semibold text-primary mb-1">Plantel</div>
                             <h5 class="mb-1">Agregar jugadores</h5>
                             <p class="text-muted mb-0">
                                 Seleccioná jugadores para cargarlos al turno.
@@ -461,9 +465,10 @@
 
     {% if not entrenamiento.finalizado %}
         <div class="card shadow-sm border-0 mb-4">
-            <div class="card-body">
+            <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                     <div>
+                        <div class="small text-uppercase fw-semibold text-primary mb-1">Atajos</div>
                         <h5 class="mb-1">Carga rápida</h5>
 
                         <p class="text-muted mb-0">
@@ -535,9 +540,10 @@
     {% endif %}
 
     <div id="jugadores-turno" class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
+        <div class="card-body p-4">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
                 <div>
+                    <div class="small text-uppercase fw-semibold text-primary mb-1">Asistencia</div>
                     <h4 class="mb-1">Jugadores y asistencia</h4>
 
                     <p class="text-muted mb-0">
@@ -545,7 +551,7 @@
                     </p>
                 </div>
 
-                <span class="badge bg-dark fs-6">
+                <span class="badge bg-dark fs-6 px-3 py-2">
                     {{ asistencias|length }}
                     jugador{{ asistencias|length|pluralize:"es" }}
                 </span>
@@ -796,6 +802,7 @@
                 </div>
             {% else %}
                 <div class="text-center py-5">
+                    <div class="fs-2 mb-2">🏓</div>
                     <h5 class="mb-2">
                         Todavía no hay jugadores cargados
                     </h5>
@@ -809,9 +816,10 @@
     </div>
 
     <div id="trabajo-turno" class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
+        <div class="card-body p-4">
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
                 <div>
+                    <div class="small text-uppercase fw-semibold text-primary mb-1">Trabajo técnico</div>
                     <h4 class="mb-1">Trabajo del turno</h4>
 
                     <p class="text-muted mb-0">
@@ -819,7 +827,7 @@
                     </p>
                 </div>
 
-                <span class="badge bg-primary fs-6">
+                <span class="badge bg-primary fs-6 px-3 py-2">
                     {{ trabajos_turno|length }}
                     trabajo{{ trabajos_turno|length|pluralize:"s" }}
                 </span>
@@ -836,7 +844,7 @@
                     <div class="row g-3">
                         <div class="col-md-2">
                             <label for="{{ trabajo_form.cambio.id_for_label }}"
-                                   class="form-label">
+                                   class="form-label fw-semibold">
                                 Cambio
                             </label>
 
@@ -845,7 +853,7 @@
 
                         <div class="col-md-3">
                             <label for="{{ trabajo_form.tipo.id_for_label }}"
-                                   class="form-label">
+                                   class="form-label fw-semibold">
                                 Tipo
                             </label>
 
@@ -854,7 +862,7 @@
 
                         <div class="col-md-3">
                             <label for="{{ trabajo_form.jugador_1.id_for_label }}"
-                                   class="form-label">
+                                   class="form-label fw-semibold">
                                 Jugador
                             </label>
 
@@ -864,7 +872,7 @@
                         <div class="col-md-4"
                              id="contenedor-jugador-2">
                             <label for="{{ trabajo_form.jugador_2.id_for_label }}"
-                                   class="form-label">
+                                   class="form-label fw-semibold">
                                 Compañero
                             </label>
 
@@ -877,7 +885,7 @@
 
                         <div class="col-md-9">
                             <label for="{{ trabajo_form.detalle.id_for_label }}"
-                                   class="form-label">
+                                   class="form-label fw-semibold">
                                 Detalle opcional
                             </label>
 
@@ -986,6 +994,7 @@
                 </div>
             {% else %}
                 <div class="text-center py-4 border rounded-3">
+                    <div class="fs-3 mb-2">↔</div>
                     <h6 class="mb-2">
                         Todavía no hay trabajos cargados
                     </h6>
@@ -999,9 +1008,10 @@
     </div>
 
     <div id="partidos-turno" class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
+        <div class="card-body p-4">
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                 <div>
+                    <div class="small text-uppercase fw-semibold text-primary mb-1">Competencia</div>
                     <h4 class="mb-1">Partidos del turno</h4>
 
                     <p class="text-muted mb-0">
@@ -1010,7 +1020,7 @@
                 </div>
 
                 <div class="d-flex gap-2 flex-wrap">
-                    <span class="badge bg-primary fs-6">
+                    <span class="badge bg-primary fs-6 px-3 py-2">
                         {{ partidos_turno|length }}
                         partido{{ partidos_turno|length|pluralize:"s" }}
                     </span>
@@ -1098,6 +1108,7 @@
                 </div>
             {% else %}
                 <div class="text-center py-4 border rounded-3">
+                    <div class="fs-3 mb-2">🏓</div>
                     <h6 class="mb-2">
                         Todavía no hay partidos cargados
                     </h6>
@@ -1111,9 +1122,10 @@
     </div>
 
     <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
+        <div class="card-body p-4">
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                 <div>
+                    <div class="small text-uppercase fw-semibold text-primary mb-1">Plan de trabajo</div>
                     <h4 class="mb-1">Ejercicios del turno</h4>
                     <p class="text-muted mb-0">
                         Ejercicios cargados para todo el grupo.
@@ -1156,9 +1168,10 @@
 
     {% if trabajos_otros_turnos %}
         <div class="card shadow-sm border-0 mb-4">
-            <div class="card-body">
+            <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                     <div>
+                        <div class="small text-uppercase fw-semibold text-secondary mb-1">Referencia</div>
                         <h4 class="mb-1">Trabajos de otros turnos del día</h4>
 
                         <p class="text-muted mb-0">
@@ -1166,7 +1179,7 @@
                         </p>
                     </div>
 
-                    <span class="badge bg-secondary fs-6">
+                    <span class="badge bg-secondary fs-6 px-3 py-2">
                         {{ trabajos_otros_turnos|length }}
                         trabajo{{ trabajos_otros_turnos|length|pluralize:"s" }}
                     </span>
@@ -1241,9 +1254,10 @@
     {% endif %}
 
     <div id="estado-entrenamiento" class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
+        <div class="card-body p-4">
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                 <div>
+                    <div class="small text-uppercase fw-semibold text-danger mb-1">Estado excepcional</div>
                     <h4 class="mb-1">
                         Marcar turno sin entrenamiento
                     </h4>
@@ -1265,7 +1279,7 @@
 
                     <div class="row g-3 align-items-end">
                         <div class="col-md-4">
-                            <label class="form-label">
+                            <label class="form-label fw-semibold">
                                 Motivo
                             </label>
 
@@ -1273,7 +1287,7 @@
                         </div>
 
                         <div class="col-md-5">
-                            <label class="form-label">
+                            <label class="form-label fw-semibold">
                                 Detalle opcional
                             </label>
 
@@ -1334,9 +1348,10 @@
         </div>
     {% else %}
         <div id="cierre-turno" class="card shadow-sm border-0 mb-4">
-            <div class="card-body">
+            <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
                     <div>
+                        <div class="small text-uppercase fw-semibold text-primary mb-1">Cierre</div>
                         <h4 class="mb-1">
                             Finalizar turno
                         </h4>
@@ -1347,11 +1362,11 @@
                     </div>
 
                     {% if resumen_turno.listo_para_finalizar %}
-                        <span class="badge bg-success fs-6">
+                        <span class="badge bg-success fs-6 px-3 py-2">
                             Listo para cerrar
                         </span>
                     {% else %}
-                        <span class="badge bg-warning text-dark fs-6">
+                        <span class="badge bg-warning text-dark fs-6 px-3 py-2">
                             Falta revisar
                         </span>
                     {% endif %}
@@ -1390,7 +1405,7 @@
 
                         <button
                             type="submit"
-                            class="btn {% if resumen_turno.listo_para_finalizar %}btn-danger{% else %}btn-outline-danger{% endif %}"
+                            class="btn {% if resumen_turno.listo_para_finalizar %}btn-danger px-4{% else %}btn-outline-danger{% endif %}"
                             {% if not resumen_turno.listo_para_finalizar %}disabled{% endif %}
                             onclick="return confirm('¿Finalizar este turno? Se bloqueará hasta que lo reabras.')">
                             Finalizar turno

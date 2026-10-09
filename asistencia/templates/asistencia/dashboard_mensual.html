@@ -1,472 +1,886 @@
 {% extends "asistencia/base.html" %}
 
+{% block title %}Resumen mensual · {{ club_actual.nombre|default:"TDM Coach" }}{% endblock %}
+
+
 {% block content %}
 
+
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+
     <div>
+
         <h1 class="mb-1">
+
             Resumen mensual
+
         </h1>
 
+
         <p class="text-muted mb-0">
+
             Una mirada rápida del mes: asistencia, actividad, partidos y turnos sin entrenamiento.
+
         </p>
+
     </div>
+
 
     <div class="d-flex gap-2 flex-wrap">
+
         <a
+
             href="{% url 'dashboard_mensual' %}?fecha={{ mes_anterior|date:'Y-m-d' }}"
+
             class="btn btn-outline-secondary"
+
         >
+
             ← Mes anterior
+
         </a>
 
+
         <a
+
             href="{% url 'dashboard_mensual' %}?fecha={{ mes_siguiente|date:'Y-m-d' }}"
+
             class="btn btn-outline-secondary"
+
         >
+
             Mes siguiente →
+
         </a>
 
+
         <a
+
             href="{% url 'reportes' %}"
+
             class="btn btn-outline-dark"
+
         >
+
             Ver reportes
+
         </a>
+
     </div>
+
 </div>
 
+
 <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
+
+    <div class="card-body p-4">
+
+        <div class="small text-uppercase fw-semibold text-primary mb-1">Filtro</div>
+        <h5 class="mb-3">Elegí el mes que querés revisar</h5>
+
         <form method="get" class="row g-3 align-items-end">
+
             <div class="col-md-9">
+
                 <label class="form-label fw-semibold">
+
                     Mes de referencia
+
                 </label>
 
+
                 <input
+
                     type="date"
+
                     name="fecha"
+
                     class="form-control"
+
                     value="{{ fecha_base|date:'Y-m-d' }}"
+
                 >
+
             </div>
+
 
             <div class="col-md-3">
+
                 <button class="btn btn-primary w-100" type="submit">
+
                     Ver mes
+
                 </button>
+
             </div>
+
         </form>
+
     </div>
+
 </div>
 
+
 <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
+
+    <div class="card-body p-4">
+
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
             <div>
+
                 <div class="text-muted small">
+
                     Mes seleccionado
+
                 </div>
+
 
                 <h3 class="mb-1">
+
                     {{ inicio_mes|date:"F Y" }}
+
                 </h3>
 
+
                 <p class="text-muted mb-0">
+
                     Del {{ inicio_mes|date:"d/m/Y" }}
+
                     al {{ fin_mes|date:"d/m/Y" }}
+
                 </p>
+
             </div>
 
-            <span class="badge bg-dark fs-6">
+
+            <span class="badge bg-dark fs-6 px-3 py-2">
+
                 {{ resumen.jugadores_activos }}
+
                 jugador{{ resumen.jugadores_activos|pluralize:"es" }} activo{{ resumen.jugadores_activos|pluralize:"s" }}
+
             </span>
+
         </div>
+
     </div>
+
 </div>
+
 
 {% if resumen.jugadores_activos == 0 %}
+
 <div class="card shadow-sm border-0 mb-4">
+
     <div class="card-body text-center py-5">
-        <div class="fs-1 mb-2">📅</div>
+
+        <div class="fs-1 mb-3">📅</div>
+
 
         <h4 class="mb-2">
+
             Todavía no hay datos para el resumen mensual
+
         </h4>
 
+
         <p class="text-muted mb-3">
+
             Este club todavía no tiene jugadores activos.
+
             Cargá al menos uno para empezar a generar estadísticas mensuales.
+
         </p>
 
+
         {% if es_admin_club %}
+
             <a
+
                 href="{% url 'crear_jugador' %}"
+
                 class="btn btn-primary"
+
             >
+
                 Agregar primer jugador
+
             </a>
+
         {% else %}
+
             <a
+
                 href="{% url 'lista_jugadores' %}"
+
                 class="btn btn-outline-primary"
+
             >
+
                 Ver jugadores
+
             </a>
+
         {% endif %}
+
     </div>
+
 </div>
+
 {% elif not resumen.tiene_actividad_mes %}
+
 <div class="alert alert-info shadow-sm mb-4">
+
     <div class="fw-bold mb-1">
+
         Todavía no hay actividad registrada en este mes
+
     </div>
+
 
     <div>
+
         Hay {{ resumen.jugadores_activos }}
+
         jugador{{ resumen.jugadores_activos|pluralize:"es" }}
+
         activo{{ resumen.jugadores_activos|pluralize:"s" }},
+
         pero todavía no se registraron asistencias, partidos,
+
         ejercicios ni turnos sin entrenamiento en el período seleccionado.
+
     </div>
+
 </div>
+
 {% endif %}
 
+
 <div class="row g-3 mb-4">
+
     <div class="col-lg-3 col-md-6">
+
         <div class="card shadow-sm border-0 h-100">
+
             <div class="card-body text-center">
+
                 <div class="text-muted small">
+
                     Turnos realizados
+
                 </div>
+
 
                 <div class="display-6 fw-bold text-success">
+
                     {{ resumen.turnos_realizados }}
+
                 </div>
+
 
                 <small class="text-muted">
+
                     con actividad cargada
+
                 </small>
+
             </div>
+
         </div>
+
     </div>
 
+
     <div class="col-lg-3 col-md-6">
+
         <div class="card shadow-sm border-0 h-100">
+
             <div class="card-body text-center">
+
                 <div class="text-muted small">
+
                     Turnos sin entrenamiento
+
                 </div>
+
 
                 <div class="display-6 fw-bold text-danger">
+
                     {{ resumen.turnos_no_entrenados }}
+
                 </div>
 
+
                 <small class="text-muted">
+
                     {{ resumen.dias_no_entrenados }}
+
                     día{{ resumen.dias_no_entrenados|pluralize:"s" }}
+
                 </small>
+
             </div>
+
         </div>
+
     </div>
 
+
     <div class="col-lg-3 col-md-6">
+
         <div class="card shadow-sm border-0 h-100">
+
             <div class="card-body text-center">
+
                 <div class="text-muted small">
+
                     Presentes del mes
+
                 </div>
+
 
                 <div class="display-6 fw-bold">
+
                     {{ resumen.total_presentes }}
+
                 </div>
 
+
                 <small class="text-muted">
+
                     {{ resumen.total_tardes }} tarde{{ resumen.total_tardes|pluralize:"s" }}
+
                 </small>
+
             </div>
+
         </div>
+
     </div>
+
 
     <div class="col-lg-3 col-md-6">
+
         <div class="card shadow-sm border-0 h-100">
+
             <div class="card-body text-center">
+
                 <div class="text-muted small">
+
                     Partidos cargados
+
                 </div>
+
 
                 <div class="display-6 fw-bold">
+
                     {{ resumen.total_partidos }}
+
                 </div>
 
+
                 <small class="text-muted">
+
                     Ausencias: {{ resumen.total_ausentes }}
+
                 </small>
+
             </div>
+
         </div>
+
     </div>
+
 </div>
 
+
 {% if resumen.tiene_actividad_mes %}
+
 <div class="row g-3 mb-4">
+
     <div class="col-lg-4">
+
         <div class="card shadow-sm border-0 h-100">
-            <div class="card-body">
+
+            <div class="card-body p-4">
+
                 <div class="text-muted small">
+
                     Mejor asistencia
+
                 </div>
+
 
                 {% if mejor_asistencia %}
+
                     <h4 class="mb-1">
+
                         {{ mejor_asistencia.jugador }}
+
                     </h4>
+
 
                     <div class="display-6 fw-bold text-success">
+
                         {{ mejor_asistencia.porcentaje }}%
+
                     </div>
+
 
                     <div class="small text-muted">
+
                         {{ mejor_asistencia.presentes }}/{{ mejor_asistencia.total }}
+
                         presentes
+
                     </div>
+
                 {% else %}
+
                     <p class="text-muted mb-0">
+
                         Sin datos.
+
                     </p>
+
                 {% endif %}
+
             </div>
+
         </div>
+
     </div>
 
+
     <div class="col-lg-4">
+
         <div class="card shadow-sm border-0 h-100">
-            <div class="card-body">
+
+            <div class="card-body p-4">
+
                 <div class="text-muted small">
+
                     Más ausencias
+
                 </div>
+
 
                 {% if mas_ausencias %}
+
                     <h4 class="mb-1">
+
                         {{ mas_ausencias.jugador }}
+
                     </h4>
+
 
                     <div class="display-6 fw-bold text-danger">
+
                         {{ mas_ausencias.ausentes }}
+
                     </div>
+
 
                     <div class="small text-muted">
+
                         ausencia{{ mas_ausencias.ausentes|pluralize:"s" }} en el mes
+
                     </div>
+
                 {% else %}
+
                     <h4 class="mb-1">
+
                         Sin ausencias
+
                     </h4>
 
+
                     <p class="text-muted mb-0">
+
                         No hay ausencias registradas en este mes.
+
                     </p>
+
                 {% endif %}
+
             </div>
+
         </div>
+
     </div>
+
 
     <div class="col-lg-4">
+
         <div class="card shadow-sm border-0 h-100">
-            <div class="card-body">
+
+            <div class="card-body p-4">
+
                 <div class="text-muted small">
+
                     Más partidos
+
                 </div>
+
 
                 {% if mas_partidos %}
+
                     <h4 class="mb-1">
+
                         {{ mas_partidos.jugador }}
+
                     </h4>
+
 
                     <div class="display-6 fw-bold">
+
                         {{ mas_partidos.partidos }}
+
                     </div>
+
 
                     <div class="small text-muted">
+
                         {{ mas_partidos.victorias }} G ·
+
                         {{ mas_partidos.derrotas }} P
+
                     </div>
+
                 {% else %}
+
                     <h4 class="mb-1">
+
                         Sin partidos
+
                     </h4>
 
+
                     <p class="text-muted mb-0">
+
                         Todavía no hay partidos cargados en este mes.
+
                     </p>
+
                 {% endif %}
+
             </div>
+
         </div>
+
     </div>
+
 </div>
+
 {% endif %}
+
 
 {% if motivos %}
+
     <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
+
+        <div class="card-body p-4">
+
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+
                 <div>
+
                     <h4 class="mb-1">
+
                         Suspensiones / no entrenamiento
+
                     </h4>
 
+
                     <p class="text-muted mb-0">
+
                         Motivo principal:
+
                         <strong>{{ resumen.motivo_principal }}</strong>
+
                     </p>
+
                 </div>
 
-                <span class="badge bg-danger fs-6">
+
+                <span class="badge bg-danger fs-6 px-3 py-2">
+
                     {{ resumen.turnos_no_entrenados }}
+
                     turno{{ resumen.turnos_no_entrenados|pluralize:"s" }}
+
                 </span>
+
             </div>
+
 
             <div class="d-flex flex-wrap gap-2">
+
                 {% for item in motivos %}
+
                     <span class="badge bg-light text-dark border">
+
                         {{ item.motivo }}:
+
                         {{ item.total }}
+
                     </span>
+
                 {% endfor %}
+
             </div>
+
         </div>
+
     </div>
+
 {% endif %}
+
 
 {% if resumen.tiene_actividad_mes %}
+
 <div class="row g-3 mb-4">
+
     <div class="col-lg-6">
+
         <div class="card shadow-sm border-0 h-100">
-            <div class="card-body">
+
+            <div class="card-body p-4">
+
                 <h4 class="mb-3">
+
                     Top asistencia
+
                 </h4>
+
 
                 {% if ranking_asistencia %}
+
                     <div class="d-flex flex-column gap-2">
+
                         {% for item in ranking_asistencia %}
+
                             <div class="border rounded-3 p-3">
+
                                 <div class="d-flex justify-content-between align-items-center gap-3">
+
                                     <div>
+
                                         <strong>{{ item.jugador }}</strong>
 
+
                                         <div class="small text-muted">
+
                                             {{ item.presentes }}/{{ item.total }} presentes ·
+
                                             {{ item.ausentes }} ausencias
+
                                         </div>
+
                                     </div>
 
-                                    <span class="badge bg-success fs-6">
+
+                                    <span class="badge bg-success fs-6 px-3 py-2">
+
                                         {{ item.porcentaje }}%
+
                                     </span>
+
                                 </div>
+
                             </div>
+
                         {% endfor %}
+
                     </div>
+
                 {% else %}
+
                     <p class="text-muted mb-0">
+
                         Sin datos de asistencia.
+
                     </p>
+
                 {% endif %}
+
             </div>
+
         </div>
+
     </div>
+
 
     <div class="col-lg-6">
+
         <div class="card shadow-sm border-0 h-100">
-            <div class="card-body">
+
+            <div class="card-body p-4">
+
                 <h4 class="mb-3">
+
                     Top partidos
+
                 </h4>
 
+
                 {% if ranking_partidos %}
+
                     <div class="d-flex flex-column gap-2">
+
                         {% for item in ranking_partidos %}
+
                             <div class="border rounded-3 p-3">
+
                                 <div class="d-flex justify-content-between align-items-center gap-3">
+
                                     <div>
+
                                         <strong>{{ item.jugador }}</strong>
 
+
                                         <div class="small text-muted">
+
                                             {{ item.victorias }} G ·
+
                                             {{ item.derrotas }} P
+
                                         </div>
+
                                     </div>
 
-                                    <span class="badge bg-dark fs-6">
+
+                                    <span class="badge bg-dark fs-6 px-3 py-2">
+
                                         {{ item.partidos }}
+
                                     </span>
+
                                 </div>
+
                             </div>
+
                         {% endfor %}
+
                     </div>
+
                 {% else %}
+
                     <p class="text-muted mb-0">
+
                         Sin partidos registrados.
+
                     </p>
+
                 {% endif %}
+
             </div>
+
         </div>
+
     </div>
+
 </div>
+
 {% endif %}
+
 
 {% if turnos_no_entrenados %}
+
     <div class="card shadow-sm border-0">
-        <div class="card-body">
+
+        <div class="card-body p-4">
+
             <h4 class="mb-3">
+
                 Últimos turnos sin entrenamiento
+
             </h4>
 
+
             <div class="d-flex flex-column gap-2">
+
                 {% for entrenamiento in turnos_no_entrenados %}
+
                     <div class="border rounded-3 p-3">
+
                         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+
                             <div>
+
                                 <strong>
+
                                     {{ entrenamiento.fecha|date:"d/m/Y" }}
+
                                     ·
+
                                     {% if entrenamiento.turno_config %}
+
                                         {{ entrenamiento.turno_config.nombre }}
+
                                         {% if entrenamiento.turno_config.hora_inicio %}
+
                                             · {{ entrenamiento.turno_config.hora_inicio|time:"H:i" }}
+
                                         {% endif %}
+
                                         {% if entrenamiento.turno_config.hora_fin %}
+
                                             - {{ entrenamiento.turno_config.hora_fin|time:"H:i" }}
+
                                         {% endif %}
+
                                     {% else %}
+
                                         Turno {{ entrenamiento.nombre_turno }}
+
                                     {% endif %}
+
                                 </strong>
 
+
                                 <div class="text-muted small">
+
                                     {{ entrenamiento.get_motivo_no_entrenamiento_display }}
+
                                 </div>
 
+
                                 {% if entrenamiento.detalle_no_entrenamiento %}
+
                                     <div class="small mt-1">
+
                                         {{ entrenamiento.detalle_no_entrenamiento }}
+
                                     </div>
+
                                 {% endif %}
+
                             </div>
 
+
                             <span class="badge bg-danger">
+
                                 No se entrenó
+
                             </span>
+
                         </div>
+
                     </div>
+
                 {% endfor %}
+
             </div>
+
         </div>
+
     </div>
+
 {% endif %}
+
 
 {% endblock %}

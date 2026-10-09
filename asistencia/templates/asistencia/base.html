@@ -8,7 +8,10 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>
         {% block title %}
@@ -37,125 +40,27 @@
     >
 
 
-    <style>
+   <style>
 
-        :root {
-            --club-primary:
-                {% if club_actual %}
-                    {{ club_actual.color_primario }}
-                {% else %}
-                    #2563EB
-                {% endif %};
+    :root {
 
-            --club-secondary:
-                {% if club_actual %}
-                    {{ club_actual.color_secundario }}
-                {% else %}
-                    #111827
-                {% endif %};
-        }
+        --club-primary:
+            {% if club_actual %}
+                {{ club_actual.color_primario }}
+            {% else %}
+                #2563EB
+            {% endif %};
 
+        --club-secondary:
+            {% if club_actual %}
+                {{ club_actual.color_secundario }}
+            {% else %}
+                #111827
+            {% endif %};
 
-        /*
-        ==========================
-        COLORES DEL CLUB
-        ==========================
-        */
+    }
 
-        .tdm-navbar {
-            background-color: var(--club-secondary) !important;
-        }
-
-
-        .club-brand-name {
-            color: #ffffff;
-        }
-
-
-        .club-logo-navbar {
-            width: 42px;
-            height: 42px;
-            object-fit: contain;
-            border-radius: 8px;
-            background: #ffffff;
-            padding: 3px;
-        }
-
-
-        .club-logo-fallback {
-            width: 42px;
-            height: 42px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 10px;
-            background-color: var(--club-primary);
-            font-size: 22px;
-        }
-
-
-        .tdm-nav-link.active,
-        .tdm-nav-link:hover {
-            color: #ffffff !important;
-        }
-
-
-        .btn-primary {
-            background-color: var(--club-primary);
-            border-color: var(--club-primary);
-        }
-
-
-        .btn-primary:hover,
-        .btn-primary:focus,
-        .btn-primary:active {
-            background-color: var(--club-primary) !important;
-            border-color: var(--club-primary) !important;
-            filter: brightness(0.90);
-        }
-
-
-        .btn-outline-primary {
-            color: var(--club-primary);
-            border-color: var(--club-primary);
-        }
-
-
-        .btn-outline-primary:hover,
-        .btn-outline-primary:focus,
-        .btn-outline-primary:active {
-            color: #ffffff !important;
-            background-color: var(--club-primary) !important;
-            border-color: var(--club-primary) !important;
-        }
-
-
-        a {
-            --bs-link-color-rgb: inherit;
-        }
-
-
-        .club-admin-dropdown {
-            border-left: 3px solid var(--club-primary);
-        }
-
-
-        .club-role-badge {
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            color: rgba(255, 255, 255, 0.75);
-            border-radius: 50rem;
-            padding: 2px 8px;
-            font-size: 0.72rem;
-            white-space: nowrap;
-        }
-
-
-        .footer-club-dot {
-            color: var(--club-primary);
-            font-weight: bold;
-        }
-
-    </style>
+</style>
 
 </head>
 
@@ -163,7 +68,9 @@
 <body class="tdm-body d-flex flex-column min-vh-100">
 
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark tdm-navbar sticky-top">
+{% with current_url=request.resolver_match.url_name %}
+
+<nav class="navbar navbar-expand-lg navbar-dark tdm-navbar sticky-top">
 
     <div class="container">
 
@@ -227,9 +134,7 @@
                 aria-expanded="false"
                 aria-label="Abrir menú"
             >
-
                 <span class="navbar-toggler-icon"></span>
-
             </button>
 
 
@@ -245,7 +150,13 @@
                     <li class="nav-item">
 
                         <a
-                            class="nav-link tdm-nav-link"
+                            class="
+                                nav-link
+                                tdm-nav-link
+                                {% if current_url == 'inicio' or current_url == 'dia_turno' %}
+                                    active
+                                {% endif %}
+                            "
                             href="{% url 'inicio' %}"
                         >
                             Carga diaria
@@ -257,7 +168,13 @@
                     <li class="nav-item">
 
                         <a
-                            class="nav-link tdm-nav-link"
+                            class="
+                                nav-link
+                                tdm-nav-link
+                                {% if current_url == 'lista_jugadores' or current_url == 'crear_jugador' or current_url == 'editar_jugador' %}
+                                    active
+                                {% endif %}
+                            "
                             href="{% url 'lista_jugadores' %}"
                         >
                             Jugadores
@@ -269,7 +186,13 @@
                     <li class="nav-item">
 
                         <a
-                            class="nav-link tdm-nav-link"
+                            class="
+                                nav-link
+                                tdm-nav-link
+                                {% if current_url == 'reportes' %}
+                                    active
+                                {% endif %}
+                            "
                             href="{% url 'reportes' %}"
                         >
                             Reportes
@@ -281,7 +204,13 @@
                     <li class="nav-item">
 
                         <a
-                            class="nav-link tdm-nav-link"
+                            class="
+                                nav-link
+                                tdm-nav-link
+                                {% if current_url == 'resumen_dia' %}
+                                    active
+                                {% endif %}
+                            "
                             href="{% url 'resumen_dia' %}"
                         >
                             Resumen del día
@@ -293,7 +222,14 @@
                     <li class="nav-item dropdown">
 
                         <a
-                            class="nav-link dropdown-toggle tdm-nav-link"
+                            class="
+                                nav-link
+                                dropdown-toggle
+                                tdm-nav-link
+                                {% if current_url == 'lista_ejercicios' or current_url == 'lista_categorias_ejercicio' or current_url == 'crear_ejercicio' or current_url == 'crear_categoria_ejercicio' or current_url == 'lista_turnos' or current_url == 'seguimiento_semanal' or current_url == 'dashboard_mensual' %}
+                                    active
+                                {% endif %}
+                            "
                             href="#"
                             role="button"
                             data-bs-toggle="dropdown"
@@ -379,7 +315,14 @@
                         <li class="nav-item dropdown">
 
                             <a
-                                class="nav-link dropdown-toggle tdm-nav-link"
+                                class="
+                                    nav-link
+                                    dropdown-toggle
+                                    tdm-nav-link
+                                    {% if current_url == 'configuracion_club' or current_url == 'lista_usuarios' or current_url == 'crear_usuario' or current_url == 'editar_usuario' or current_url == 'onboarding_club' %}
+                                        active
+                                    {% endif %}
+                                "
                                 href="#"
                                 role="button"
                                 data-bs-toggle="dropdown"
@@ -420,6 +363,18 @@
 
                                 </li>
 
+
+                                <li>
+
+                                    <a
+                                        class="dropdown-item"
+                                        href="{% url 'onboarding_club' %}"
+                                    >
+                                        Primeros pasos
+                                    </a>
+
+                                </li>
+
                             </ul>
 
                         </li>
@@ -436,6 +391,7 @@
                         flex-lg-row
                         align-items-lg-center
                         gap-2
+                        tdm-navbar-user-area
                     "
                 >
 
@@ -443,9 +399,7 @@
                     {% if perfil_club %}
 
                         <span class="club-role-badge">
-
                             {{ perfil_club.get_rol_display }}
-
                         </span>
 
                     {% endif %}
@@ -465,16 +419,11 @@
                         >
 
                             <span class="tdm-user-avatar">
-
                                 {{ user.get_full_name|default:user.username|slice:":1"|upper }}
-
                             </span>
 
-
                             <span class="tdm-user-name">
-
                                 {{ user.get_full_name|default:user.username }}
-
                             </span>
 
                         </button>
@@ -483,33 +432,42 @@
                         <ul class="dropdown-menu dropdown-menu-end">
 
                             <li>
+
                                 <a
                                     class="dropdown-item"
                                     href="{% url 'mi_perfil' %}"
                                 >
                                     Mi perfil
                                 </a>
+
                             </li>
 
+
                             <li>
+
                                 <a
                                     class="dropdown-item"
                                     href="{% url 'password_change' %}"
                                 >
                                     Cambiar contraseña
                                 </a>
+
                             </li>
+
 
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
 
+
                             <li>
+
                                 <form
                                     method="post"
                                     action="{% url 'logout' %}"
                                     class="m-0"
                                 >
+
                                     {% csrf_token %}
 
                                     <button
@@ -518,7 +476,9 @@
                                     >
                                         Cerrar sesión
                                     </button>
+
                                 </form>
+
                             </li>
 
                         </ul>
@@ -535,27 +495,35 @@
 
 </nav>
 
+{% endwith %}
+
 
 <main class="container flex-grow-1 tdm-main">
 
 
     {% if messages %}
 
-        {% for message in messages %}
+        <div
+            id="django-messages"
+            class="d-none"
+        >
 
-            <div
-                class="alert alert-info d-none mensaje-django"
-                data-message="{{ message|escape }}"
-                data-tags="{{ message.tags }}"
-            ></div>
+            {% for message in messages %}
 
-        {% endfor %}
+                <div
+                    class="mensaje-django"
+                    data-message="{{ message|escape }}"
+                    data-tags="{{ message.tags }}"
+                ></div>
+
+            {% endfor %}
+
+        </div>
 
     {% endif %}
 
 
     {% block content %}
-
     {% endblock %}
 
 
@@ -576,7 +544,7 @@
             "
         >
 
-            <div>
+            <div class="small">
 
                 <strong>
                     TDM Coach
@@ -597,18 +565,14 @@
 
 
                 <span class="text-muted">
-
-                    · Sistema de gestión de entrenamientos
-
+                    · Gestión de entrenamientos
                 </span>
 
             </div>
 
 
             <div class="text-muted small">
-
                 Desarrollado por Eithan Skliarsky
-
             </div>
 
         </div>
@@ -639,11 +603,9 @@ function mostrarToastGuardado(
         return;
     }
 
-
     toast.textContent = texto;
 
     toast.className = "toast-guardado mostrar";
-
 
     if (tipo) {
         toast.classList.add(
@@ -651,11 +613,9 @@ function mostrarToastGuardado(
         );
     }
 
-
     clearTimeout(
         window.toastTimeout
     );
-
 
     window.toastTimeout = setTimeout(
         () => {
@@ -667,7 +627,27 @@ function mostrarToastGuardado(
         },
         2200
     );
+}
 
+
+function obtenerTipoMensaje(tags) {
+
+    if (tags.includes("success")) {
+        return "success";
+    }
+
+    if (
+        tags.includes("error")
+        || tags.includes("danger")
+    ) {
+        return "danger";
+    }
+
+    if (tags.includes("warning")) {
+        return "warning";
+    }
+
+    return "info";
 }
 
 
@@ -675,56 +655,43 @@ document.addEventListener(
     "DOMContentLoaded",
     function() {
 
-        const mensaje = document.querySelector(
-            ".mensaje-django"
+        const mensajes = Array.from(
+            document.querySelectorAll(
+                ".mensaje-django"
+            )
         );
 
+        mensajes.forEach(
+            function(mensaje, index) {
 
-        if (mensaje) {
+                const texto = (
+                    mensaje.dataset.message
+                    || "Guardado correctamente"
+                );
 
-            const texto = (
-                mensaje.dataset.message
-                || "Guardado correctamente"
-            );
+                const tags = (
+                    mensaje.dataset.tags
+                    || "info"
+                );
 
+                const tipo = obtenerTipoMensaje(
+                    tags
+                );
 
-            const tags = (
-                mensaje.dataset.tags
-                || "info"
-            );
+                setTimeout(
+                    function() {
 
+                        mostrarToastGuardado(
+                            texto,
+                            tipo
+                        );
 
-            let tipo = "info";
-
-
-            if (
-                tags.includes("success")
-            ) {
-
-                tipo = "success";
-
-            } else if (
-                tags.includes("error")
-                || tags.includes("danger")
-            ) {
-
-                tipo = "danger";
-
-            } else if (
-                tags.includes("warning")
-            ) {
-
-                tipo = "warning";
+                    },
+                    index * 2400
+                );
 
             }
-
-
-            mostrarToastGuardado(
-                texto,
-                tipo
-            );
-
-        }
+        );
 
     }
 );
@@ -738,11 +705,9 @@ document.addEventListener(
             ".attendance-btn"
         );
 
-
         if (!btn) {
             return;
         }
-
 
         if (
             btn.disabled
@@ -750,28 +715,22 @@ document.addEventListener(
                 "disabled"
             )
         ) {
-
             return;
-
         }
-
 
         const attendanceId = (
             btn.dataset.attendanceId
         );
 
-
         const status = (
             btn.dataset.status
         );
-
 
         const csrfTokenInput = (
             document.querySelector(
                 "[name=csrfmiddlewaretoken]"
             )
         );
-
 
         if (!csrfTokenInput) {
 
@@ -781,9 +740,7 @@ document.addEventListener(
             );
 
             return;
-
         }
-
 
         const csrfToken = (
             csrfTokenInput.value
@@ -852,7 +809,6 @@ document.addEventListener(
                         `active-${data.estado}`
                     );
 
-
                     mostrarToastGuardado(
                         "Asistencia guardada",
                         "success"
@@ -867,17 +823,23 @@ document.addEventListener(
 
                 }
 
-                setTimeout(function () {
-                    history.replaceState(
-                        null,
-                        "",
-                        window.location.pathname
-                        + window.location.search
-                        + "#jugadores-turno"
-                    );
 
-                    window.location.reload();
-                }, 250);
+                setTimeout(
+                    function() {
+
+                        history.replaceState(
+                            null,
+                            "",
+                            window.location.pathname
+                            + window.location.search
+                            + "#jugadores-turno"
+                        );
+
+                        window.location.reload();
+
+                    },
+                    250
+                );
 
             } else {
 

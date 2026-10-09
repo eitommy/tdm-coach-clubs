@@ -1,25 +1,47 @@
 {% extends "asistencia/base.html" %}
 
+{% block title %}
+Ejercicios del turno · {{ club_actual.nombre|default:"TDM Coach" }}
+{% endblock %}
+
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+
     <div>
-        <h2 class="mb-1">Ejercicios del turno</h2>
+
+        <div class="small text-uppercase fw-semibold text-primary mb-1">
+            Plan de trabajo
+        </div>
+
+        <h1 class="mb-1">
+            Ejercicios del turno
+        </h1>
+
         <p class="text-muted mb-0">
+
             {{ fecha|date:"l j F Y" }}
+
             {% if turno_config %}
                 — {{ turno_config.nombre }}
+
                 {% if turno_config.hora_inicio %}
                     · {{ turno_config.hora_inicio|time:"H:i" }}
+
                     {% if turno_config.hora_fin %}
-                       –{{ turno_config.hora_fin|time:"H:i" }}
+                        – {{ turno_config.hora_fin|time:"H:i" }}
                     {% endif %}
+
                 {% endif %}
             {% endif %}
+
         </p>
+
     </div>
 
+
     <div class="d-flex gap-2 flex-wrap">
+
         <a
             href="{% url 'dia_turno' fecha|date:'Y-m-d' turno_id %}"
             class="btn btn-outline-dark"
@@ -33,22 +55,38 @@
         >
             Hoy
         </a>
+
     </div>
+
 </div>
 
+
 <div class="card mb-4 shadow-sm border-0">
-    <div class="card-body">
-        <div class="mb-3">
-            <h5 class="mb-1">Seleccionar fecha y turno</h5>
-            <p class="text-muted mb-0">
-                Los ejercicios se cargan una sola vez para todo el grupo del turno.
-                Si un jugador hizo algo distinto, anotá ese detalle en observaciones.
-            </p>
+
+    <div class="card-body p-4">
+
+        <div class="small text-uppercase fw-semibold text-primary mb-1">
+            Filtros
         </div>
 
+        <h5 class="mb-1">
+            Seleccionar fecha y turno
+        </h5>
+
+        <p class="text-muted mb-4">
+            Los ejercicios se cargan una sola vez para todo el grupo del turno.
+            Si un jugador hizo algo distinto, podés dejar ese detalle en observaciones.
+        </p>
+
+
         <form method="get" class="row g-3 align-items-end">
+
             <div class="col-md-5">
-                <label class="form-label">Fecha</label>
+
+                <label class="form-label fw-semibold">
+                    Fecha
+                </label>
+
                 <input
                     type="date"
                     name="fecha"
@@ -56,67 +94,115 @@
                     value="{{ fecha|date:'Y-m-d' }}"
                     required
                 >
+
             </div>
 
-            <div class="col-md-4">
-                <label class="form-label">Turno</label>
 
-                <select name="turno_id" class="form-select" required>
+            <div class="col-md-4">
+
+                <label class="form-label fw-semibold">
+                    Turno
+                </label>
+
+                <select
+                    name="turno_id"
+                    class="form-select"
+                    required
+                >
+
                     {% for turno in turnos_del_dia %}
+
                         <option
                             value="{{ turno.id }}"
                             {% if turno.id == turno_id %}selected{% endif %}
                         >
+
                             {{ turno.nombre }}
+
                             {% if turno.hora_inicio %}
                                 · {{ turno.hora_inicio|time:"H:i" }}
+
                                 {% if turno.hora_fin %}
-                                    –{{ turno.hora_fin|time:"H:i" }}
+                                    – {{ turno.hora_fin|time:"H:i" }}
                                 {% endif %}
+
                             {% endif %}
+
                         </option>
+
                     {% endfor %}
+
                 </select>
+
             </div>
+
 
             <div class="col-md-3">
+
                 <button
                     type="submit"
-                    class="btn btn-outline-primary w-100"
+                    class="btn btn-primary w-100"
                 >
-                    Cargar
+                    Ver turno
                 </button>
+
             </div>
+
         </form>
+
     </div>
+
 </div>
+
 
 <div class="card mb-4 shadow-sm border-0">
-    <div class="card-body d-flex justify-content-between align-items-start flex-wrap gap-3">
-        <div>
-            <h4 class="mb-1">
-                {% if turno_config %}
-                    {{ turno_config.nombre }}
-                {% else %}
-                    Turno
-                {% endif %}
-            </h4>
 
-            <p class="text-muted mb-0">
-                Marcá los ejercicios que realizó la mayoría del grupo.
-            </p>
+    <div class="card-body p-4">
+
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+
+            <div>
+
+                <div class="small text-uppercase fw-semibold text-primary mb-1">
+                    Ejercicios seleccionados
+                </div>
+
+                <h4 class="mb-1">
+
+                    {% if turno_config %}
+                        {{ turno_config.nombre }}
+                    {% else %}
+                        Turno
+                    {% endif %}
+
+                </h4>
+
+                <p class="text-muted mb-0">
+                    Marcá los ejercicios que realizó la mayoría del grupo.
+                </p>
+
+            </div>
+
+
+            <a
+                href="{% url 'dia_turno' fecha|date:'Y-m-d' turno_id %}"
+                class="btn btn-outline-dark"
+            >
+                ← Volver a asistencia
+            </a>
+
         </div>
 
-        <a
-            href="{% url 'dia_turno' fecha|date:'Y-m-d' turno_id %}"
-            class="btn btn-outline-dark"
-        >
-            ← Volver a asistencia
-        </a>
     </div>
+
 </div>
 
-<form method="post" action="{% url 'guardar_ejercicios' %}">
+
+<form
+    method="post"
+    action="{% url 'guardar_ejercicios' %}"
+>
+
     {% csrf_token %}
 
     <input
@@ -125,12 +211,20 @@
         value="{{ entrenamiento.id }}"
     >
 
+
     {% if ejercicios_por_categoria %}
-        <div class="accordion" id="accordionEjercicios">
+
+        <div
+            class="accordion"
+            id="accordionEjercicios"
+        >
 
             {% for categoria, ejercicios in ejercicios_por_categoria.items %}
-                <div class="accordion-item mb-3 border rounded overflow-hidden">
+
+                <div class="accordion-item mb-3 border rounded-3 overflow-hidden shadow-sm">
+
                     <h2 class="accordion-header">
+
                         <button
                             class="accordion-button {% if not forloop.first %}collapsed{% endif %}"
                             type="button"
@@ -139,30 +233,50 @@
                             aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
                             aria-controls="categoria-{{ forloop.counter }}"
                         >
+
                             <span class="fw-semibold">
                                 {{ categoria }}
                             </span>
 
-                            <span class="badge text-bg-light border ms-2">
+                            <span class="badge bg-light text-dark border ms-2">
                                 {{ ejercicios|length }}
                             </span>
+
                         </button>
+
                     </h2>
+
 
                     <div
                         id="categoria-{{ forloop.counter }}"
                         class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
                         data-bs-parent="#accordionEjercicios"
                     >
+
                         <div class="accordion-body">
+
                             <div class="row g-2">
+
                                 {% for ejercicio in ejercicios %}
+
                                     <div class="col-md-6">
+
                                         <label
-                                            class="d-flex align-items-center gap-2 border rounded p-3 w-100 h-100"
+                                            class="
+                                                d-flex
+                                                align-items-center
+                                                gap-3
+                                                border
+                                                rounded-3
+                                                p-3
+                                                w-100
+                                                h-100
+                                                bg-white
+                                            "
                                             for="ej_{{ ejercicio.id }}"
                                             style="cursor: pointer;"
                                         >
+
                                             <input
                                                 class="form-check-input mt-0"
                                                 type="checkbox"
@@ -172,58 +286,133 @@
                                                 {% if ejercicio.id in ejercicios_guardados %}checked{% endif %}
                                             >
 
-                                            <span>
+                                            <span class="fw-medium">
                                                 {{ ejercicio.nombre }}
                                             </span>
+
                                         </label>
+
                                     </div>
+
                                 {% empty %}
+
                                     <div class="col-12">
-                                        <p class="text-muted mb-0">
+
+                                        <div class="text-center text-muted py-3">
                                             No hay ejercicios cargados en esta categoría.
-                                        </p>
+                                        </div>
+
                                     </div>
+
                                 {% endfor %}
+
                             </div>
+
                         </div>
+
                     </div>
+
                 </div>
+
             {% endfor %}
 
         </div>
+
+
     {% else %}
+
         <div class="card shadow-sm border-0">
+
             <div class="card-body text-center py-5">
+
+                <div class="fs-1 mb-3">
+                    🏓
+                </div>
+
                 <h5 class="mb-2">
                     No hay categorías activas
                 </h5>
 
-                <p class="text-muted mb-3">
-                    Un administrador debe crear categorías y ejercicios antes de poder cargarlos en el turno.
+                <p class="text-muted mb-3 mx-auto" style="max-width: 560px;">
+                    Primero se deben crear categorías y ejercicios
+                    antes de poder cargarlos en un turno.
                 </p>
 
-                <a
-                    href="{% url 'lista_categorias_ejercicio' %}"
-                    class="btn btn-outline-primary"
-                >
-                    Ver categorías
-                </a>
+
+                {% if es_admin_club %}
+
+                    <a
+                        href="{% url 'lista_categorias_ejercicio' %}"
+                        class="btn btn-primary"
+                    >
+                        Administrar categorías
+                    </a>
+
+                {% else %}
+
+                    <a
+                        href="{% url 'dia_turno' fecha|date:'Y-m-d' turno_id %}"
+                        class="btn btn-outline-primary"
+                    >
+                        Volver al turno
+                    </a>
+
+                {% endif %}
+
             </div>
+
         </div>
+
     {% endif %}
 
-    <div class="d-flex gap-2 flex-wrap mt-3">
-        <button type="submit" class="btn btn-success">
-            Guardar ejercicios del turno
-        </button>
 
-        <a
-            href="{% url 'dia_turno' fecha|date:'Y-m-d' turno_id %}"
-            class="btn btn-outline-dark"
-        >
-            Volver sin guardar
-        </a>
-    </div>
+    {% if ejercicios_por_categoria %}
+
+        <div class="card shadow-sm border-0 mt-4">
+
+            <div class="card-body p-4">
+
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+                    <div>
+
+                        <div class="fw-semibold">
+                            Guardar selección
+                        </div>
+
+                        <div class="small text-muted">
+                            Se guardarán los ejercicios seleccionados para todo el turno.
+                        </div>
+
+                    </div>
+
+
+                    <div class="d-flex gap-2 flex-wrap">
+
+                        <a
+                            href="{% url 'dia_turno' fecha|date:'Y-m-d' turno_id %}"
+                            class="btn btn-outline-dark"
+                        >
+                            Volver sin guardar
+                        </a>
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                        >
+                            Guardar ejercicios
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    {% endif %}
+
 </form>
 
 {% endblock %}

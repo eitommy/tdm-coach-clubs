@@ -113,6 +113,61 @@ urlpatterns = [
 
     path("jugadores/", views.lista_jugadores, name="lista_jugadores"),
     path("jugadores/nuevo/", views.crear_jugador, name="crear_jugador"),
+    
+    
+    path(
+    "jugadores/<int:jugador_id>/cuota/",
+    views.cambiar_estado_cuota,
+    name="cambiar_estado_cuota",
+),
+    
+    path(
+    "jugadores/cuotas/exportar/",
+    views.exportar_cuotas_excel,
+    name="exportar_cuotas_excel",
+),
+    
+        path(
+        "jugadores/categorias/",
+        views.lista_categorias_jugador,
+        name="lista_categorias_jugador",
+    ),
+
+    path(
+        "jugadores/categorias/nueva/",
+        views.crear_categoria_jugador,
+        name="crear_categoria_jugador",
+    ),
+
+    path(
+        "jugadores/categorias/<int:pk>/editar/",
+        views.editar_categoria_jugador,
+        name="editar_categoria_jugador",
+    ),
+    
+    path(
+    "jugadores/cuotas/resumen/",
+    views.resumen_cuotas,
+    name="resumen_cuotas",
+),
+    
+    path(
+    "jugadores/categorias/<int:pk>/mover/<str:direccion>/",
+    views.mover_categoria_jugador,
+    name="mover_categoria_jugador",
+),
+    
+    path(
+    "reportes/asistencia/exportar/",
+    views.exportar_asistencia_excel,
+    name="exportar_asistencia_excel",
+),
+    
+    path(
+    "jugadores/<int:jugador_id>/historial/exportar/",
+    views.exportar_historial_jugador_excel,
+    name="exportar_historial_jugador_excel",
+),
 
     path(
         "jugadores/<int:pk>/editar/",

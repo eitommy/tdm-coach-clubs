@@ -1,154 +1,365 @@
 {% extends "asistencia/base.html" %}
 
+{% block title %}
+{{ titulo }} · TDM Coach
+{% endblock %}
+
+
 {% block content %}
 
-<div class="container py-4">
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
 
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
 
-        <div>
-            <h1 class="h3 mb-1">
-                {{ titulo }}
-            </h1>
-
-            <p class="text-muted mb-0">
-                Completá los datos del jugador.
-            </p>
+        <div class="small text-uppercase fw-semibold text-primary mb-1">
+            Jugadores
         </div>
 
-        {% if viene_de_onboarding %}
-            <a
-                href="{% url 'onboarding_club' %}"
-                class="btn btn-outline-secondary"
-            >
-                ← Volver al onboarding
-            </a>
-        {% endif %}
+        <h1 class="mb-1">
+            {{ titulo }}
+        </h1>
+
+        <p class="text-muted mb-0">
+            Completá los datos generales y el período de pertenencia del jugador al club.
+        </p>
 
     </div>
 
 
-    <div class="row">
+    {% if viene_de_onboarding %}
 
-        <div class="col-md-6">
+        <a
+            href="{% url 'onboarding_club' %}"
+            class="btn btn-outline-dark"
+        >
+            ← Volver
+        </a>
 
-            <div class="card shadow-sm">
+    {% else %}
 
-                <div class="card-body">
+        <a
+            href="{% url 'lista_jugadores' %}"
+            class="btn btn-outline-dark"
+        >
+            ← Volver a jugadores
+        </a>
 
-                    <form method="post">
+    {% endif %}
 
-                        {% csrf_token %}
-
-                        {% if viene_de_onboarding %}
-                            <input
-                                type="hidden"
-                                name="onboarding"
-                                value="1"
-                            >
-                        {% endif %}
-
-                        {% if form.non_field_errors %}
-                            <div class="alert alert-danger">
-                                {{ form.non_field_errors }}
-                            </div>
-                        {% endif %}
+</div>
 
 
-                        <div class="mb-3">
+<div class="row justify-content-center">
+
+    <div class="col-12 col-xl-9">
+
+        <form method="post">
+
+            {% csrf_token %}
+
+
+            {% if form.non_field_errors %}
+
+                <div class="alert alert-danger mb-4">
+
+                    {% for error in form.non_field_errors %}
+                        <div>
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+
+                </div>
+
+            {% endif %}
+
+
+            <div class="card shadow-sm border-0 mb-4">
+
+                <div class="card-body p-4">
+
+                    <div class="small text-uppercase fw-semibold text-primary mb-1">
+                        Datos personales
+                    </div>
+
+                    <h4 class="mb-4">
+                        Información del jugador
+                    </h4>
+
+
+                    <div class="row g-3">
+
+                        <div class="col-12 col-md-6">
 
                             <label
                                 for="{{ form.nombre.id_for_label }}"
-                                class="form-label"
+                                class="form-label fw-semibold"
                             >
                                 Nombre
                             </label>
 
                             {{ form.nombre }}
 
-                            {% for error in form.nombre.errors %}
+                            {% if form.nombre.errors %}
+
                                 <div class="text-danger small mt-1">
-                                    {{ error }}
+
+                                    {% for error in form.nombre.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+
                                 </div>
-                            {% endfor %}
+
+                            {% endif %}
 
                         </div>
 
 
-                        <div class="mb-3">
+                        <div class="col-12 col-md-6">
 
                             <label
                                 for="{{ form.apellido.id_for_label }}"
-                                class="form-label"
+                                class="form-label fw-semibold"
                             >
                                 Apellido
                             </label>
 
                             {{ form.apellido }}
 
-                            {% for error in form.apellido.errors %}
+                            {% if form.apellido.errors %}
+
                                 <div class="text-danger small mt-1">
-                                    {{ error }}
+
+                                    {% for error in form.apellido.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+
                                 </div>
-                            {% endfor %}
 
-                        </div>
-
-
-                        <div class="form-check mb-4">
-
-                            {{ form.activo }}
-
-                            <label
-                                for="{{ form.activo.id_for_label }}"
-                                class="form-check-label"
-                            >
-                                Activo
-                            </label>
-
-                            {% for error in form.activo.errors %}
-                                <div class="text-danger small mt-1">
-                                    {{ error }}
-                                </div>
-                            {% endfor %}
-
-                        </div>
-
-
-                        <div class="d-flex gap-2 flex-wrap">
-
-                            <button
-                                type="submit"
-                                class="btn btn-primary"
-                            >
-                                Guardar jugador
-                            </button>
-
-                            {% if viene_de_onboarding %}
-                                <a
-                                    href="{% url 'onboarding_club' %}"
-                                    class="btn btn-outline-secondary"
-                                >
-                                    Cancelar y volver al onboarding
-                                </a>
-                            {% else %}
-                                <a
-                                    href="{% url 'lista_jugadores' %}"
-                                    class="btn btn-outline-secondary"
-                                >
-                                    Cancelar
-                                </a>
                             {% endif %}
 
                         </div>
 
-                    </form>
+
+                        <div class="col-12">
+
+                            <label
+                                for="{{ form.categoria.id_for_label }}"
+                                class="form-label fw-semibold"
+                            >
+                                Categoría
+                            </label>
+
+                            {{ form.categoria }}
+
+                            {% if form.categoria.errors %}
+
+                                <div class="text-danger small mt-1">
+
+                                    {% for error in form.categoria.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+
+                                </div>
+
+                            {% endif %}
+
+                            <div class="form-text">
+                                La categoría es opcional y puede modificarse más adelante.
+                            </div>
+
+                        </div>
+
+                    </div>
 
                 </div>
 
             </div>
 
-        </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+
+                <div class="card-body p-4">
+
+                    <div class="small text-uppercase fw-semibold text-primary mb-1">
+                        Historial
+                    </div>
+
+                    <h4 class="mb-2">
+                        Permanencia en el club
+                    </h4>
+
+                    <p class="text-muted mb-4">
+                        Estas fechas determinan en qué períodos históricos aparece el jugador.
+                    </p>
+
+
+                    <div class="row g-3">
+
+                        <div class="col-12 col-md-6">
+
+                            <label
+                                for="{{ form.fecha_alta.id_for_label }}"
+                                class="form-label fw-semibold"
+                            >
+                                Fecha de alta
+                            </label>
+
+                            {{ form.fecha_alta }}
+
+                            {% if form.fecha_alta.errors %}
+
+                                <div class="text-danger small mt-1">
+
+                                    {% for error in form.fecha_alta.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+
+                                </div>
+
+                            {% endif %}
+
+                            <div class="form-text">
+                                Fecha desde la que el jugador pertenece al club.
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-12 col-md-6">
+
+                            <label
+                                for="{{ form.fecha_baja.id_for_label }}"
+                                class="form-label fw-semibold"
+                            >
+                                Fecha de baja
+                            </label>
+
+                            {{ form.fecha_baja }}
+
+                            {% if form.fecha_baja.errors %}
+
+                                <div class="text-danger small mt-1">
+
+                                    {% for error in form.fecha_baja.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+
+                                </div>
+
+                            {% endif %}
+
+                            <div class="form-text">
+                                Dejala vacía si el jugador continúa perteneciendo al club.
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="alert alert-light border mt-4 mb-0">
+
+                        <div class="fw-semibold mb-1">
+                            ¿Para qué sirven estas fechas?
+                        </div>
+
+                        <div class="small text-muted">
+                            Por ejemplo, si un jugador ingresó en octubre de 2026,
+                            no aparecerá al consultar las cuotas de septiembre de 2026
+                            o de años anteriores.
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="card shadow-sm border-0 mb-4">
+
+                <div class="card-body p-4">
+
+                    <div class="small text-uppercase fw-semibold text-primary mb-1">
+                        Estado
+                    </div>
+
+                    <h4 class="mb-3">
+                        Disponibilidad
+                    </h4>
+
+
+                    <div class="form-check">
+
+                        {{ form.activo }}
+
+                        <label
+                            for="{{ form.activo.id_for_label }}"
+                            class="form-check-label fw-semibold"
+                        >
+                            Jugador activo
+                        </label>
+
+                    </div>
+
+
+                    {% if form.activo.errors %}
+
+                        <div class="text-danger small mt-2">
+
+                            {% for error in form.activo.errors %}
+                                <div>{{ error }}</div>
+                            {% endfor %}
+
+                        </div>
+
+                    {% endif %}
+
+
+                    <div class="form-text mt-2">
+                        Los jugadores inactivos se conservan en el historial,
+                        pero dejan de estar disponibles para la carga habitual de entrenamientos.
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="d-flex justify-content-end gap-2 flex-wrap">
+
+                {% if viene_de_onboarding %}
+
+                    <a
+                        href="{% url 'onboarding_club' %}"
+                        class="btn btn-outline-secondary"
+                    >
+                        Cancelar
+                    </a>
+
+                {% else %}
+
+                    <a
+                        href="{% url 'lista_jugadores' %}"
+                        class="btn btn-outline-secondary"
+                    >
+                        Cancelar
+                    </a>
+
+                {% endif %}
+
+
+                <button
+                    type="submit"
+                    class="btn btn-primary px-4"
+                >
+                    Guardar jugador
+                </button>
+
+            </div>
+
+
+        </form>
 
     </div>
 
