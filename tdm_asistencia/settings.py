@@ -306,7 +306,7 @@ if (
 
 if R2_CONFIGURADO:
     DEFAULT_STORAGE = {
-        "BACKEND": "storages.s3.S3Storage",
+    "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
             "access_key": R2_ACCESS_KEY_ID,
             "secret_key": R2_SECRET_ACCESS_KEY,
