@@ -336,20 +336,14 @@ class Entrenador(models.Model):
 class Entrenamiento(models.Model):
 
     """
+Durante la transición conservamos el campo entero "turno"
+para que la aplicación actual siga funcionando.
 
-    Durante la transición conservamos el campo entero \turno\
+El nuevo sistema utilizará "turno_config", que apunta a TurnoClub.
 
-    para que la aplicación actual siga funcionando.
-
-
-
-    El nuevo sistema utilizará \turno_config\, que apunta a TurnoClub.
-
-    Cuando todas las vistas hayan sido migradas, eliminaremos
-
-    definitivamente TURNOS y el campo turno.
-
-    """
+Cuando todas las vistas hayan sido migradas, eliminaremos
+definitivamente TURNOS y el campo turno.
+"""
 
 
 
