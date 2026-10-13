@@ -10,15 +10,21 @@ Configuración - {{ club.nombre }}
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="h3 mb-1">Configuración del club</h1>
+            <h1 class="h3 mb-1">
+                Configuración del club
+            </h1>
+
             <p class="text-muted mb-0">
                 Editá los datos generales y la identidad visual del club.
             </p>
         </div>
     </div>
 
+
     {% if messages %}
+
         {% for message in messages %}
+
             <div
                 class="alert
                 {% if message.tags == 'success' %}
@@ -40,15 +46,19 @@ Configuración - {{ club.nombre }}
                     aria-label="Cerrar"
                 ></button>
             </div>
+
         {% endfor %}
+
     {% endif %}
+
 
     <div class="row g-4">
 
         <div class="col-lg-8">
 
             <div class="card shadow-sm">
-                <div class="card-body">
+
+                <div class="card-body p-4">
 
                     <form
                         method="post"
@@ -57,13 +67,18 @@ Configuración - {{ club.nombre }}
 
                         {% csrf_token %}
 
+
                         {% if form.non_field_errors %}
+
                             <div class="alert alert-danger">
                                 {{ form.non_field_errors }}
                             </div>
+
                         {% endif %}
 
+
                         <div class="mb-3">
+
                             <label
                                 for="{{ form.nombre.id_for_label }}"
                                 class="form-label"
@@ -74,13 +89,18 @@ Configuración - {{ club.nombre }}
                             {{ form.nombre }}
 
                             {% for error in form.nombre.errors %}
+
                                 <div class="text-danger small mt-1">
                                     {{ error }}
                                 </div>
+
                             {% endfor %}
+
                         </div>
 
+
                         <div class="mb-3">
+
                             <label
                                 for="{{ form.logo.id_for_label }}"
                                 class="form-label"
@@ -91,11 +111,15 @@ Configuración - {{ club.nombre }}
                             {{ form.logo }}
 
                             {% for error in form.logo.errors %}
+
                                 <div class="text-danger small mt-1">
                                     {{ error }}
                                 </div>
+
                             {% endfor %}
+
                         </div>
+
 
                         <div class="row">
 
@@ -109,20 +133,25 @@ Configuración - {{ club.nombre }}
                                 </label>
 
                                 <div class="d-flex align-items-center gap-3">
+
                                     {{ form.color_primario }}
 
                                     <span class="text-muted small">
                                         {{ club.color_primario }}
                                     </span>
+
                                 </div>
 
                                 {% for error in form.color_primario.errors %}
+
                                     <div class="text-danger small mt-1">
                                         {{ error }}
                                     </div>
+
                                 {% endfor %}
 
                             </div>
+
 
                             <div class="col-md-6 mb-3">
 
@@ -134,22 +163,27 @@ Configuración - {{ club.nombre }}
                                 </label>
 
                                 <div class="d-flex align-items-center gap-3">
+
                                     {{ form.color_secundario }}
 
                                     <span class="text-muted small">
                                         {{ club.color_secundario }}
                                     </span>
+
                                 </div>
 
                                 {% for error in form.color_secundario.errors %}
+
                                     <div class="text-danger small mt-1">
                                         {{ error }}
                                     </div>
+
                                 {% endfor %}
 
                             </div>
 
                         </div>
+
 
                         <div class="mb-3">
 
@@ -163,12 +197,15 @@ Configuración - {{ club.nombre }}
                             {{ form.email }}
 
                             {% for error in form.email.errors %}
+
                                 <div class="text-danger small mt-1">
                                     {{ error }}
                                 </div>
+
                             {% endfor %}
 
                         </div>
+
 
                         <div class="mb-3">
 
@@ -182,12 +219,15 @@ Configuración - {{ club.nombre }}
                             {{ form.telefono }}
 
                             {% for error in form.telefono.errors %}
+
                                 <div class="text-danger small mt-1">
                                     {{ error }}
                                 </div>
+
                             {% endfor %}
 
                         </div>
+
 
                         <div class="mb-4">
 
@@ -201,12 +241,15 @@ Configuración - {{ club.nombre }}
                             {{ form.direccion }}
 
                             {% for error in form.direccion.errors %}
+
                                 <div class="text-danger small mt-1">
                                     {{ error }}
                                 </div>
+
                             {% endfor %}
 
                         </div>
+
 
                         <button
                             type="submit"
@@ -218,68 +261,105 @@ Configuración - {{ club.nombre }}
                     </form>
 
                 </div>
+
             </div>
 
         </div>
 
+
         <div class="col-lg-4">
 
             <div class="card shadow-sm mb-4">
-                <div class="card-body">
 
-                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                <div class="card-body p-4">
+
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+
                         <div>
-                            <h2 class="h5 mb-1">Suscripción</h2>
+
+                            <div class="small text-uppercase fw-semibold text-primary mb-1">
+                                Suscripción
+                            </div>
+
+                            <h2 class="h5 mb-1">
+                                Estado del servicio
+                            </h2>
+
                             <p class="text-muted small mb-0">
-                                Estado administrado por TDM Coach.
+                                Administrado por TDM Coach.
                             </p>
+
                         </div>
 
+
                         {% if club.estado_pago == "al_dia" %}
+
                             <span class="badge text-bg-success">
                                 {{ club.get_estado_pago_display }}
                             </span>
+
                         {% elif club.estado_pago == "vencido" %}
+
                             <span class="badge text-bg-danger">
                                 {{ club.get_estado_pago_display }}
                             </span>
+
                         {% else %}
+
                             <span class="badge text-bg-warning">
                                 {{ club.get_estado_pago_display }}
                             </span>
+
                         {% endif %}
+
                     </div>
 
-                    <div class="border rounded p-3 bg-light">
+
+                    <div class="border rounded-3 p-3 bg-light mb-3">
+
                         <div class="small text-muted mb-1">
                             Pago cubierto hasta
                         </div>
 
-                        <div class="fw-semibold">
+                        <div class="fw-bold">
+
                             {% if club.pagado_hasta %}
+
                                 {{ club.pagado_hasta|date:"d/m/Y" }}
+
                             {% else %}
+
                                 Sin fecha cargada
+
                             {% endif %}
+
                         </div>
+
                     </div>
 
-                    <p class="text-muted small mt-3 mb-0">
-                        Este estado es informativo y no puede modificarse
-                        desde la configuración del club.
+
+                    <p class="text-muted small mb-0">
+                        El estado de la suscripción y los pagos son
+                        administrados por TDM Coach y no pueden modificarse
+                        desde esta pantalla.
                     </p>
 
                 </div>
+
             </div>
 
+
             <div class="card shadow-sm">
-                <div class="card-body text-center">
+
+                <div class="card-body text-center p-4">
 
                     <h2 class="h5 mb-3">
                         Vista previa
                     </h2>
 
+
                     {% if club.logo %}
+
                         <img
                             src="{{ club.logo.url }}"
                             alt="{{ club.nombre }}"
@@ -289,7 +369,9 @@ Configuración - {{ club.nombre }}
                                 object-fit: contain;
                             "
                         >
+
                     {% else %}
+
                         <div
                             class="border rounded d-flex align-items-center justify-content-center mb-3"
                             style="
@@ -301,11 +383,14 @@ Configuración - {{ club.nombre }}
                                 Sin logo
                             </span>
                         </div>
+
                     {% endif %}
+
 
                     <h3 class="h4 mb-3">
                         {{ club.nombre }}
                     </h3>
+
 
                     <div class="mb-2">
 
@@ -325,6 +410,7 @@ Configuración - {{ club.nombre }}
                         </span>
 
                     </div>
+
 
                     <div>
 
@@ -346,7 +432,170 @@ Configuración - {{ club.nombre }}
                     </div>
 
                 </div>
+
             </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="card shadow-sm mt-4">
+
+        <div class="card-body p-4">
+
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+
+                <div>
+
+                    <div class="small text-uppercase fw-semibold text-primary mb-1">
+                        Suscripción
+                    </div>
+
+                    <h2 class="h4 mb-1">
+                        Historial de pagos
+                    </h2>
+
+                    <p class="text-muted mb-0">
+                        Consultá los pagos registrados para el servicio del club.
+                    </p>
+
+                </div>
+
+                <div class="text-muted small">
+                    Solo lectura
+                </div>
+
+            </div>
+
+
+            {% if pagos_club %}
+
+                <div class="table-responsive">
+
+                    <table class="table align-middle mb-0">
+
+                        <thead>
+
+                            <tr>
+                                <th>
+                                    Fecha de pago
+                                </th>
+
+                                <th>
+                                    Período cubierto
+                                </th>
+
+                                <th>
+                                    Importe
+                                </th>
+
+                                <th>
+                                    Método
+                                </th>
+
+                                <th>
+                                    Referencia
+                                </th>
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                            {% for pago in pagos_club %}
+
+                                <tr>
+
+                                    <td>
+                                        {{ pago.fecha_pago|date:"d/m/Y" }}
+                                    </td>
+
+                                    <td>
+
+                                        <div class="fw-semibold">
+                                            {{ pago.periodo_desde|date:"d/m/Y" }}
+                                            →
+                                            {{ pago.periodo_hasta|date:"d/m/Y" }}
+                                        </div>
+
+                                    </td>
+
+                                    <td>
+
+                                        {% if pago.importe %}
+
+                                            $ {{ pago.importe|floatformat:2 }}
+
+                                        {% else %}
+
+                                            <span class="text-muted">
+                                                —
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+                                    <td>
+                                        {{ pago.get_metodo_pago_display }}
+                                    </td>
+
+                                    <td>
+
+                                        {% if pago.referencia %}
+
+                                            {{ pago.referencia }}
+
+                                        {% else %}
+
+                                            <span class="text-muted">
+                                                —
+                                            </span>
+
+                                        {% endif %}
+
+                                        {% if pago.observacion %}
+
+                                            <div class="small text-muted mt-1">
+                                                {{ pago.observacion }}
+                                            </div>
+
+                                        {% endif %}
+
+                                    </td>
+
+                                </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            {% else %}
+
+                <div class="text-center py-4">
+
+                    <div class="fs-2 mb-2">
+                        🧾
+                    </div>
+
+                    <h3 class="h5 mb-2">
+                        Todavía no hay pagos registrados
+                    </h3>
+
+                    <p class="text-muted mb-0">
+                        Cuando TDM Coach registre un pago,
+                        va a aparecer en este historial.
+                    </p>
+
+                </div>
+
+            {% endif %}
 
         </div>
 

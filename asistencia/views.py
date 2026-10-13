@@ -348,6 +348,128 @@ def inicio(request):
             "estado_detalle": estado_detalle,
         })
 
+    # ---------------------------------------------------------
+    # RESUMEN MENSUAL DEL CLUB
+    # ---------------------------------------------------------
+
+    primer_dia_mes = fecha.replace(day=1)
+
+    ultimo_dia_mes = fecha.replace(
+        day=monthrange(
+            fecha.year,
+            fecha.month,
+        )[1]
+    )
+
+    # Jugadores que pertenecieron al club durante ese mes.
+    jugadores_mes = (
+        Jugador.objects
+        .filter(
+            club=club,
+            fecha_alta__lte=ultimo_dia_mes,
+        )
+        .filter(
+            Q(fecha_baja__isnull=True)
+            | Q(fecha_baja__gte=primer_dia_mes)
+        )
+    )
+
+    total_jugadores_mes = jugadores_mes.count()
+
+    asistencias_mes = Asistencia.objects.filter(
+        entrenamiento__club=club,
+        entrenamiento__fecha__range=(
+            primer_dia_mes,
+            ultimo_dia_mes,
+        ),
+    )
+
+    presentes_mes = asistencias_mes.filter(
+        estado__in=[
+            "asistio",
+            "tarde",
+        ],
+    ).count()
+
+    ausentes_mes = asistencias_mes.filter(
+        estado="ausente",
+    ).count()
+
+    pendientes_mes = asistencias_mes.filter(
+        estado="pendiente",
+    ).count()
+
+    asistencias_marcadas_mes = (
+        presentes_mes
+        + ausentes_mes
+    )
+
+    total_asistencias_mes = (
+        asistencias_marcadas_mes
+        + pendientes_mes
+    )
+
+    if asistencias_marcadas_mes > 0:
+        porcentaje_asistencia_mes = round(
+            (
+                presentes_mes
+                / asistencias_marcadas_mes
+            )
+            * 100
+        )
+    else:
+        porcentaje_asistencia_mes = 0
+
+    entrenamientos_finalizados_mes = (
+        Entrenamiento.objects
+        .filter(
+            club=club,
+            fecha__range=(
+                primer_dia_mes,
+                ultimo_dia_mes,
+            ),
+            finalizado=True,
+        )
+        .count()
+    )
+
+    entrenamientos_no_realizados_mes = (
+        Entrenamiento.objects
+        .filter(
+            club=club,
+            fecha__range=(
+                primer_dia_mes,
+                ultimo_dia_mes,
+            ),
+            no_se_entreno=True,
+        )
+        .count()
+    )
+
+    # Cuotas del mes. El HTML las muestra solo al administrador.
+    ids_jugadores_mes = list(
+        jugadores_mes.values_list(
+            "id",
+            flat=True,
+        )
+    )
+
+    cuotas_pagadas_mes = (
+        PagoJugador.objects
+        .filter(
+            jugador_id__in=ids_jugadores_mes,
+            anio=fecha.year,
+            mes=fecha.month,
+            pagado=True,
+        )
+        .count()
+    )
+
+    cuotas_pendientes_mes = max(
+        total_jugadores_mes - cuotas_pagadas_mes,
+        0,
+    )
+
     contexto = {
         "club": club,
         "fecha": fecha,
@@ -367,6 +489,22 @@ def inicio(request):
         "total_marcados_dia": total_marcados_dia,
         "total_no_entrenados_dia": total_no_entrenados_dia,
         "total_finalizados_dia": total_finalizados_dia,
+        # Resumen mensual
+        "total_jugadores_mes": total_jugadores_mes,
+        "presentes_mes": presentes_mes,
+        "ausentes_mes": ausentes_mes,
+        "pendientes_mes": pendientes_mes,
+        "asistencias_marcadas_mes": asistencias_marcadas_mes,
+        "total_asistencias_mes": total_asistencias_mes,
+        "porcentaje_asistencia_mes": porcentaje_asistencia_mes,
+        "entrenamientos_finalizados_mes": (
+            entrenamientos_finalizados_mes
+        ),
+        "entrenamientos_no_realizados_mes": (
+            entrenamientos_no_realizados_mes
+        ),
+        "cuotas_pagadas_mes": cuotas_pagadas_mes,
+        "cuotas_pendientes_mes": cuotas_pendientes_mes,
 
         # Estados de configuración para mostrar ayudas claras
         # en la pantalla de carga diaria.

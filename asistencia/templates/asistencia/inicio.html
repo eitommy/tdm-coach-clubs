@@ -81,6 +81,29 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
             );
     }
 
+    .tdm-month-card {
+        border: 1px solid rgba(0, 0, 0, .06);
+    }
+
+    .tdm-month-stat {
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+
+    .tdm-month-stat:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 .35rem .8rem rgba(0, 0, 0, .06);
+    }
+
+    .tdm-empty-turnos {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+
+    .tdm-empty-icon {
+        font-size: 2rem;
+        line-height: 1;
+    }
+
     @media (max-width: 767.98px) {
         .tdm-page-actions .btn {
             flex: 1 1 auto;
@@ -554,6 +577,225 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
 </div>
 
 
+<div class="card shadow-sm border-0 mb-4 tdm-month-card">
+
+    <div class="card-body p-4">
+
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+
+            <div>
+
+                <div class="small text-uppercase fw-semibold text-primary mb-1">
+                    Resumen mensual
+                </div>
+
+                <h4 class="mb-1">
+                    Actividad de {{ fecha|date:"F Y" }}
+                </h4>
+
+                <p class="text-muted mb-0">
+                    Un vistazo rápido al rendimiento general del club durante el mes.
+                </p>
+
+            </div>
+
+            <a
+                href="{% url 'dashboard_mensual' %}"
+                class="btn btn-sm btn-outline-primary"
+            >
+                Ver resumen completo
+            </a>
+
+        </div>
+
+
+        <div class="row g-3">
+
+            <div class="col-12 col-md-6 col-xl-3">
+
+                <div class="border rounded-3 p-3 h-100 bg-light tdm-month-stat">
+
+                    <div class="small text-muted mb-1">
+                        Asistencia mensual
+                    </div>
+
+                    <div class="fs-4 fw-bold text-primary">
+                        {% if asistencias_marcadas_mes %}
+                            {{ porcentaje_asistencia_mes }}%
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+
+                    <div class="small text-muted mt-1">
+    {{ presentes_mes }} presente{% if presentes_mes != 1 %}s{% endif %}
+    ·
+    {{ ausentes_mes }} ausente{% if ausentes_mes != 1 %}s{% endif %}
+</div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-12 col-md-6 col-xl-3">
+
+                <div class="border rounded-3 p-3 h-100 bg-light tdm-month-stat">
+
+                    <div class="small text-muted mb-1">
+                        Jugadores
+                    </div>
+
+                    <div class="fs-4 fw-bold">
+                        {{ total_jugadores_mes }}
+                    </div>
+
+                    <div class="small text-muted mt-1">
+                        Durante el mes
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-12 col-md-6 col-xl-3">
+
+                <div class="border rounded-3 p-3 h-100 bg-light tdm-month-stat">
+
+                    <div class="small text-muted mb-1">
+                        Presentes
+                    </div>
+
+                    <div class="fs-4 fw-bold text-success">
+                        {{ presentes_mes }}
+                    </div>
+
+                    <div class="small text-muted mt-1">
+                        Incluye llegadas tarde
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-12 col-md-6 col-xl-3">
+
+                <div class="border rounded-3 p-3 h-100 bg-light tdm-month-stat">
+
+                    <div class="small text-muted mb-1">
+                        Ausentes
+                    </div>
+
+                    <div class="fs-4 fw-bold text-danger">
+                        {{ ausentes_mes }}
+                    </div>
+
+                    <div class="small text-muted mt-1">
+                        Durante el mes
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-12 col-md-6 col-xl-4">
+
+                <div class="border rounded-3 p-3 h-100 bg-light tdm-month-stat">
+
+                    <div class="small text-muted mb-1">
+                        Finalizados
+                    </div>
+
+                    <div class="fs-4 fw-bold text-success">
+                        {{ entrenamientos_finalizados_mes }}
+                    </div>
+
+                    <div class="small text-muted mt-1">
+                        Turnos cerrados
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-12 col-md-6 col-xl-4">
+
+                <div class="border rounded-3 p-3 h-100 bg-light tdm-month-stat">
+
+                    <div class="small text-muted mb-1">
+                        Sin entrenamiento
+                    </div>
+
+                    <div class="fs-4 fw-bold text-secondary">
+                        {{ entrenamientos_no_realizados_mes }}
+                    </div>
+
+                    <div class="small text-muted mt-1">
+                        Turnos cancelados
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {% if es_admin_club %}
+
+                <div class="col-12 col-md-6 col-xl-4">
+
+                    <div class="border rounded-3 p-3 h-100 bg-light tdm-month-stat">
+
+                        <div class="small text-muted mb-1">
+                            Cuotas pendientes
+                        </div>
+
+                        <div class="fs-4 fw-bold {% if cuotas_pendientes_mes %}text-danger{% else %}text-success{% endif %}">
+                            {{ cuotas_pendientes_mes }}
+                        </div>
+
+                        <div class="small text-muted mt-1">
+                            {{ cuotas_pagadas_mes }} pagadas
+                        </div>
+
+                    </div>
+
+                </div>
+
+            {% else %}
+
+                <div class="col-12 col-md-6 col-xl-4">
+
+                    <div class="border rounded-3 p-3 h-100 bg-light tdm-month-stat">
+
+                        <div class="small text-muted mb-1">
+                            Pendientes
+                        </div>
+
+                        <div class="fs-4 fw-bold text-warning">
+                            {{ pendientes_mes }}
+                        </div>
+
+                        <div class="small text-muted mt-1">
+                            Asistencias sin marcar
+                        </div>
+
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+
 <div class="card shadow-sm border-0 mb-4">
 
     <div class="card-body p-4">
@@ -729,11 +971,11 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
         {% else %}
 
 
-            <div class="text-center py-5">
+            <div class="text-center tdm-empty-turnos">
 
                 {% if not tiene_turnos_club %}
 
-                    <div class="display-6 mb-3">
+                    <div class="tdm-empty-icon mb-3">
                         🕒
                     </div>
 
@@ -756,8 +998,8 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
 
                 {% else %}
 
-                    <div class="display-6 mb-3">
-                        📅
+                    <div class="tdm-empty-icon mb-3">
+                        🗓️
                     </div>
 
                     <h5 class="mb-2">
@@ -765,13 +1007,9 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
                     </h5>
 
                     <p class="text-muted mb-3">
-
                         {{ club_actual.nombre }}
-
                         no tiene turnos activos para
-
                         {{ fecha|date:"l" }}.
-
                     </p>
 
                     <a

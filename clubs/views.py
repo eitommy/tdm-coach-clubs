@@ -95,6 +95,15 @@ def configuracion_club(request):
             instance=club,
         )
 
+    pagos_club = (
+        club.pagos_suscripcion
+        .all()
+        .order_by(
+            "-fecha_pago",
+            "-id",
+        )
+    )
+
     return render(
         request,
         "clubs/configuracion.html",
@@ -102,9 +111,9 @@ def configuracion_club(request):
             "form": form,
             "club": club,
             "viene_de_onboarding": viene_de_onboarding,
+            "pagos_club": pagos_club,
         },
     )
-
 
 @requerir_club
 def lista_turnos(request):

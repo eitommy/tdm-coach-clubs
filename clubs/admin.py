@@ -3,14 +3,40 @@ from django.contrib import admin
 from django.urls import reverse
 from django.utils.html import format_html
 
-from .models import Club, InvitacionClub, PerfilUsuario, TurnoClub
+from .models import (
+    Club,
+    InvitacionClub,
+    PagoClub,
+    PerfilUsuario,
+    TurnoClub,
+)
+
+
+class PagoClubInline(admin.TabularInline):
+    model = PagoClub
+
+    extra = 0
+
+    fields = (
+        "fecha_pago",
+        "periodo_desde",
+        "periodo_hasta",
+        "importe",
+        "metodo_pago",
+        "referencia",
+    )
+
+    ordering = (
+        "-fecha_pago",
+        "-id",
+    )
 
 
 @admin.register(Club)
 class ClubAdmin(admin.ModelAdmin):
     list_display = (
         "nombre",
-        "estado_pago",
+        "estado_pago_calculado",
         "pagado_hasta",
         "email",
         "telefono",
@@ -20,7 +46,6 @@ class ClubAdmin(admin.ModelAdmin):
 
     list_filter = (
         "activo",
-        "estado_pago",
     )
 
     search_fields = (
@@ -31,6 +56,8 @@ class ClubAdmin(admin.ModelAdmin):
 
     readonly_fields = (
         "creado",
+        "estado_pago_calculado",
+        "pagado_hasta",
     )
 
     fieldsets = (
@@ -54,9 +81,99 @@ class ClubAdmin(admin.ModelAdmin):
             "Suscripción / pago",
             {
                 "fields": (
-                    "estado_pago",
+                    "estado_pago_calculado",
                     "pagado_hasta",
                     "observacion_pago",
+                )
+            },
+        ),
+    )
+
+    inlines = [
+        PagoClubInline,
+    ]
+
+    @admin.display(
+        description="Estado pago",
+    )
+    def estado_pago_calculado(self, obj):
+        return obj.get_estado_pago_actual_display()
+
+
+@admin.register(PagoClub)
+class PagoClubAdmin(admin.ModelAdmin):
+    list_display = (
+        "club",
+        "fecha_pago",
+        "periodo_desde",
+        "periodo_hasta",
+        "importe",
+        "metodo_pago",
+        "referencia",
+        "creado",
+    )
+
+    list_filter = (
+        "metodo_pago",
+        "fecha_pago",
+        "periodo_desde",
+        "periodo_hasta",
+    )
+
+    search_fields = (
+        "club__nombre",
+        "referencia",
+        "observacion",
+    )
+
+    ordering = (
+        "-fecha_pago",
+        "-id",
+    )
+
+    autocomplete_fields = (
+        "club",
+    )
+
+    readonly_fields = (
+        "creado",
+    )
+
+    fieldsets = (
+        (
+            "Club",
+            {
+                "fields": (
+                    "club",
+                )
+            },
+        ),
+        (
+            "Pago",
+            {
+                "fields": (
+                    "fecha_pago",
+                    "importe",
+                    "metodo_pago",
+                    "referencia",
+                )
+            },
+        ),
+        (
+            "Período cubierto",
+            {
+                "fields": (
+                    "periodo_desde",
+                    "periodo_hasta",
+                )
+            },
+        ),
+        (
+            "Información adicional",
+            {
+                "fields": (
+                    "observacion",
+                    "creado",
                 )
             },
         ),
@@ -107,7 +224,10 @@ class InvitacionClubAdmin(admin.ModelAdmin):
     @admin.display(description="Link de registro")
     def enlace_registro(self, obj):
         if not obj or not obj.pk:
-            return "Guardá primero la invitación para generar el link."
+            return (
+                "Guardá primero la invitación "
+                "para generar el link."
+            )
 
         if obj.usada:
             return "Esta invitación ya fue utilizada."
