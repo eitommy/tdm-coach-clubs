@@ -292,22 +292,22 @@ Configuración - {{ club.nombre }}
                         </div>
 
 
-                        {% if club.estado_pago == "al_dia" %}
+                        {% if club.estado_pago_actual == "al_dia" %}
 
                             <span class="badge text-bg-success">
-                                {{ club.get_estado_pago_display }}
+                                {{ club.get_estado_pago_actual_display }}
                             </span>
 
-                        {% elif club.estado_pago == "vencido" %}
+                        {% elif club.estado_pago_actual == "vencido" %}
 
                             <span class="badge text-bg-danger">
-                                {{ club.get_estado_pago_display }}
+                                {{ club.get_estado_pago_actual_display }}
                             </span>
 
                         {% else %}
 
                             <span class="badge text-bg-warning">
-                                {{ club.get_estado_pago_display }}
+                                {{ club.get_estado_pago_actual_display }}
                             </span>
 
                         {% endif %}
@@ -478,6 +478,7 @@ Configuración - {{ club.nombre }}
                         <thead>
 
                             <tr>
+
                                 <th>
                                     Fecha de pago
                                 </th>
@@ -497,6 +498,7 @@ Configuración - {{ club.nombre }}
                                 <th>
                                     Referencia
                                 </th>
+
                             </tr>
 
                         </thead>
@@ -512,6 +514,7 @@ Configuración - {{ club.nombre }}
                                         {{ pago.fecha_pago|date:"d/m/Y" }}
                                     </td>
 
+
                                     <td>
 
                                         <div class="fw-semibold">
@@ -521,6 +524,7 @@ Configuración - {{ club.nombre }}
                                         </div>
 
                                     </td>
+
 
                                     <td>
 
@@ -538,9 +542,11 @@ Configuración - {{ club.nombre }}
 
                                     </td>
 
+
                                     <td>
                                         {{ pago.get_metodo_pago_display }}
                                     </td>
+
 
                                     <td>
 
@@ -555,6 +561,7 @@ Configuración - {{ club.nombre }}
                                             </span>
 
                                         {% endif %}
+
 
                                         {% if pago.observacion %}
 

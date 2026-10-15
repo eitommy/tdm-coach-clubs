@@ -1,0 +1,153 @@
+{% extends "asistencia/base.html" %}
+
+{% block title %}
+Suscripción vencida · TDM Coach
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center py-5">
+
+    <div class="col-12 col-lg-8 col-xl-7">
+
+        <div class="card shadow-sm border-0">
+
+            <div class="card-body p-4 p-md-5 text-center">
+
+                <div
+                    class="d-inline-flex align-items-center justify-content-center rounded-circle bg-warning-subtle mb-4"
+                    style="width: 72px; height: 72px;"
+                >
+                    <span style="font-size: 32px;">
+                        ⚠
+                    </span>
+                </div>
+
+
+                <div class="small text-uppercase fw-semibold text-warning mb-2">
+                    Suscripción vencida
+                </div>
+
+
+                <h1 class="h2 mb-3">
+                    El acceso al club está temporalmente bloqueado
+                </h1>
+
+
+                <p class="text-muted mb-4">
+
+                    La suscripción de
+
+                    <strong class="text-dark">
+                        {{ club.nombre }}
+                    </strong>
+
+                    venció hace
+
+                    <strong class="text-dark">
+                        {{ club.dias_vencido }}
+                        día{{ club.dias_vencido|pluralize:"s" }}
+                    </strong>
+
+                    y ya terminó el período de gracia.
+
+                </p>
+
+
+                <div class="alert alert-light border text-start mb-4">
+
+                    <div class="fw-semibold mb-2">
+                        Tus datos siguen guardados
+                    </div>
+
+                    <div class="small text-muted">
+                        Los jugadores, entrenamientos, asistencias,
+                        ejercicios, reportes y demás información del club
+                        no se eliminan. El acceso operativo volverá a estar
+                        disponible cuando se regularice la suscripción.
+                    </div>
+
+                </div>
+
+
+                {% if es_admin_club %}
+
+                    <p class="text-muted small mb-3">
+                        Como administrador del club podés consultar
+                        el estado y el historial de la suscripción.
+                    </p>
+
+
+                    <div
+                        class="
+                            d-flex
+                            justify-content-center
+                            gap-2
+                            flex-wrap
+                        "
+                    >
+
+                        <a
+                            href="{% url 'configuracion_club' %}"
+                            class="btn btn-primary"
+                        >
+                            Ver suscripción
+                        </a>
+
+
+                        <form
+                            method="post"
+                            action="{% url 'logout' %}"
+                            class="m-0"
+                        >
+
+                            {% csrf_token %}
+
+                            <button
+                                type="submit"
+                                class="btn btn-outline-dark"
+                            >
+                                Cerrar sesión
+                            </button>
+
+                        </form>
+
+                    </div>
+
+
+                {% else %}
+
+                    <p class="text-muted small mb-4">
+                        Contactá al administrador del club para
+                        regularizar la suscripción.
+                    </p>
+
+
+                    <form
+                        method="post"
+                        action="{% url 'logout' %}"
+                        class="m-0"
+                    >
+
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="btn btn-outline-dark"
+                        >
+                            Cerrar sesión
+                        </button>
+
+                    </form>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -12,6 +12,10 @@ class Club(models.Model):
         PENDIENTE = "pendiente", "Pago pendiente"
         VENCIDO = "vencido", "Vencido"
 
+    # Cantidad de días que el club puede seguir usando
+    # normalmente la aplicación después del vencimiento.
+    DIAS_GRACIA_PAGO = 7
+
     nombre = models.CharField(max_length=150)
 
     logo = models.ImageField(
@@ -86,6 +90,98 @@ class Club(models.Model):
             return self.EstadoPago.AL_DIA
 
         return self.EstadoPago.VENCIDO
+
+    @property
+    def dias_vencido(self):
+        """
+        Devuelve cuántos días pasaron desde el vencimiento.
+
+        Ejemplo:
+        pagado_hasta = 31/10
+        hoy = 01/11
+        resultado = 1
+
+        Si todavía está al día o nunca tuvo una fecha de pago,
+        devuelve 0.
+        """
+
+        if not self.pagado_hasta:
+            return 0
+
+        hoy = timezone.localdate()
+
+        if self.pagado_hasta >= hoy:
+            return 0
+
+        return (
+            hoy
+            - self.pagado_hasta
+        ).days
+
+    @property
+    def en_periodo_gracia_pago(self):
+        """
+        Indica si la suscripción está vencida,
+        pero todavía se encuentra dentro de los
+        7 días de gracia.
+
+        Día 1 al día 7:
+        True
+
+        Día 8 en adelante:
+        False
+        """
+
+        return (
+            self.estado_pago_actual
+            == self.EstadoPago.VENCIDO
+            and self.dias_vencido
+            <= self.DIAS_GRACIA_PAGO
+        )
+
+    @property
+    def dias_hasta_bloqueo(self):
+        """
+        Devuelve cuántos días faltan para que corresponda
+        bloquear el club.
+
+        Solo tiene valor mientras el club está dentro
+        del período de gracia.
+
+        Ejemplo:
+        Día 1 vencido -> 7 días hasta el bloqueo.
+        Día 7 vencido -> 1 día hasta el bloqueo.
+        Día 8 vencido -> 0.
+        """
+
+        if not self.en_periodo_gracia_pago:
+            return 0
+
+        return max(
+            (
+                self.DIAS_GRACIA_PAGO
+                + 1
+                - self.dias_vencido
+            ),
+            0,
+        )
+
+    @property
+    def suscripcion_bloqueada(self):
+        """
+        Indica si el club ya superó el período
+        de gracia y corresponde bloquear su operación.
+
+        Por ahora esta propiedad solamente calcula
+        el estado. No bloquea ninguna vista por sí sola.
+        """
+
+        return (
+            self.estado_pago_actual
+            == self.EstadoPago.VENCIDO
+            and self.dias_vencido
+            > self.DIAS_GRACIA_PAGO
+        )
 
     def get_estado_pago_actual_display(self):
         """

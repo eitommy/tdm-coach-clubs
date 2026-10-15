@@ -3745,7 +3745,7 @@ def editar_jugador(request, pk):
     )
 
 
-@requerir_admin_club
+@requerir_club
 def lista_categorias_jugador(request):
     club = obtener_club_usuario(request.user)
 
@@ -3799,7 +3799,7 @@ def lista_categorias_jugador(request):
     )
 
 
-@requerir_admin_club
+@requerir_club
 @require_POST
 def mover_categoria_jugador(
     request,
@@ -3900,7 +3900,7 @@ def mover_categoria_jugador(
     )
 
 
-@requerir_admin_club
+@requerir_club
 def crear_categoria_jugador(request):
     club = obtener_club_usuario(request.user)
 
@@ -3939,7 +3939,7 @@ def crear_categoria_jugador(request):
     )
 
 
-@requerir_admin_club
+@requerir_club
 def editar_categoria_jugador(request, pk):
     club = obtener_club_usuario(request.user)
 

@@ -289,10 +289,10 @@ class MatrizPermisosRolesTests(TestCase):
                 )
 
     # ============================================================
-    # CATEGORÍAS DE JUGADOR - SOLO ADMIN
+    # CATEGORÍAS DE JUGADOR - ADMIN Y ENTRENADOR
     # ============================================================
 
-    def test_entrenador_no_puede_administrar_categorias_jugador(self):
+    def test_entrenador_puede_administrar_categorias_jugador(self):
         self._login_entrenador()
 
         rutas = [
@@ -317,10 +317,10 @@ class MatrizPermisosRolesTests(TestCase):
 
                 self.assertEqual(
                     response.status_code,
-                    403,
+                    200,
                     msg=(
-                        f'El entrenador accedió a "{nombre_url}" '
-                        f"con status {response.status_code}."
+                        f'El entrenador no pudo acceder a "{nombre_url}". '
+                        f"Status: {response.status_code}."
                     ),
                 )
 
@@ -336,7 +336,7 @@ class MatrizPermisosRolesTests(TestCase):
 
         self.assertEqual(
             response.status_code,
-            403,
+            302,
         )
 
     def test_admin_puede_ver_categorias_jugador(self):
