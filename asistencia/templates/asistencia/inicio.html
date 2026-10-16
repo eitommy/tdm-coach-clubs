@@ -112,6 +112,14 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
         .tdm-turno-actions .btn {
             width: 100%;
         }
+
+        .tdm-month-stat {
+            padding: .85rem !important;
+        }
+
+        .tdm-month-stat .fs-4 {
+            font-size: 1.35rem !important;
+        }
     }
 </style>
 
@@ -628,17 +636,17 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
                     </div>
 
                     <div class="small text-muted mt-1">
-    {{ presentes_mes }} presente{% if presentes_mes != 1 %}s{% endif %}
-    ·
-    {{ ausentes_mes }} ausente{% if ausentes_mes != 1 %}s{% endif %}
-</div>
+                        {{ presentes_mes }} presente{% if presentes_mes != 1 %}s{% endif %}
+                        ·
+                        {{ ausentes_mes }} ausente{% if ausentes_mes != 1 %}s{% endif %}
+                    </div>
 
                 </div>
 
             </div>
 
 
-            <div class="col-12 col-md-6 col-xl-3">
+            <div class="col-6 col-md-6 col-xl-3">
 
                 <div class="border rounded-3 p-3 h-100 bg-light tdm-month-stat">
 
@@ -659,7 +667,7 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
             </div>
 
 
-            <div class="col-12 col-md-6 col-xl-3">
+            <div class="col-6 col-md-6 col-xl-3">
 
                 <div class="border rounded-3 p-3 h-100 bg-light tdm-month-stat">
 
@@ -680,7 +688,7 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
             </div>
 
 
-            <div class="col-12 col-md-6 col-xl-3">
+            <div class="col-6 col-md-6 col-xl-3">
 
                 <div class="border rounded-3 p-3 h-100 bg-light tdm-month-stat">
 
@@ -701,7 +709,7 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
             </div>
 
 
-            <div class="col-12 col-md-6 col-xl-4">
+            <div class="col-6 col-md-6 col-xl-4">
 
                 <div class="border rounded-3 p-3 h-100 bg-light tdm-month-stat">
 
@@ -722,7 +730,7 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
             </div>
 
 
-            <div class="col-12 col-md-6 col-xl-4">
+            <div class="col-6 col-md-6 col-xl-4">
 
                 <div class="border rounded-3 p-3 h-100 bg-light tdm-month-stat">
 
@@ -745,7 +753,7 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
 
             {% if es_admin_club %}
 
-                <div class="col-12 col-md-6 col-xl-4">
+                <div class="col-6 col-md-6 col-xl-4">
 
                     <div class="border rounded-3 p-3 h-100 bg-light tdm-month-stat">
 
@@ -767,7 +775,7 @@ Carga diaria · {{ club_actual.nombre|default:"TDM Coach" }}
 
             {% else %}
 
-                <div class="col-12 col-md-6 col-xl-4">
+                <div class="col-6 col-md-6 col-xl-4">
 
                     <div class="border rounded-3 p-3 h-100 bg-light tdm-month-stat">
 
